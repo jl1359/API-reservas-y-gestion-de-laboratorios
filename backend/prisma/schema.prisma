@@ -28,23 +28,23 @@ model Rol {
 }
 
 model Laboratorio {
-  id                   Int                     @id @default(autoincrement())
-  nombre               String                  @unique @db.VarChar(100)
-  capacidad            Int
-  estadoOperativo      String                  @default("Activo") @map("estado_operativo") @db.VarChar(20)
-  horarios             HorarioLaboratorio[]
-  equipamientos        LaboratorioEquipamiento[]
-  mantenimientos       Mantenimiento[]
-  reservas             Reserva[]
+  id              Int                       @id @default(autoincrement())
+  nombre          String                    @unique @db.VarChar(100)
+  capacidad       Int
+  estadoOperativo String                    @default("Activo") @map("estado_operativo") @db.VarChar(20)
+  horarios        HorarioLaboratorio[]
+  equipamientos   LaboratorioEquipamiento[]
+  mantenimientos  Mantenimiento[]
+  reservas        Reserva[]
 
   @@map("laboratorios")
 }
 
 model Equipamiento {
-  id            Int                       @id @default(autoincrement())
-  nombre        String                    @db.VarChar(150)
-  tipo          String                    @db.VarChar(50)
-  laboratorios  LaboratorioEquipamiento[]
+  id           Int                       @id @default(autoincrement())
+  nombre       String                    @db.VarChar(150)
+  tipo         String                    @db.VarChar(50)
+  laboratorios LaboratorioEquipamiento[]
 
   @@map("equipamientos")
 }
@@ -54,42 +54,42 @@ model Equipamiento {
 // ==========================================
 
 model Usuario {
-  id              Int              @id @default(autoincrement())
-  rolId           Int?             @map("rol_id")
-  carreraId       Int?             @map("carrera_id")
-  nombreCompleto  String           @map("nombre_completo") @db.VarChar(200)
-  correo          String           @unique @db.VarChar(150)
-  passwordHash    String           @map("password_hash") @db.VarChar(255)
-  activo          Boolean          @default(true)
+  id             Int             @id @default(autoincrement())
+  rolId          Int?            @map("rol_id")
+  carreraId      Int?            @map("carrera_id")
+  nombreCompleto String          @map("nombre_completo") @db.VarChar(200)
+  correo         String          @unique @db.VarChar(150)
+  passwordHash   String          @map("password_hash") @db.VarChar(255)
+  activo         Boolean         @default(true)
   
-  rol             Rol?             @relation(fields: [rolId], references: [id])
-  carrera         Carrera?         @relation(fields: [carreraId], references: [id])
-  solicitudesRol  SolicitudRol[]
-  auditorias      Auditoria[]
-  reservas        Reserva[]
-  notificaciones  Notificacion[]
+  rol            Rol?            @relation(fields: [rolId], references: [id])
+  carrera        Carrera?        @relation(fields: [carreraId], references: [id])
+  solicitudesRol SolicitudRol[]
+  auditorias     Auditoria[]
+  reservas       Reserva[]
+  notificaciones Notificacion[]
 
   @@map("usuarios")
 }
 
 model SolicitudRol {
-  id              Int      @id @default(autoincrement())
-  usuarioId       Int      @map("usuario_id")
-  rolSolicitado   String   @map("rol_solicitado") @db.VarChar(50)
-  estado          String   @default("Pendiente") @db.VarChar(30)
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int      @map("usuario_id")
+  rolSolicitado String   @map("rol_solicitado") @db.VarChar(50)
+  estado        String   @default("Pendiente") @db.VarChar(30)
 
-  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("solicitudes_rol")
 }
 
 model Auditoria {
-  id          Int       @id @default(autoincrement())
-  usuarioId   Int?      @map("usuario_id")
-  accion      String    @db.VarChar(255)
-  fechaHora   DateTime  @default(now()) @map("fecha_hora")
+  id        Int      @id @default(autoincrement())
+  usuarioId Int?     @map("usuario_id")
+  accion    String   @db.VarChar(255)
+  fechaHora DateTime @default(now()) @map("fecha_hora")
 
-  usuario     Usuario?  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 
   @@map("auditoria")
 }
@@ -103,7 +103,7 @@ model HorarioLaboratorio {
   laboratorioId Int         @map("laboratorio_id")
   dia           String      @db.VarChar(15)
   horaApertura  DateTime    @map("hora_apertura") @db.Time
-  horaCierre    DateTime    @map( "hora_cierre") @db.Time
+  horaCierre    DateTime    @map("hora_cierre") @db.Time
 
   laboratorio   Laboratorio @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
 
@@ -111,19 +111,19 @@ model HorarioLaboratorio {
 }
 
 model LaboratorioEquipamiento {
-  id              Int          @id @default(autoincrement())
-  laboratorioId   Int          @map("laboratorio_id")
-  equipamientoId  Int          @map("equipamiento_id")
-  cantidad        Int
+  id             Int          @id @default(autoincrement())
+  laboratorioId  Int          @map("laboratorio_id")
+  equipamientoId Int          @map("equipamiento_id")
+  cantidad       Int
 
-  laboratorio     Laboratorio  @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
-  equipamiento    Equipamiento @relation(fields: [equipamientoId], references: [id], onDelete: Cascade)
+  laboratorio    Laboratorio  @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
+  equipamiento   Equipamiento @relation(fields: [equipamientoId], references: [id], onDelete: Cascade)
 
   @@map("laboratorio_equipamiento")
 }
 
 model Mantenimiento {
-  id            Int         @id @default(autoincent()) @ignore // Nota: corregido abajo a autoincrement()
+  id            Int         @id @default(autoincrement())
   laboratorioId Int         @map("laboratorio_id")
   fechaInicio   DateTime    @map("fecha_inicio")
   fechaFin      DateTime    @map("fecha_fin")
@@ -155,13 +155,13 @@ model Reserva {
 }
 
 model Notificacion {
-  id             Int      @id @default(autoincrement())
-  usuarioId      Int      @map("usuario_id")
-  mensaje        String   @db.Text
-  leido          Boolean  @default(false)
-  fechaCreacion  DateTime @default(now()) @map("fecha_creacion")
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int      @map("usuario_id")
+  mensaje       String   @db.Text
+  leido         Boolean  @default(false)
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
 
-  usuario        Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("notificaciones")
 }
