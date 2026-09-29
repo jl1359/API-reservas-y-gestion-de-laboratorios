@@ -1,4 +1,6 @@
 import express from 'express';
+import cors from 'cors';
+import authRoutes from './modules/auth/auth.routes';
 
 /**
  * ARCHIVO: app.ts
@@ -10,12 +12,14 @@ import express from 'express';
 const app = express();
 
 // Middlewares Globales
-app.use(express.json());
+app.use(cors()); // Permite que el Frontend (React) se comunique con este Backend
+app.use(express.json()); // Permite recibir datos en formato JSON desde Postman o React
 
-// Ejemplo de registro de rutas modulares (se implementarán después)
-// app.use('/api/auth', authRoutes);
-// app.use('/api/classrooms', classroomRoutes);
-// app.use('/api/laboratories', labRoutes);
-// app.use('/api/reservations', reservationRoutes);
+// ==========================================
+// REGISTRO DE RUTAS MODULARES
+// ==========================================
+app.use('/api/auth', authRoutes); // Conecta todas las rutas de auth (HU-01)
+
+app.use('/api/roles', require('./modules/roles/roles.routes').default);
 
 export default app;

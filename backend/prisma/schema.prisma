@@ -7,9 +7,164 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/**
- * ARCHIVO: schema.prisma
- * PROPÓSITO: Definir las tablas (Modelos) de la base de datos y sus relaciones.
- * Prisma leerá este archivo para crear las tablas en PostgreSQL 
- * y generar los tipos de TypeScript.
- */
+// =======================================================
+// 1. MODULO ACADEMICO Y ROLES
+// =======================================================
+
+model Carrera {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @db.VarChar(150)
+  usuarios Usuario[]
+
+  @@map("carreras")
+}
+
+model Rol {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @db.VarChar(50)
+  usuarios Usuario[]
+
+  @@map("roles")
+}
+
+// =======================================================
+// 2. MODULO DE USUARIOS Y SEGURIDAD
+// =======================================================
+
+model Usuario {
+  id             Int       @id @default(autoincrement())
+  rolId          Int       @map("rol_id")
+  carreraId      Int       @map("carrera_id")
+  nombreCompleto String    @map("nombre_completo") @db.VarChar(200)
+  correo         String    @unique @db.VarChar(150)
+  passwordHash   String    @map("password_hash") @db.VarChar(255)
+  activo         Boolean   @default(true)
+
+  rol            Rol       @relation(fields: [rolId], references: [id])
+  carrera        Carrera   @relation(fields: [carreraId], references: [id])
+  
+  solicitudes    SolicitudRol[]
+  auditorias     Auditoria[]
+  reservas       Reserva[]
+  notificaciones Notificacion[]
+
+  @@map("usuarios")
+}
+
+model SolicitudRol {
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int      @map("usuario_id")
+  rolSolicitado String   @map("rol_solicitado") @db.VarChar(50)
+  estado        String   @default("Pendiente") @db.VarChar(30)
+  
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("solicitudes_rol")
+}
+
+model Auditoria {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int?     @map("usuario_id")
+  accion      String   @db.VarChar(255)
+  fechaHora   DateTime @default(now()) @map("fecha_hora")
+
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("auditoria")
+}
+
+// =======================================================
+// 3. MODULO DE LABORATORIOS Y RECURSOS
+// =======================================================
+
+model Laboratorio {
+  id              Int      @id @default(autoincrement())
+  nombre          String   @unique @db.VarChar(100)
+  capacidad       Int
+  estadoOperativo String   @default("Activo") @map("estado_operativo") @db.VarChar(20)
+
+  horarios        HorarioLaboratorio[]
+  equipos         LaboratorioEquipamiento[]
+  mantenimientos  Mantenimiento[]
+  reservas        Reserva[]
+
+  @@map("laboratorios")
+}
+
+model HorarioLaboratorio {
+  id             Int      @id @default(autoincrement())
+  laboratorioId  Int      @map("laboratorio_id")
+  dia            String   @db.VarChar(15)
+  horaApertura   DateTime @db.Time() @map("hora_apertura")
+  horaCierre     DateTime @db.Time() @map("hora_cierre")
+
+  laboratorio    Laboratorio @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
+
+  @@map("horarios_laboratorio")
+}
+
+model Equipamiento {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @db.VarChar(150)
+  tipo        String   @db.VarChar(50)
+
+  laboratorios LaboratorioEquipamiento[]
+
+  @@map("equipamientos")
+}
+
+model LaboratorioEquipamiento {
+  id             Int      @id @default(autoincrement())
+  laboratorioId  Int      @map("laboratorio_id")
+  equipamientoId Int      @map("equipamiento_id")
+  cantidad       Int
+
+  laboratorio    Laboratorio  @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
+  equipamiento   Equipamiento @relation(fields: [equipamientoId], references: [id], onDelete: Cascade)
+
+  @@map("laboratorio_equipamiento")
+}
+
+model Mantenimiento {
+  id             Int      @id @default(autoincrement())
+  laboratorioId  Int      @map("laboratorio_id")
+  fechaInicio    DateTime @map("fecha_inicio")
+  fechaFin       DateTime @map("fecha_fin")
+  motivo         String   @db.Text
+
+  laboratorio    Laboratorio @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
+
+  @@map("mantenimientos")
+}
+
+// =======================================================
+// 4. MODULO DE RESERVAS Y COMUNICACION (CORE)
+// =======================================================
+
+model Reserva {
+  id             Int       @id @default(autoincrement())
+  usuarioId      Int       @map("usuario_id")
+  laboratorioId  Int       @map("laboratorio_id")
+  fechaInicio    DateTime  @map("fecha_inicio")
+  fechaFin       DateTime  @map("fecha_fin")
+  estado         String    @default("Pendiente") @db.VarChar(30)
+  tokenQr        String?   @unique @map("token_qr") @db.VarChar(255)
+  horaAsistencia DateTime? @map("hora_asistencia")
+
+  usuario        Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  laboratorio    Laboratorio @relation(fields: [laboratorioId], references: [id], onDelete: Restrict)
+
+  @@map("reservas")
+}
+
+model Notificacion {
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int      @map("usuario_id")
+  mensaje       String   @db.Text
+  leido         Boolean  @default(false)
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("notificaciones")
+}
