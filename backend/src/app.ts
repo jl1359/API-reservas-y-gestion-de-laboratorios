@@ -1,25 +1,23 @@
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
+import laboratoriosRoutes from './modules/laboratorios/laboratorios.routes';
 
 /**
  * ARCHIVO: app.ts
- * PROPÓSITO: Configurar la instancia de Express.
- * Aquí se añaden los middlewares globales (CORS, JSON Parser)
- * y se registran las rutas principales de cada módulo.
+ * PROPÓSITO: Configurar la aplicación de Express.
+ * Aquí se registran los middlewares y las rutas principales.
  */
 
 const app = express();
 
-// Middlewares Globales
-app.use(cors()); // Permite que el Frontend (React) se comunique con este Backend
-app.use(express.json()); // Permite recibir datos en formato JSON desde Postman o React
+// Middlewares globales
+app.use(cors());
+app.use(express.json());
 
-// ==========================================
-// REGISTRO DE RUTAS MODULARES
-// ==========================================
-app.use('/api/auth', authRoutes); // Conecta todas las rutas de auth (HU-01)
-
+// Rutas de la API
+app.use('/api/auth', authRoutes);
 app.use('/api/roles', require('./modules/roles/roles.routes').default);
+app.use('/api/laboratorios', laboratoriosRoutes);
 
 export default app;
