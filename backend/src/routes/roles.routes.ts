@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { solicitarRol, listarSolicitudes, gestionarSolicitud } from './roles.controller';
-import { verificarToken, esAdmin } from '../../middlewares/auth.middleware';
+import { solicitarRol, listarSolicitudes, gestionarSolicitud } from '../controllers/roles.controller';
+import { verificarToken, esAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { prisma } from '../../config/prisma';
-import { AuthRequest } from '../../middlewares/auth.middleware';
+import { prisma } from '../config/prisma';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 // [ESTUDIANTE] Solicitar un nuevo rol
 export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any> => {

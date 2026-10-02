@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../config/prisma';
+import { prisma } from '../config/prisma';
 
 export const register = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -102,7 +102,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 };
 
 
-import { enviarCorreoRecuperacion } from '../../utils/mailer';
+import { enviarCorreoRecuperacion } from '../helpers/mailer';
 
 export const forgotPassword = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -194,5 +194,23 @@ export const loginConGoogle = async (req: Request, res: Response): Promise<any> 
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Error al autenticar con Google' });
+  }
+};
+
+
+export const desactivarCuenta = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const usuarioId = (req as any).user?.id;
+    if (!usuarioId) return res.status(401).json({ error: 'No autenticado' });
+
+    await prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { activo: false }
+    });
+
+    return res.json({ mensaje: 'Cuenta eliminada (desactivada) exitosamente' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Error al desactivar la cuenta' });
   }
 };
