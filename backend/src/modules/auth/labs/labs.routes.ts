@@ -1,12 +1,17 @@
-// RUTAS
 import { Router } from 'express';
-import { createLabHandler } from './labs.controller';
+import {
+  crearControladorLab, obtenerControladorLabs, obtenerControladorLabPorId,
+  actualizarControladorLab, eliminarControladorLab,
+} from './labs.controller';
 import { validate } from '../../../middlewares/validate';
-import { createLabSchema } from './labs.schema';
+import { crearEsquemaLab, actualizarEsquemaLab } from './labs.schema';
 
 const router = Router();
 
-// POST /api/labs
-router.post('/', validate(createLabSchema), createLabHandler);
+router.post('/', validate(crearEsquemaLab), crearControladorLab);
+router.get('/', obtenerControladorLabs);
+router.get('/:id', obtenerControladorLabPorId);
+router.put('/:id', validate(actualizarEsquemaLab), actualizarControladorLab);
+router.delete('/:id', eliminarControladorLab);
 
 export default router;
