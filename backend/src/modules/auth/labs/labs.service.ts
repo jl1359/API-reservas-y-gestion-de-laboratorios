@@ -1,5 +1,5 @@
 // PARTE LOGICA DEL SERVICIO DE INTERACCION CON EL PRISMA
-import { prisma } from '../../config/database';
+import { prisma } from '../../../config/database';
 import { CreateLabInput } from './labs.schema';
 
 export async function createLab(data: CreateLabInput) {
