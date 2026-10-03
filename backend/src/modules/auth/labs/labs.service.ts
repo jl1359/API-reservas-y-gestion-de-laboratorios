@@ -1,15 +1,37 @@
-// PARTE LOGICA DEL SERVICIO DE INTERACCION CON EL PRISMA
 import { prisma } from '../../../config/database';
-import { CrearLabInput } from './labs.schema';
+import { CrearLabInput, ActualizarLabInput } from './labs.schema';
 
 export async function crearLab(data: CrearLabInput) {
-  const lab = await prisma.laboratorio.create({
+  return prisma.laboratorio.create({
     data: {
-      nombre: data.name,            // Se mapea a la columna 'nombre'
-      capacidad: data.capacity,     // Se mapea a la columna 'capacidad'
-      estadoOperativo: data.status, // Se mapea a la columna 'estado_operativo'
+      nombre: data.name,
+      capacidad: data.capacity,
+      ubicacion: data.location,
+      estadoOperativo: data.status,
     },
   });
+}
 
-  return lab;
+export async function obtenerLabs() {
+  return prisma.laboratorio.findMany({ orderBy: { id: 'asc' } });
+}
+
+export async function obtenerLabPorId(id: number) {
+  return prisma.laboratorio.findUnique({ where: { id } });
+}
+
+export async function actualizarLab(id: number, data: ActualizarLabInput) {
+  return prisma.laboratorio.update({
+    where: { id },
+    data: {
+      nombre: data.name,
+      capacidad: data.capacity,
+      ubicacion: data.location,
+      estadoOperativo: data.status,
+    },
+  });
+}
+
+export async function eliminarLab(id: number) {
+  return prisma.laboratorio.delete({ where: { id } });
 }

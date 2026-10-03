@@ -27,6 +27,7 @@ model Laboratorio {
   id              Int                       @id @default(autoincrement())
   nombre          String                    @unique @db.VarChar(100)
   capacidad       Int
+  ubicacion       String?                   @db.VarChar(150)
   estadoOperativo String?                   @default("Activo") @map("estado_operativo") @db.VarChar(20)
   horarios        HorarioLaboratorio[]
   equipamientos   LaboratorioEquipamiento[]
