@@ -12,9 +12,10 @@ datasource db {
 // =======================================================
 
 model Carrera {
-  id       Int       @id @default(autoincrement())
-  nombre   String    @db.VarChar(150)
-  usuarios Usuario[]
+  id           Int           @id @default(autoincrement())
+  nombre       String        @db.VarChar(150)
+  usuarios     Usuario[]
+  laboratorios Laboratorio[]
 
   @@map("carreras")
 }
@@ -38,6 +39,7 @@ model Usuario {
   nombreCompleto String    @map("nombre_completo") @db.VarChar(200)
   correo         String    @unique @db.VarChar(150)
   passwordHash   String    @map("password_hash") @db.VarChar(255)
+  telefono       String?   @db.VarChar(20)
   activo         Boolean   @default(true)
 
   rol            Rol       @relation(fields: [rolId], references: [id])
@@ -78,15 +80,20 @@ model Auditoria {
 // =======================================================
 
 model Laboratorio {
-  id              Int      @id @default(autoincrement())
-  nombre          String   @unique @db.VarChar(100)
-  capacidad       Int
-  estadoOperativo String   @default("Activo") @map("estado_operativo") @db.VarChar(20)
+  id                    Int      @id @default(autoincrement())
+  carreraId             Int?     @map("carrera_id")
+  nombre                String   @unique @db.VarChar(100)
+  capacidad             Int
+  ubicacion             String?  @db.VarChar(255)
+  imagenUrl             String?  @map("imagen_url") @db.VarChar(255)
+  reservaPorComputadora Boolean  @default(false) @map("reserva_por_computadora")
+  estadoOperativo       String   @default("Activo") @map("estado_operativo") @db.VarChar(20)
 
-  horarios        HorarioLaboratorio[]
-  equipos         LaboratorioEquipamiento[]
-  mantenimientos  Mantenimiento[]
-  reservas        Reserva[]
+  carrera               Carrera? @relation(fields: [carreraId], references: [id], onDelete: SetNull)
+  horarios              HorarioLaboratorio[]
+  equipos               LaboratorioEquipamiento[]
+  mantenimientos        Mantenimiento[]
+  reservas              Reserva[]
 
   @@map("laboratorios")
 }
@@ -142,17 +149,21 @@ model Mantenimiento {
 // =======================================================
 
 model Reserva {
-  id             Int       @id @default(autoincrement())
-  usuarioId      Int       @map("usuario_id")
-  laboratorioId  Int       @map("laboratorio_id")
-  fechaInicio    DateTime  @map("fecha_inicio")
-  fechaFin       DateTime  @map("fecha_fin")
-  estado         String    @default("Pendiente") @db.VarChar(30)
-  tokenQr        String?   @unique @map("token_qr") @db.VarChar(255)
-  horaAsistencia DateTime? @map("hora_asistencia")
+  id                Int       @id @default(autoincrement())
+  usuarioId         Int       @map("usuario_id")
+  laboratorioId     Int       @map("laboratorio_id")
+  fechaInicio       DateTime  @map("fecha_inicio")
+  fechaFin          DateTime  @map("fecha_fin")
+  motivo            String?   @db.VarChar(255)
+  materia           String?   @db.VarChar(150)
+  cantidadAlumnos   Int?      @map("cantidad_alumnos")
+  numeroComputadora Int?      @map("numero_computadora")
+  estado            String    @default("Pendiente") @db.VarChar(30)
+  tokenQr           String?   @unique @map("token_qr") @db.VarChar(255)
+  horaAsistencia    DateTime? @map("hora_asistencia")
 
-  usuario        Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
-  laboratorio    Laboratorio @relation(fields: [laboratorioId], references: [id], onDelete: Restrict)
+  usuario           Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  laboratorio       Laboratorio @relation(fields: [laboratorioId], references: [id], onDelete: Restrict)
 
   @@map("reservas")
 }

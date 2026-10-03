@@ -21,5 +21,6 @@ app.use(express.json()); // Permite recibir datos en formato JSON desde Postman 
 app.use('/api/auth', authRoutes); // Conecta todas las rutas de auth (HU-01)
 
 app.use('/api/roles', require('./routes/roles.routes').default);
+app.use('/api/laboratorios', require('./routes/laboratorios.routes').default);
 
 export default app;
