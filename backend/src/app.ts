@@ -1,4 +1,6 @@
 import express from 'express';
+import cors from 'cors';
+import laboratorioRoutes from './modules/laboratorios/laboratorio.routes';
 
 /**
  * ARCHIVO: app.ts
@@ -10,6 +12,7 @@ import express from 'express';
 const app = express();
 
 // Middlewares Globales
+app.use(cors());
 app.use(express.json());
 
 // Ejemplo de registro de rutas modulares (se implementarán después)
@@ -17,5 +20,9 @@ app.use(express.json());
 // app.use('/api/classrooms', classroomRoutes);
 // app.use('/api/laboratories', labRoutes);
 // app.use('/api/reservations', reservationRoutes);
+// ==========================================
+// REGISTRO DE RUTAS MODULARES
+// ==========================================
+app.use('/api/laboratorios', laboratorioRoutes);
 
 export default app;
