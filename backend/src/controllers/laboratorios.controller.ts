@@ -95,3 +95,98 @@ export const listarLaboratorios = async (
     });
   }
 };
+
+// =========================================================================
+// INTEGRACIÓN HU-05 (HERLAN): CREACIÓN Y GESTIÓN CRUD DE LABORATORIOS
+// =========================================================================
+
+const manejarErrorPrisma = (error: any, res: Response, mensajeBase: string) => {
+  if (error.code === 'P2002') {
+    return res.status(409).json({ success: false, message: 'Ya existe un laboratorio con ese nombre' });
+  }
+  if (error.code === 'P2025') {
+    return res.status(404).json({ success: false, message: 'Laboratorio no encontrado' });
+  }
+  if (error.code === 'P2003') {
+    return res.status(409).json({ success: false, message: 'No se puede eliminar: el laboratorio tiene reservas o dependencias asociadas' });
+  }
+  return res.status(500).json({ success: false, message: mensajeBase, error: error.message });
+};
+
+export const crearLaboratorio = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { nombre, capacidad, ubicacion, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora } = req.body;
+    const nuevoLab = await prisma.laboratorio.create({
+      data: {
+        nombre,
+        capacidad: Number(capacidad),
+        ubicacion,
+        estadoOperativo: estadoOperativo || 'Activo',
+        carreraId: carreraId ? Number(carreraId) : null,
+        imagenUrl,
+        reservaPorComputadora: reservaPorComputadora || false,
+      },
+    });
+    return res.status(201).json({ success: true, message: 'Laboratorio creado exitosamente', data: nuevoLab });
+  } catch (error: any) {
+    return manejarErrorPrisma(error, res, 'Error al crear el laboratorio');
+  }
+};
+
+export const obtenerLaboratorioPorId = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'ID invalido' });
+    
+    const lab = await prisma.laboratorio.findUnique({
+      where: { id },
+      include: { carrera: true, equipos: { include: { equipamiento: true } } }
+    });
+    if (!lab) return res.status(404).json({ success: false, message: 'Laboratorio no encontrado' });
+    
+    return res.json({ success: true, data: lab });
+  } catch (error: any) {
+    return manejarErrorPrisma(error, res, 'Error al obtener el laboratorio');
+  }
+};
+
+export const actualizarLaboratorio = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'ID invalido' });
+    
+    const { nombre, capacidad, ubicacion, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora } = req.body;
+    const lab = await prisma.laboratorio.update({
+      where: { id },
+      data: {
+        ...(nombre && { nombre }),
+        ...(capacidad && { capacidad: Number(capacidad) }),
+        ...(ubicacion !== undefined && { ubicacion }),
+        ...(estadoOperativo && { estadoOperativo }),
+        ...(carreraId !== undefined && { carreraId: carreraId ? Number(carreraId) : null }),
+        ...(imagenUrl !== undefined && { imagenUrl }),
+        ...(reservaPorComputadora !== undefined && { reservaPorComputadora }),
+      },
+    });
+    return res.json({ success: true, message: 'Laboratorio actualizado', data: lab });
+  } catch (error: any) {
+    return manejarErrorPrisma(error, res, 'Error al actualizar el laboratorio');
+  }
+};
+
+export const eliminarLaboratorio = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'ID invalido' });
+    
+    // BAJA LÓGICA: En lugar de hacer un delete físico, actualizamos el estado para no romper el historial de reservas.
+    await prisma.laboratorio.update({ 
+      where: { id },
+      data: { estadoOperativo: 'Clausurado' } 
+    });
+    
+    return res.json({ success: true, message: 'Laboratorio clausurado (baja lógica) exitosamente' });
+  } catch (error: any) {
+    return manejarErrorPrisma(error, res, 'Error al clausurar el laboratorio');
+  }
+};
