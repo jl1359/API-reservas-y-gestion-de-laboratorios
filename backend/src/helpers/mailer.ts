@@ -1,37 +1,41 @@
-import nodemailer from 'nodemailer';
+﻿import nodemailer from "nodemailer";
 
-// Configuración básica de nodemailer (Ideal usar variables de entorno)
-// Para pruebas puedes usar cuentas como Ethereal o Gmail con "App Passwords"
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // O el proveedor que uses
+  service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER || 'tu_correo@gmail.com',
-    pass: process.env.EMAIL_PASS || 'tu_contraseña_de_aplicacion',
+    user: process.env.EMAIL_USER || "tu_correo@gmail.com",
+    pass: process.env.EMAIL_PASS || "tu_contraseña_de_aplicacion",
   },
 });
 
 export const enviarCorreoRecuperacion = async (correo: string, resetToken: string) => {
-  // En frontend la URL será algo como: http://localhost:5173/reset-password?token=XYZ
-  const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
-
+  const resetLink = "http://localhost:5173/reset-password?token=" + resetToken;
   const mailOptions = {
-    from: '"Sistema de Laboratorios UMSS" <no-reply@umss.edu>',
+    from: "\"Sistema de Laboratorios UMSS\" <no-reply@umss.edu>",
     to: correo,
-    subject: 'Recuperación de Contraseña',
-    html: `
-      <h2>¿Olvidaste tu contraseña?</h2>
-      <p>Hemos recibido una solicitud para restablecer tu contraseña.</p>
-      <p>Haz clic en el siguiente enlace para crear una nueva:</p>
-      <a href="${resetLink}" style="padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Restablecer Contraseña</a>
-      <p>Si no solicitaste este cambio, ignora este correo.</p>
-    `,
+    subject: "Recuperación de Contraseña",
+    html: "<h2>¿Olvidaste tu contraseña?</h2><p>Haz clic en el siguiente enlace para crear una nueva:</p><a href=\"" + resetLink + "\" style=\"padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;\">Restablecer Contraseña</a>",
   };
-
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`Correo de recuperación enviado a ${correo}`);
+    console.log("Correo de recuperación enviado a " + correo);
   } catch (error) {
-    console.error('Error al enviar el correo:', error);
-    throw new Error('No se pudo enviar el correo');
+    throw new Error("No se pudo enviar el correo");
+  }
+};
+
+export const enviarCorreoActivacion = async (correo: string, tokenActivacion: string) => {
+  const activacionLink = "http://localhost:5173/verificar-correo?token=" + tokenActivacion;
+  const mailOptions = {
+    from: "\"Sistema de Laboratorios UMSS\" <no-reply@umss.edu>",
+    to: correo,
+    subject: "Confirma tu correo electronico - UMSS",
+    html: "<h2>¡Bienvenido al Sistema de Laboratorios UMSS!</h2><p>Para poder iniciar sesion y usar el sistema, necesitamos verificar que este correo te pertenece.</p><p>Haz clic en el siguiente enlace para activar tu cuenta:</p><a href=\"" + activacionLink + "\" style=\"padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;\">Activar mi Cuenta</a>",
+  };
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Correo de activacion enviado a " + correo);
+  } catch (error) {
+    throw new Error("No se pudo enviar el correo de activacion");
   }
 };

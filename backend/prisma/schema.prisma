@@ -33,14 +33,15 @@ model Rol {
 // =======================================================
 
 model Usuario {
-  id             Int       @id @default(autoincrement())
-  rolId          Int       @map("rol_id")
-  carreraId      Int       @map("carrera_id")
-  nombreCompleto String    @map("nombre_completo") @db.VarChar(200)
-  correo         String    @unique @db.VarChar(150)
-  passwordHash   String    @map("password_hash") @db.VarChar(255)
-  telefono       String?   @db.VarChar(20)
-  activo         Boolean   @default(true)
+  id                Int       @id @default(autoincrement())
+  rolId             Int       @map("rol_id")
+  carreraId         Int       @map("carrera_id")
+  nombreCompleto    String    @map("nombre_completo") @db.VarChar(200)
+  correo            String    @unique @db.VarChar(150)
+  passwordHash      String    @map("password_hash") @db.VarChar(255)
+  telefono          String?   @db.VarChar(20)
+  activo            Boolean   @default(true)
+  correoVerificado  Boolean   @default(false) @map("correo_verificado")
 
   rol            Rol       @relation(fields: [rolId], references: [id])
   carrera        Carrera   @relation(fields: [carreraId], references: [id])
