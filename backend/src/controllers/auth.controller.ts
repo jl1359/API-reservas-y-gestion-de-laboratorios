@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/prisma';
@@ -43,13 +43,13 @@ export const register = async (req: Request, res: Response): Promise<any> => {
 
     // Enviar el token de activación
     const activacionToken = jwt.sign({ id: nuevoUsuario.id }, process.env.JWT_SECRET || 'secreto_de_respaldo', { expiresIn: '1d' });
-    
+
     // Lo mandamos de manera asíncrona para no bloquear la respuesta
     enviarCorreoActivacion(nuevoUsuario.correo, activacionToken).catch(e => console.error(e));
 
-    return res.status(201).json({ 
-      mensaje: 'Usuario registrado exitosamente. Revisa tu correo electrónico para activar tu cuenta.', 
-      usuarioId: nuevoUsuario.id 
+    return res.status(201).json({
+      mensaje: 'Usuario registrado exitosamente. Revisa tu correo electrónico para activar tu cuenta.',
+      usuarioId: nuevoUsuario.id
     });
   } catch (error) {
     console.error(error);
@@ -61,12 +61,12 @@ export const verificarCorreo = async (req: Request, res: Response): Promise<any>
   try {
     const { token } = req.params;
     const decoded = jwt.verify(token as string, process.env.JWT_SECRET || 'secreto_de_respaldo') as any as { id: number };
-    
+
     await prisma.usuario.update({
       where: { id: decoded.id },
       data: { correoVerificado: true }
     });
-    
+
     return res.json({ mensaje: 'Cuenta activada correctamente. Ya puedes iniciar sesión.' });
   } catch (error) {
     return res.status(400).json({ error: 'Token de activación inválido o expirado' });
@@ -85,7 +85,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
     if (!passwordValida) return res.status(400).json({ error: 'Credenciales inválidas' });
 
     if (!usuario.activo) return res.status(403).json({ error: 'Tu cuenta está inactiva' });
-    
+
     // SEGURIDAD: Verificar que hayan confirmado su correo
     if (!usuario.correoVerificado) return res.status(403).json({ error: 'Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.' });
 
@@ -139,7 +139,7 @@ export const loginConGoogle = async (req: Request, res: Response): Promise<any> 
 
     const { email, name } = payload;
     if (!email) return res.status(400).json({ error: 'No se pudo obtener el correo' });
-    
+
     const correoNormalizado = email.toLowerCase().trim();
 
     let usuario = await prisma.usuario.findUnique({ where: { correo: correoNormalizado }, include: { rol: true } });
@@ -155,7 +155,7 @@ export const loginConGoogle = async (req: Request, res: Response): Promise<any> 
         data: {
           nombreCompleto: name || 'Usuario de Google',
           correo: correoNormalizado,
-          passwordHash: '', 
+          passwordHash: '',
           carreraId: carreraDummy.id,
           rolId: rolEstudiante.id,
           correoVerificado: true // Si entra con google, ya está verificado

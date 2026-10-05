@@ -21,3 +21,7 @@ build/
 logs
 *.log
 npm-debug.log*
+
+# Antigravity agent files
+.agents/
+skills-lock.json
