@@ -32,5 +32,8 @@
     "nodemailer": "^10.0.12",
     "prisma": "^5.10.0",
     "zod": "^4.5.4"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.cjs"
   }
 }

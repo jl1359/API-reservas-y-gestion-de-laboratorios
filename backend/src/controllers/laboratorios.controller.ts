@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 
@@ -12,9 +12,7 @@ export const listarLaboratorios = async (
 
     const carreraTexto = typeof carrera === 'string' ? carrera.trim() : '';
 
-    const filtros: Prisma.LaboratorioWhereInput = {
-      estadoOperativo: 'Activo',
-    };
+    const filtros: Prisma.LaboratorioWhereInput = {}; if (req.query.incluirTodos !== 'true') { filtros.estadoOperativo = 'Activo'; }
 
     if (capacidadRequerida !== undefined && capacidadRequerida !== '') {
       const capacidad = Number(capacidadRequerida);
@@ -116,6 +114,10 @@ const manejarErrorPrisma = (error: any, res: Response, mensajeBase: string) => {
 export const crearLaboratorio = async (req: Request, res: Response): Promise<any> => {
   try {
     const { nombre, capacidad, ubicacion, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora } = req.body;
+
+      if (Number(capacidad) <= 0) {
+        return res.status(400).json({ error: 'La capacidad debe ser un numero positivo mayor a cero' });
+      }
     const nuevoLab = await prisma.laboratorio.create({
       data: {
         nombre,
