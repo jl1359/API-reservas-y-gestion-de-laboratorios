@@ -51,6 +51,8 @@ model Usuario {
   reservas       Reserva[]
   notificaciones Notificacion[]
 
+  sanciones    Sancion[]
+
   @@map("usuarios")
 }
 
@@ -58,6 +60,7 @@ model SolicitudRol {
   id            Int      @id @default(autoincrement())
   usuarioId     Int      @map("usuario_id")
   rolSolicitado String   @map("rol_solicitado") @db.VarChar(50)
+  motivo        String?  @db.Text
   estado        String   @default("Pendiente") @db.VarChar(30)
   
   usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -151,7 +154,7 @@ model Mantenimiento {
 
 model Reserva {
   id                Int       @id @default(autoincrement())
-  usuarioId         Int       @map("usuario_id")
+  usuarioId         Int?      @map("usuario_id")
   laboratorioId     Int       @map("laboratorio_id")
   fechaInicio       DateTime  @map("fecha_inicio")
   fechaFin          DateTime  @map("fecha_fin")
@@ -163,8 +166,10 @@ model Reserva {
   tokenQr           String?   @unique @map("token_qr") @db.VarChar(255)
   horaAsistencia    DateTime? @map("hora_asistencia")
 
-  usuario           Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  usuario           Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   laboratorio       Laboratorio @relation(fields: [laboratorioId], references: [id], onDelete: Restrict)
+
+  sanciones         Sancion[]
 
   @@map("reservas")
 }
@@ -179,4 +184,32 @@ model Notificacion {
   usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("notificaciones")
+}
+
+// =======================================================
+// 5. MODULO DE CONTROL Y POLITICAS (NUEVO)
+// =======================================================
+
+model Sancion {
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int      @map("usuario_id")
+  reservaId     Int?     @map("reserva_id")
+  motivo        String   @db.VarChar(255)
+  fechaInicio   DateTime @default(now()) @map("fecha_inicio")
+  fechaFin      DateTime @map("fecha_fin")
+  estado        String   @default("Activa") @db.VarChar(30)
+
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  reserva       Reserva? @relation(fields: [reservaId], references: [id], onDelete: SetNull)
+
+  @@map("sanciones")
+}
+
+model Feriado {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime @db.Date
+  motivo        String   @db.VarChar(150)
+  bloqueoActivo Boolean  @default(true) @map("bloqueo_activo")
+
+  @@map("feriados")
 }
