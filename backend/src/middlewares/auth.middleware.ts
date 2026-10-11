@@ -14,7 +14,7 @@ export const verificarToken = (req: AuthRequest, res: Response, next: NextFuncti
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto_temporal') as { id: number; rol: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto_de_respaldo') as { id: number; rol: string };
     
     req.user = decoded;
     next();
