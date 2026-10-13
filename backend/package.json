@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "seed": "tsx prisma/seed.ts",
     "start": "node dist/server.js"
   },
   "keywords": [],
@@ -33,5 +32,8 @@
     "nodemailer": "^10.0.12",
     "prisma": "^5.10.0",
     "zod": "^4.5.4"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.cjs"
   }
 }

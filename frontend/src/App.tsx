@@ -1,27 +1,51 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProviders } from './app/providers';
-import { Layout } from './components/layout/Layout';
-import { CatalogoPage } from './features/catalogo/CatalogoPage';
-import { LoginPage } from './features/auth/LoginPage';
-import { RegisterPage } from './features/auth/RegisterPage';
-import { LaboratorioDetallePage } from './features/laboratorio/LaboratorioDetallePage';
+﻿import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Home from './pages/Home';
+import LabDetail from './pages/LabDetail';
+import AdminDashboard from './pages/AdminDashboard';
+import Perfil from './pages/Perfil';
+import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
+import { Toaster } from 'react-hot-toast';
 
-export function App() {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('userRole');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  if (role !== 'Admin') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
+function App() {
   return (
-    <AppProviders>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/catalogo" replace />} />
-            <Route path="catalogo" element={<CatalogoPage />} />
-            <Route path="laboratorios/:id" element={<LaboratorioDetallePage />} />
-            <Route path="login" element={<LoginPage />} />
-            <Route path="register" element={<RegisterPage />} />
-            <Route path="*" element={<Navigate to="/catalogo" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AppProviders>
+    <Router>
+      <Toaster position="top-right" />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/verificar-correo/:token" element={<VerifyEmail />} />
+        
+        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/laboratorio/:id" element={<ProtectedRoute><LabDetail /></ProtectedRoute>} />
+        <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+        
+        {/* Ruta protegida estrictamente para Administradores */}
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+      </Routes>
+    </Router>
   );
 }
 

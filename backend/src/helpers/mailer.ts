@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
 });
 
 export const enviarCorreoRecuperacion = async (correo: string, resetToken: string) => {
-  const resetLink = "http://localhost:5173/reset-password?token=" + resetToken;
+  const resetLink = "http://localhost:5173/reset-password/" + resetToken;
   const mailOptions = {
     from: "\"Sistema de Laboratorios UMSS\" <no-reply@umss.edu>",
     to: correo,
@@ -25,7 +25,7 @@ export const enviarCorreoRecuperacion = async (correo: string, resetToken: strin
 };
 
 export const enviarCorreoActivacion = async (correo: string, tokenActivacion: string) => {
-  const activacionLink = "http://localhost:5173/verificar-correo?token=" + tokenActivacion;
+  const activacionLink = "http://localhost:5173/verificar-correo/" + tokenActivacion;
   const mailOptions = {
     from: "\"Sistema de Laboratorios UMSS\" <no-reply@umss.edu>",
     to: correo,

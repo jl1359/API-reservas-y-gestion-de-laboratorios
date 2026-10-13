@@ -1,4 +1,4 @@
-import { Response } from 'express';
+﻿import { Response } from 'express';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
@@ -6,7 +6,11 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const usuarioId = req.user?.id;
-    const { rolSolicitado } = req.body; // Ej: "Docente" o "Auxiliar"
+    const { rolSolicitado, motivo } = req.body;
+
+    if (rolSolicitado === 'Admin') {
+      return res.status(403).json({ error: 'Brecha de seguridad detectada: No se puede solicitar permisos de Administrador' });
+    } // Ej: "Docente" o "Auxiliar"
 
     if (!usuarioId) {
       return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -32,6 +36,7 @@ export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any
       data: {
         usuarioId,
         rolSolicitado,
+        motivo,
         estado: 'Pendiente',
       },
     });
@@ -111,5 +116,21 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Error al gestionar la solicitud' });
+  }
+};
+
+
+export const listarRoles = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const roles = await prisma.rol.findMany({
+      where: {
+        nombre: {
+          notIn: ['Admin', 'Estudiante']
+        }
+      }
+    });
+    return res.json(roles);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al obtener los roles' });
   }
 };

@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 
@@ -12,9 +12,7 @@ export const listarLaboratorios = async (
 
     const carreraTexto = typeof carrera === 'string' ? carrera.trim() : '';
 
-    const filtros: Prisma.LaboratorioWhereInput = {
-      estadoOperativo: 'Activo',
-    };
+    const filtros: Prisma.LaboratorioWhereInput = {}; if (req.query.incluirTodos !== 'true') { filtros.estadoOperativo = 'Activo'; }
 
     if (capacidadRequerida !== undefined && capacidadRequerida !== '') {
       const capacidad = Number(capacidadRequerida);
@@ -54,7 +52,7 @@ export const listarLaboratorios = async (
       if (isNaN(fechaInicioReq.getTime()) || isNaN(fechaFinReq.getTime())) {
         return res.status(400).json({ error: 'Las fechas de disponibilidad no son validas. Usa formato ISO8601' });
       }
-
+      
       if (fechaInicioReq >= fechaFinReq) {
         return res.status(400).json({ error: 'La hora de inicio debe ser anterior a la hora de fin' });
       }
@@ -116,6 +114,10 @@ const manejarErrorPrisma = (error: any, res: Response, mensajeBase: string) => {
 export const crearLaboratorio = async (req: Request, res: Response): Promise<any> => {
   try {
     const { nombre, capacidad, ubicacion, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora } = req.body;
+
+      if (Number(capacidad) <= 0) {
+        return res.status(400).json({ error: 'La capacidad debe ser un numero positivo mayor a cero' });
+      }
     const nuevoLab = await prisma.laboratorio.create({
       data: {
         nombre,
@@ -137,13 +139,13 @@ export const obtenerLaboratorioPorId = async (req: Request, res: Response): Prom
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'ID invalido' });
-
+    
     const lab = await prisma.laboratorio.findUnique({
       where: { id },
       include: { carrera: true, equipos: { include: { equipamiento: true } } }
     });
     if (!lab) return res.status(404).json({ success: false, message: 'Laboratorio no encontrado' });
-
+    
     return res.json({ success: true, data: lab });
   } catch (error: any) {
     return manejarErrorPrisma(error, res, 'Error al obtener el laboratorio');
@@ -154,7 +156,7 @@ export const actualizarLaboratorio = async (req: Request, res: Response): Promis
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'ID invalido' });
-
+    
     const { nombre, capacidad, ubicacion, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora } = req.body;
     const lab = await prisma.laboratorio.update({
       where: { id },
@@ -178,13 +180,13 @@ export const eliminarLaboratorio = async (req: Request, res: Response): Promise<
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'ID invalido' });
-
+    
     // BAJA LÓGICA: En lugar de hacer un delete físico, actualizamos el estado para no romper el historial de reservas.
-    await prisma.laboratorio.update({
+    await prisma.laboratorio.update({ 
       where: { id },
-      data: { estadoOperativo: 'Clausurado' }
+      data: { estadoOperativo: 'Clausurado' } 
     });
-
+    
     return res.json({ success: true, message: 'Laboratorio clausurado (baja lógica) exitosamente' });
   } catch (error: any) {
     return manejarErrorPrisma(error, res, 'Error al clausurar el laboratorio');

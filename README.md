@@ -52,3 +52,5 @@ npm run dev
 
 - **/backend**: Contiene el código de la API estructurado por módulos (`auth`, `classrooms`, `reservations`, etc).
 - **/frontend**: Contiene la interfaz de usuario con React y Tailwind CSS v4.
+
+*¡Listo para programar!*
