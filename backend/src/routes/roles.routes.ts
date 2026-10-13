@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { solicitarRol, listarSolicitudes, gestionarSolicitud, listarRoles } from '../controllers/roles.controller';
 import { verificarToken, esAdmin } from '../middlewares/auth.middleware';
 
@@ -12,7 +12,7 @@ router.post('/request', verificarToken, solicitarRol);
 router.get('/requests', verificarToken, esAdmin, listarSolicitudes);
 router.put('/manage/:id', verificarToken, esAdmin, gestionarSolicitud);
 
-export default router;
-
 // Obtener roles disponibles para solicitar
 router.get('/', listarRoles);
+
+export default router;
