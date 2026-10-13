@@ -30,3 +30,12 @@ export const esAdmin = (req: AuthRequest, res: Response, next: NextFunction): vo
   }
   next();
 };
+
+export const esAdminOResponsable = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.user?.rol !== 'Admin' && req.user?.rol !== 'Responsable de Laboratorio') {
+    res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de Administrador o Responsable de Laboratorio' });
+    return;
+  }
+  next();
+};
+

@@ -1,9 +1,10 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, MapPin, Users, Monitor, Box, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Monitor, Box, Calendar as CalendarIcon, Clock, CheckCircle, CalendarPlus } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
+import SolicitudReservaModal from '../components/SolicitudReservaModal';
 
 interface Equipamiento {
   id: number;
@@ -41,30 +42,41 @@ export default function LabDetail() {
   const [lab, setLab] = useState<Laboratorio | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalReservaOpen, setIsModalReservaOpen] = useState(false);
+
+  const fetchReservas = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      const resCal = await axios.get(`http://localhost:3000/api/laboratorios/${id}/calendario`, { headers });
+      setReservas(resCal.data.reservas || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Obtener detalles del laboratorio
+      const resLab = await axios.get(`http://localhost:3000/api/laboratorios/${id}`, { headers });
+      if (resLab.data.success) {
+        setLab(resLab.data.data);
+      }
+
+      // Obtener calendario/reservas
+      await fetchReservas();
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al cargar la información del laboratorio');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-
-        // Obtener detalles del laboratorio
-        const resLab = await axios.get(`http://localhost:3000/api/laboratorios/${id}`, { headers });
-        if (resLab.data.success) {
-          setLab(resLab.data.data);
-        }
-
-        // Obtener calendario/reservas
-        const resCal = await axios.get(`http://localhost:3000/api/laboratorios/${id}/calendario`, { headers });
-        setReservas(resCal.data.reservas || []);
-
-      } catch (error) {
-        console.error(error);
-        toast.error('Error al cargar la información del laboratorio');
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchData();
   }, [id]);
 
@@ -178,6 +190,25 @@ export default function LabDetail() {
                 <p className="text-slate-500 dark:text-slate-400 text-sm">No hay equipos registrados para este laboratorio.</p>
               )}
             </div>
+
+            {/* Acción de Reserva HU-15 */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+              <h3 className="font-bold text-slate-900 dark:text-white mb-1.5 flex items-center">
+                <CalendarPlus className="w-4 h-4 mr-2 text-tech-blue" />
+                Reserva de Instalaciones
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Docentes y auxiliares pueden solicitar el uso exclusivo del laboratorio para sus materias.
+              </p>
+              <button
+                onClick={() => setIsModalReservaOpen(true)}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <CalendarPlus className="w-5 h-5" />
+                <span>Solicitar Reserva</span>
+              </button>
+            </div>
+
           </div>
 
           {/* Columna Derecha: Agenda / Reservas */}
@@ -239,6 +270,17 @@ export default function LabDetail() {
         </div>
 
       </div>
+
+      {/* Modal HU-15 */}
+      {lab && (
+        <SolicitudReservaModal
+          isOpen={isModalReservaOpen}
+          onClose={() => setIsModalReservaOpen(false)}
+          laboratorio={lab}
+          onReservaExitosa={fetchReservas}
+        />
+      )}
+
     </div>
   );
 }
