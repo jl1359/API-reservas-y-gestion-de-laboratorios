@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import rolesRoutes from './routes/roles.routes';
@@ -6,6 +6,7 @@ import laboratoriosRoutes from './routes/laboratorios.routes';
 import carrerasRoutes from './routes/carreras.routes';
 import equipamientoRoutes from './routes/equipamiento.routes';
 import horariosRoutes from './routes/horarios.routes';
+import reservasRoutes from './routes/reservas.routes';
 
 const app = express();
 
@@ -18,5 +19,6 @@ app.use('/api/laboratorios', laboratoriosRoutes);
 app.use('/api/carreras', carrerasRoutes);
 app.use('/api/laboratorios', horariosRoutes); 
 app.use('/api/equipamientos', equipamientoRoutes);
+app.use('/api/reservas', reservasRoutes);
 
 export default app;

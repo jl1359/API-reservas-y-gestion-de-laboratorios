@@ -1,16 +1,42 @@
-﻿import { useState, useEffect } from 'react';
-import { User, Shield, Key, Send, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Shield, Key, Send, AlertTriangle, Calendar, QrCode, Clock, MapPin, Monitor, CheckCircle, AlertCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import ModalQrReserva from '../components/ModalQrReserva';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
+interface Reserva {
+  id: number;
+  tokenQr?: string | null;
+  fechaInicio: string;
+  fechaFin: string;
+  motivo?: string | null;
+  materia?: string | null;
+  numeroComputadora?: number | null;
+  estado: string;
+  horaAsistencia?: string | null;
+  laboratorio: {
+    nombre: string;
+    ubicacion?: string | null;
+    reservaPorComputadora?: boolean;
+  };
+}
+
 export default function Perfil() {
+  const [activeTab, setActiveTab] = useState<'reservas' | 'cuenta'>('reservas');
   const [usuario, setUsuario] = useState<any>(null);
   const [motivo, setMotivo] = useState('');
   const [roles, setRoles] = useState<any[]>([]);
   const [rolSeleccionado, setRolSeleccionado] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reservas
+  const [misReservas, setMisReservas] = useState<Reserva[]>([]);
+  const [isLoadingReservas, setIsLoadingReservas] = useState(true);
+  const [reservaSeleccionada, setReservaSeleccionada] = useState<Reserva | null>(null);
+  const [isModalQrOpen, setIsModalQrOpen] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,8 +55,33 @@ export default function Perfil() {
         console.error('Error al cargar roles', error);
       }
     };
+
+    // Cargar reservas del usuario (HU-22)
+    const fetchMisReservas = async () => {
+      try {
+        setIsLoadingReservas(true);
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:3000/api/reservas/mis-reservas', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success) {
+          setMisReservas(res.data.reservas || []);
+        }
+      } catch (error) {
+        console.error('Error al cargar mis reservas', error);
+      } finally {
+        setIsLoadingReservas(false);
+      }
+    };
+
     fetchRoles();
+    fetchMisReservas();
   }, []);
+
+  const abrirQr = (reserva: Reserva) => {
+    setReservaSeleccionada(reserva);
+    setIsModalQrOpen(true);
+  };
 
   const solicitarRol = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,31 +120,190 @@ export default function Perfil() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter transition-colors duration-200">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-poppins font-bold text-slate-900 dark:text-white mb-8">Mi Perfil</h1>
+
+      <div className="max-w-5xl mx-auto px-6 py-10">
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 text-center">
-              <div className="w-24 h-24 bg-tech-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-12 h-12 text-tech-blue" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Mi Cuenta</h2>
-              <span className="inline-block bg-umss-blue text-white px-3 py-1 rounded-full text-xs font-bold mb-4">
-                Rol: {usuario?.rol || 'Desconocido'}
+        {/* Cabecera del Perfil */}
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 mb-8">
+          <div className="w-20 h-20 bg-tech-blue/10 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <User className="w-10 h-10 text-tech-blue dark:text-blue-400" />
+          </div>
+          <div className="text-center sm:text-left flex-1">
+            <h1 className="text-2xl sm:text-3xl font-poppins font-bold text-slate-900 dark:text-white">
+              Panel de Usuario
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Administra tus reservas activas, códigos de acceso y credenciales de usuario.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
+              <span className="inline-block bg-umss-blue text-white px-3 py-1 rounded-full text-xs font-bold">
+                Rol: {usuario?.rol || 'Estudiante'}
               </span>
             </div>
           </div>
+        </div>
 
-          <div className="md:col-span-2 space-y-6">
+        {/* Selector de Pestañas */}
+        <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-700 mb-8">
+          <button
+            onClick={() => setActiveTab('reservas')}
+            className={`pb-4 px-4 font-bold text-sm sm:text-base border-b-2 transition-colors flex items-center space-x-2 ${
+              activeTab === 'reservas'
+                ? 'border-tech-blue text-tech-blue dark:text-blue-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>Mis Reservas ({misReservas.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('cuenta')}
+            className={`pb-4 px-4 font-bold text-sm sm:text-base border-b-2 transition-colors flex items-center space-x-2 ${
+              activeTab === 'cuenta'
+                ? 'border-tech-blue text-tech-blue dark:text-blue-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+            }`}
+          >
+            <Shield className="w-4 h-4" />
+            <span>Configuración de Cuenta</span>
+          </button>
+        </div>
+
+        {/* CONTENIDO PESTAÑA 1: MIS RESERVAS (HU-22) */}
+        {activeTab === 'reservas' && (
+          <div>
+            {isLoadingReservas ? (
+              <div className="text-center py-16">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-tech-blue mx-auto mb-4"></div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Cargando reservas...</p>
+              </div>
+            ) : misReservas.length === 0 ? (
+              <div className="bg-white dark:bg-slate-800 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-700">
+                <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Aún no tienes reservas registradas</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 max-w-md mx-auto">
+                  Explora el catálogo de laboratorios para agendar un aula o puesto de computadora.
+                </p>
+                <button
+                  onClick={() => navigate('/')}
+                  className="mt-6 bg-tech-blue hover:bg-blue-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all text-sm"
+                >
+                  Ver Catálogo de Laboratorios
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {misReservas.map((reserva) => {
+                  const inicio = new Date(reserva.fechaInicio);
+                  const fin = new Date(reserva.fechaFin);
+                  const esAprobada = reserva.estado === 'Aprobada';
+                  const yaAsistio = reserva.estado === 'Asistió';
+
+                  return (
+                    <div
+                      key={reserva.id}
+                      className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span
+                            className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                              esAprobada
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                : yaAsistio
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                : reserva.estado === 'Pendiente'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                                : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                            }`}
+                          >
+                            {reserva.estado}
+                          </span>
+
+                          {reserva.numeroComputadora && (
+                            <span className="text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 rounded-full flex items-center">
+                              <Monitor className="w-3 h-3 mr-1" /> PC #{reserva.numeroComputadora}
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="text-xl font-poppins font-bold text-slate-900 dark:text-white">
+                          {reserva.laboratorio.nombre}
+                        </h3>
+
+                        <div className="flex flex-wrap gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400 mt-2">
+                          {reserva.laboratorio.ubicacion && (
+                            <span className="flex items-center">
+                              <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                              {reserva.laboratorio.ubicacion}
+                            </span>
+                          )}
+                          <span className="flex items-center">
+                            <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                            {inicio.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' })}{' '}
+                            ({inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} -{' '}
+                            {fin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})
+                          </span>
+                        </div>
+
+                        {reserva.motivo && (
+                          <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 italic">
+                            Motivo: "{reserva.motivo}"
+                          </p>
+                        )}
+
+                        {yaAsistio && reserva.horaAsistencia && (
+                          <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-2 flex items-center">
+                            <CheckCircle className="w-3.5 h-3.5 mr-1" /> Asistencia registrada:{' '}
+                            {new Date(reserva.horaAsistencia).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Botón de QR o Estado */}
+                      <div className="flex-shrink-0 flex items-center justify-end">
+                        {esAprobada ? (
+                          <button
+                            onClick={() => abrirQr(reserva)}
+                            className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-tech-blue hover:bg-blue-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-md shadow-blue-500/20 transition-all text-sm"
+                          >
+                            <QrCode className="w-4 h-4" />
+                            <span>Ver Código QR</span>
+                          </button>
+                        ) : reserva.estado === 'Pendiente' ? (
+                          <div className="flex items-center text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-800">
+                            <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                            <span>El QR se habilitará al ser aprobada</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CONTENIDO PESTAÑA 2: CONFIGURACIÓN Y SEGURIDAD */}
+        {activeTab === 'cuenta' && (
+          <div className="space-y-6">
             {usuario?.rol === 'Estudiante' && (
               <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center"><Shield className="w-5 h-5 mr-2 text-tech-blue" /> Solicitar Permisos</h3>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
+                  <Shield className="w-5 h-5 mr-2 text-tech-blue" /> Solicitar Permisos
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                  Si eres Docente o Auxiliar, solicita el escalamiento de tu rol al Administrador.
+                </p>
                 <form onSubmit={solicitarRol}>
                   <div className="mb-4">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Rol Solicitado</label>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Rol Solicitado
+                    </label>
                     <select 
                       value={rolSeleccionado} 
                       onChange={(e) => setRolSeleccionado(e.target.value)}
@@ -104,8 +314,19 @@ export default function Perfil() {
                       ))}
                     </select>
                   </div>
-                  <textarea rows={3} required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Justifica por qué necesitas este rol..." className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none mb-4 resize-none"></textarea>
-                  <button type="submit" disabled={isSubmitting} className="bg-tech-blue hover:bg-blue-600 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-bold flex items-center">
+                  <textarea 
+                    rows={3} 
+                    required 
+                    value={motivo} 
+                    onChange={(e) => setMotivo(e.target.value)} 
+                    placeholder="Justifica por qué necesitas este rol..." 
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none mb-4 resize-none"
+                  ></textarea>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting} 
+                    className="bg-tech-blue hover:bg-blue-600 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-bold flex items-center"
+                  >
                     <Send className="w-4 h-4 mr-2" /> {isSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
                   </button>
                 </form>
@@ -113,18 +334,45 @@ export default function Perfil() {
             )}
 
             <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center"><Key className="w-5 h-5 mr-2 text-tech-blue" /> Seguridad</h3>
-              <button className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-6 py-2.5 rounded-xl font-bold">Cambiar Contraseña</button>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
+                <Key className="w-5 h-5 mr-2 text-tech-blue" /> Seguridad
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                Puedes cambiar tu contraseña mediante el enlace de restablecimiento seguro.
+              </p>
+              <button 
+                onClick={() => toast.success('Para cambiar tu contraseña, utiliza la opción "Olvidé mi contraseña" en la pantalla de inicio.')}
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-6 py-2.5 rounded-xl font-bold text-sm"
+              >
+                Cambiar Contraseña
+              </button>
             </div>
 
             <div className="bg-red-50 dark:bg-red-900/10 rounded-3xl p-8 shadow-sm border border-red-200 dark:border-red-900/30">
-              <h3 className="text-xl font-bold text-red-700 dark:text-red-400 mb-2 flex items-center"><AlertTriangle className="w-5 h-5 mr-2" /> Zona de Peligro</h3>
-              <p className="text-red-600 dark:text-red-300/80 text-sm mb-6">Acción irreversible.</p>
-              <button onClick={eliminarCuenta} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-bold">Eliminar mi cuenta</button>
+              <h3 className="text-xl font-bold text-red-700 dark:text-red-400 mb-2 flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-2" /> Zona de Peligro
+              </h3>
+              <p className="text-red-600 dark:text-red-300/80 text-sm mb-6">
+                Esta acción es irreversible y eliminará todos tus registros y accesos personales.
+              </p>
+              <button 
+                onClick={eliminarCuenta} 
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm"
+              >
+                Eliminar mi cuenta
+              </button>
             </div>
           </div>
-        </div>
+        )}
+
       </div>
+
+      {/* Modal QR Oficial de la Reserva (HU-22) */}
+      <ModalQrReserva
+        isOpen={isModalQrOpen}
+        onClose={() => setIsModalQrOpen(false)}
+        reserva={reservaSeleccionada}
+      />
     </div>
   );
 }

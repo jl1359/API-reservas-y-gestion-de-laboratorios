@@ -14,7 +14,7 @@ export const verificarToken = (req: AuthRequest, res: Response, next: NextFuncti
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto_temporal') as { id: number; rol: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto_de_respaldo') as { id: number; rol: string };
     
     req.user = decoded;
     next();
@@ -29,4 +29,16 @@ export const esAdmin = (req: AuthRequest, res: Response, next: NextFunction): vo
     return;
   }
   next();
+};
+
+export const permitirRoles = (...rolesPermitidos: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user || !rolesPermitidos.includes(req.user.rol)) {
+      res.status(403).json({
+        error: `Acceso denegado: Se requiere uno de los siguientes roles autorizados: ${rolesPermitidos.join(', ')}`
+      });
+      return;
+    }
+    next();
+  };
 };

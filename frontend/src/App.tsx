@@ -1,9 +1,10 @@
-﻿import React from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import LabDetail from './pages/LabDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import Perfil from './pages/Perfil';
+import EscanearQr from './pages/EscanearQr';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
@@ -29,6 +30,20 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Ruta protegida para personal de control de acceso físico (HU-23)
+const StaffRoute = ({ children }: { children: React.ReactNode }) => {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('userRole');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  const rolesAutorizados = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'];
+  if (!role || !rolesAutorizados.includes(role)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <Router>
@@ -42,6 +57,9 @@ function App() {
         <Route path="/laboratorio/:id" element={<ProtectedRoute><LabDetail /></ProtectedRoute>} />
         <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
         
+        {/* Ruta para escaneo de código QR (HU-23) */}
+        <Route path="/escanear-qr" element={<StaffRoute><EscanearQr /></StaffRoute>} />
+
         {/* Ruta protegida estrictamente para Administradores */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       </Routes>

@@ -1,12 +1,13 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogOut, Sun, Moon, Menu, X, Shield } from 'lucide-react';
+import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode } from 'lucide-react';
 import LogoIcon from './LogoIcon';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const isAuthenticated = !!localStorage.getItem('token');
   const userRole = localStorage.getItem('userRole');
+  const puedeEscanear = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole || '');
   
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -64,8 +65,24 @@ export default function Navbar() {
         {/* Desktop Menu */}
         {isAuthenticated && (
           <div className="hidden md:flex space-x-6 lg:space-x-8 items-center flex-1 justify-center">
-            <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-medium transition-colors">Inicio</Link>
-            <Link to="/perfil" className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-medium transition-colors">Mi Perfil</Link>
+            <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-medium transition-colors">
+              Inicio
+            </Link>
+            <Link to="/perfil" className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-medium transition-colors">
+              Mi Perfil
+            </Link>
+            
+            {/* Acceso directo a Escanear QR para personal autorizado (HU-23) */}
+            {puedeEscanear && (
+              <Link 
+                to="/escanear-qr" 
+                className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-semibold flex items-center space-x-1 transition-colors"
+              >
+                <QrCode className="w-4 h-4 text-tech-blue" />
+                <span>Escanear QR</span>
+              </Link>
+            )}
+
             {userRole === 'Admin' && (
               <Link to="/admin" className="text-tech-blue dark:text-blue-400 font-bold flex items-center">
                 <Shield className="w-4 h-4 mr-1" /> Panel Admin
@@ -113,12 +130,26 @@ export default function Navbar() {
       {/* Menú Móvil Desplegable */}
       {isMobileMenuOpen && isAuthenticated && (
         <div className="md:hidden pt-4 pb-2 border-t border-slate-100 dark:border-slate-800 mt-4 space-y-2">
-          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-medium">Inicio</Link>
-          <Link to="/perfil" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-medium">Mi Perfil</Link>
-          {userRole === 'Admin' && (
-            <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl">Panel Admin</Link>
+          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-medium">
+            Inicio
+          </Link>
+          <Link to="/perfil" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-medium">
+            Mi Perfil
+          </Link>
+          {puedeEscanear && (
+            <Link to="/escanear-qr" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2">
+              <QrCode className="w-4 h-4" />
+              <span>Escanear QR</span>
+            </Link>
           )}
-          <button onClick={handleLogout} className="w-full text-left mt-4 px-4 py-3 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold">Cerrar Sesión</button>
+          {userRole === 'Admin' && (
+            <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl">
+              Panel Admin
+            </Link>
+          )}
+          <button onClick={handleLogout} className="w-full text-left mt-4 px-4 py-3 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold">
+            Cerrar Sesión
+          </button>
         </div>
       )}
     </nav>
