@@ -1,4 +1,4 @@
-﻿const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
@@ -8,7 +8,7 @@ async function main() {
   // 1. Roles y Carreras (Obtener existentes)
   const roles = await prisma.rol.findMany();
   const getRolId = (nombre) => roles.find(r => r.nombre === nombre)?.id || 3;
-  
+
   let carrera = await prisma.carrera.findFirst();
   if (!carrera) {
     carrera = await prisma.carrera.create({ data: { nombre: 'Ingeniera de Sistemas' } });
@@ -99,7 +99,7 @@ async function main() {
   // 6. Reservas (10 Reservas Estratgicas)
   // Limpiamos reservas previas de prueba si existen
   await prisma.reserva.deleteMany({});
-  
+
   const ahora = new Date();
   const reservasData = [
     // Pasadas
@@ -115,8 +115,8 @@ async function main() {
     { usuarioId: usuariosCreados['estudiante1@umss.edu'].id, laboratorioId: labsCreados['Laboratorio de Cmputo 1'].id, fechaInicio: new Date(ahora.getTime() + 86400000 * 5), fechaFin: new Date(ahora.getTime() + 86400000 * 5 + 3600000), numeroComputadora: 10, estado: 'Pendiente', motivo: 'Investigacin' },
     { usuarioId: usuariosCreados['docente1@umss.edu'].id, laboratorioId: labsCreados['Laboratorio de Fsica'].id, fechaInicio: new Date(ahora.getTime() + 86400000 * 6), fechaFin: new Date(ahora.getTime() + 86400000 * 6 + 7200000), estado: 'Pendiente', motivo: 'Clase Recuperatoria' }
   ];
-  
-  for(const res of reservasData) {
+
+  for (const res of reservasData) {
     await prisma.reserva.create({ data: res });
   }
   console.log("10 Reservas generadas.");
