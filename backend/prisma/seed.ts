@@ -1,4 +1,4 @@
-﻿import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
@@ -12,9 +12,9 @@ async function main() {
       update: { nombre: nombreRol },
       create: { nombre: nombreRol },
     }).catch(async () => {
-        // Fallback en caso de que busque por ID y no coincida con un upsert de nombre, mejor buscar el primero o crear
-        const existe = await prisma.rol.findFirst({ where: { nombre: nombreRol }});
-        if (!existe) await prisma.rol.create({ data: { nombre: nombreRol }});
+      // Fallback en caso de que busque por ID y no coincida con un upsert de nombre, mejor buscar el primero o crear
+      const existe = await prisma.rol.findFirst({ where: { nombre: nombreRol } });
+      if (!existe) await prisma.rol.create({ data: { nombre: nombreRol } });
     });
   }
   console.log('✅ Roles base insertados.');
@@ -36,9 +36,9 @@ async function main() {
   ];
 
   for (const nombreCarrera of carrerasUMSS) {
-    const existe = await prisma.carrera.findFirst({ where: { nombre: nombreCarrera }});
+    const existe = await prisma.carrera.findFirst({ where: { nombre: nombreCarrera } });
     if (!existe) {
-      await prisma.carrera.create({ data: { nombre: nombreCarrera }});
+      await prisma.carrera.create({ data: { nombre: nombreCarrera } });
     }
   }
   console.log('✅ Carreras de la UMSS insertadas.');
@@ -52,7 +52,7 @@ async function main() {
   ];
 
   for (const eq of equipamientos) {
-    const existe = await prisma.equipamiento.findFirst({ where: { nombre: eq.nombre }});
+    const existe = await prisma.equipamiento.findFirst({ where: { nombre: eq.nombre } });
     if (!existe) {
       await prisma.equipamiento.create({ data: eq });
     }
