@@ -1,14 +1,30 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import {
   obtenerQrReserva,
   listarMisReservas,
   escanearQr,
   aprobarReserva,
-  listarTodasLasReservas
+  listarTodasLasReservas,
+  crearReservaIndividual
 } from '../controllers/reservas.controller';
-import { verificarToken, permitirRoles } from '../middlewares/auth.middleware';
+import { AuthRequest, verificarToken, permitirRoles } from '../middlewares/auth.middleware';
 
 const router = Router();
+
+// Middleware específico para reservas individuales de estudiantes (HU-28)
+const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.user?.rol !== 'Estudiante') {
+    res.status(403).json({ error: 'La reserva individual está disponible únicamente para estudiantes' });
+    return;
+  }
+  next();
+};
+
+// =========================================================================
+// HU-28: RESERVA INDIVIDUAL DE COMPUTADORA (MARCO)
+// Montado bajo /api/laboratorios/:id/reservas
+// =========================================================================
+router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndividual);
 
 // =========================================================================
 // HU-22: VER CÓDIGO QR DE RESERVA APROBADA

@@ -1,8 +1,9 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, MapPin, Users, Monitor, Box, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import ReservaComputadoraModal from '../components/ReservaComputadoraModal';
 import toast from 'react-hot-toast';
 
 interface Equipamiento {
@@ -41,6 +42,8 @@ export default function LabDetail() {
   const [lab, setLab] = useState<Laboratorio | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mostrarReserva, setMostrarReserva] = useState(false);
+  const [calendarioVersion, setCalendarioVersion] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,7 +69,7 @@ export default function LabDetail() {
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, calendarioVersion]);
 
   if (isLoading) {
     return (
@@ -90,6 +93,13 @@ export default function LabDetail() {
       </div>
     );
   }
+
+  const computadorasRegistradas = lab.equipos
+    .filter(({ equipamiento }) => equipamiento.nombre.toLocaleLowerCase().includes('computadora'))
+    .reduce((total, equipo) => total + equipo.cantidad, 0);
+  const cantidadComputadoras = computadorasRegistradas || lab.capacidad;
+  const puedeReservarComputadora =
+    lab.reservaPorComputadora && localStorage.getItem('userRole') === 'Estudiante';
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter transition-colors duration-200">
@@ -143,9 +153,15 @@ export default function LabDetail() {
               </div>
             </div>
 
-            <button className="w-full md:w-auto bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all shadow-blue-500/30">
-              Solicitar Reserva
-            </button>
+            {puedeReservarComputadora && (
+              <button
+                type="button"
+                onClick={() => setMostrarReserva(true)}
+                className="w-full md:w-auto bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all shadow-blue-500/30"
+              >
+                Reservar computadora
+              </button>
+            )}
           </div>
         </div>
 
@@ -239,6 +255,17 @@ export default function LabDetail() {
         </div>
 
       </div>
+
+      {puedeReservarComputadora && (
+        <ReservaComputadoraModal
+          abierto={mostrarReserva}
+          laboratorioId={lab.id}
+          laboratorioNombre={lab.nombre}
+          cantidadComputadoras={cantidadComputadoras}
+          onCerrar={() => setMostrarReserva(false)}
+          onReservaCreada={() => setCalendarioVersion(version => version + 1)}
+        />
+      )}
     </div>
   );
 }
