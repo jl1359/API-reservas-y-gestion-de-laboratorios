@@ -124,7 +124,7 @@ export default function AdminDashboard() {
         carreraId: formData.carreraId ? Number(formData.carreraId) : null,
         reservaPorComputadora: formData.reservaPorComputadora,
         estadoOperativo: formData.estadoOperativo,
-        imagenUrl: formData.imagenUrl.trim() || undefined
+        imagenUrl: formData.imagenUrl.trim() ? formData.imagenUrl.trim() : null
       };
 
       if (modalMode === 'crear') {
