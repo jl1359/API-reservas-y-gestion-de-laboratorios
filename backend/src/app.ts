@@ -18,6 +18,7 @@ app.use('/api/roles', rolesRoutes);
 app.use('/api/laboratorios', laboratoriosRoutes);
 app.use('/api/carreras', carrerasRoutes);
 app.use('/api/laboratorios', horariosRoutes); 
+app.use('/api/laboratorios', reservasRoutes);
 app.use('/api/equipamientos', equipamientoRoutes);
 app.use('/api/reservas', reservasRoutes);
 
