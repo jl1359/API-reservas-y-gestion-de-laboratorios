@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "migrate:concurrencia": "tsx prisma/apply_concurrency_constraint.ts",
+    "test:concurrencia": "node test_concurrencia_hu15.js"
   },
   "keywords": [],
   "author": "",

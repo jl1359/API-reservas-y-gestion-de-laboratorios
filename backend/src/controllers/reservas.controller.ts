@@ -1,10 +1,71 @@
 import { Response } from 'express';
 import crypto from 'crypto';
+import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
-// HU-15: Crear Solicitud de Reserva de Laboratorio
+// Esquema Zod de validación estricta para HU-15
+export const crearReservaSchema = z.object({
+  laboratorioId: z.coerce.number().int().positive('ID de laboratorio inválido'),
+  fechaInicio: z.string().min(1, 'fechaInicio es obligatoria'),
+  fechaFin: z.string().min(1, 'fechaFin es obligatoria'),
+  materia: z.string().min(1, 'El nombre de la materia es obligatorio').max(150),
+  cantidadAlumnos: z.coerce.number().int().positive('La cantidad de alumnos debe ser un número entero mayor a 0'),
+  motivo: z.string().optional(),
+  numeroComputadora: z.coerce.number().int().nonnegative().optional(),
+  recurrente: z.boolean().optional().default(false),
+  fechaFinSemestre: z.string().optional()
+});
+
+const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+
+function validarHorarioOperativo(horarios: any[], inicio: Date, fin: Date) {
+  if (!horarios || horarios.length === 0) return { valido: true };
+
+  const diaSemanaLocal = DIAS_SEMANA[inicio.getDay()];
+  const diaSemanaUTC = DIAS_SEMANA[inicio.getUTCDay()];
+
+  const horarioDia = horarios.find(h => {
+    const d = (h.dia || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const dLocal = diaSemanaLocal.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const dUTC = diaSemanaUTC.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    return d === dLocal || d === dUTC;
+  });
+
+  if (!horarioDia) {
+    return {
+      valido: false,
+      error: `El laboratorio no abre los días ${diaSemanaLocal}. Seleccione un día operativo.`
+    };
+  }
+
+  const apMins = horarioDia.horaApertura.getUTCHours() * 60 + horarioDia.horaApertura.getUTCMinutes();
+  const ciMins = horarioDia.horaCierre.getUTCHours() * 60 + horarioDia.horaCierre.getUTCMinutes();
+
+  if (apMins < ciMins) {
+    const localIniMins = inicio.getHours() * 60 + inicio.getMinutes();
+    const localFinMins = fin.getHours() * 60 + fin.getMinutes();
+    const utcIniMins = inicio.getUTCHours() * 60 + inicio.getUTCMinutes();
+    const utcFinMins = fin.getUTCHours() * 60 + fin.getUTCMinutes();
+
+    const cumpleLocal = localIniMins >= apMins && localFinMins <= ciMins;
+    const cumpleUTC = utcIniMins >= apMins && utcFinMins <= ciMins;
+
+    if (!cumpleLocal && !cumpleUTC) {
+      const apStr = `${String(Math.floor(apMins / 60)).padStart(2, '0')}:${String(apMins % 60).padStart(2, '0')}`;
+      const ciStr = `${String(Math.floor(ciMins / 60)).padStart(2, '0')}:${String(ciMins % 60).padStart(2, '0')}`;
+      return {
+        valido: false,
+        error: `El horario solicitado está fuera del rango operativo de ${horarioDia.dia} (${apStr} - ${ciStr}).`
+      };
+    }
+  }
+
+  return { valido: true };
+}
+
+// HU-15: Crear Solicitud de Reserva de Laboratorio (Motor de Concurrencia y Recurrencia)
 export const crearReserva = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const usuarioId = req.user?.id;
@@ -18,23 +79,31 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
     const rolesPermitidos = ['Docente', 'Auxiliar de Docencia', 'Admin', 'Responsable de Laboratorio'];
     if (!rolesPermitidos.includes(usuarioRol || '')) {
       return res.status(403).json({
-        error: 'Solo el personal docente, auxiliar o administrativo puede solicitar reservas de laboratorio completo'
+        error: 'Solo el personal docente, auxiliar o administrativo puede solicitar reservas de laboratorio'
       });
     }
 
-    const { laboratorioId, fechaInicio, fechaFin, materia, cantidadAlumnos, motivo } = req.body;
-
-    const labId = Number(laboratorioId);
-    if (!Number.isInteger(labId) || labId <= 0) {
-      return res.status(400).json({ error: 'ID de laboratorio inválido' });
+    // Validación de entrada con Zod
+    const parseResult = crearReservaSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      const primerError = parseResult.error.issues[0]?.message || 'Datos de reserva inválidos';
+      return res.status(400).json({ error: primerError, issues: parseResult.error.issues });
     }
 
-    if (!fechaInicio || !fechaFin) {
-      return res.status(400).json({ error: 'Debes proporcionar la fecha y hora de inicio y fin' });
-    }
+    const {
+      laboratorioId,
+      fechaInicio: fechaInicioRaw,
+      fechaFin: fechaFinRaw,
+      materia,
+      cantidadAlumnos,
+      motivo,
+      numeroComputadora,
+      recurrente,
+      fechaFinSemestre: fechaFinSemestreRaw
+    } = parseResult.data;
 
-    const inicio = new Date(fechaInicio);
-    const fin = new Date(fechaFin);
+    const inicio = new Date(fechaInicioRaw);
+    const fin = new Date(fechaFinRaw);
 
     if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
       return res.status(400).json({ error: 'Formato de fecha u hora no válido (use formato ISO8601)' });
@@ -49,18 +118,9 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
       return res.status(400).json({ error: 'La reserva debe programarse con fecha y hora futura' });
     }
 
-    if (!materia || typeof materia !== 'string' || materia.trim().length === 0) {
-      return res.status(400).json({ error: 'El nombre de la materia o asignatura es obligatorio' });
-    }
-
-    const alumnos = Number(cantidadAlumnos);
-    if (!Number.isInteger(alumnos) || alumnos <= 0) {
-      return res.status(400).json({ error: 'La cantidad de alumnos debe ser un número entero mayor a 0' });
-    }
-
-    // Verificar laboratorio
+    // Verificar laboratorio y horarios configurados
     const laboratorio = await prisma.laboratorio.findUnique({
-      where: { id: labId },
+      where: { id: laboratorioId },
       include: { horarios: true }
     });
 
@@ -72,91 +132,140 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
       return res.status(400).json({ error: `El laboratorio no se encuentra operativo (Estado: ${laboratorio.estadoOperativo})` });
     }
 
-    if (alumnos > laboratorio.capacidad) {
+    if (cantidadAlumnos > laboratorio.capacidad) {
       return res.status(400).json({
-        error: `La cantidad de alumnos (${alumnos}) supera la capacidad máxima del laboratorio (${laboratorio.capacidad})`
+        error: `La cantidad de alumnos (${cantidadAlumnos}) supera la capacidad máxima del laboratorio (${laboratorio.capacidad})`
       });
     }
 
-    // Validar feriados
-    const inicioDateOnly = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
-    const feriado = await prisma.feriado.findFirst({
-      where: {
-        fecha: inicioDateOnly,
-        bloqueoActivo: true
+    // Construcción de la lista de fechas (única o serie recurrente semestral)
+    const bloquesReserva: { inicio: Date; fin: Date }[] = [];
+
+    if (recurrente) {
+      if (!fechaFinSemestreRaw) {
+        return res.status(400).json({ error: 'Debes proporcionar la fecha de fin de semestre para reservas recurrentes' });
       }
-    });
+      const finSemestre = new Date(fechaFinSemestreRaw);
+      if (isNaN(finSemestre.getTime()) || finSemestre <= inicio) {
+        return res.status(400).json({ error: 'La fecha de fin de semestre debe ser posterior a la fecha de inicio' });
+      }
 
-    if (feriado) {
-      return res.status(400).json({
-        error: `No se pueden realizar reservas en días feriados: ${feriado.motivo}`
-      });
+      let curInicio = new Date(inicio.getTime());
+      let curFin = new Date(fin.getTime());
+
+      while (curInicio <= finSemestre) {
+        bloquesReserva.push({ inicio: new Date(curInicio), fin: new Date(curFin) });
+        curInicio = new Date(curInicio.getTime() + 7 * 24 * 60 * 60 * 1000);
+        curFin = new Date(curFin.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
+    } else {
+      bloquesReserva.push({ inicio, fin });
     }
 
-    // Ejecución transaccional serializable para evitar condiciones de carrera (HU-15)
+    // Validar horarios operativos y feriados para cada bloque
+    const feriados = await prisma.feriado.findMany({ where: { bloqueoActivo: true } });
+
+    for (const bloque of bloquesReserva) {
+      // 1. Validar horario operativo
+      const valHorario = validarHorarioOperativo(laboratorio.horarios, bloque.inicio, bloque.fin);
+      if (!valHorario.valido) {
+        return res.status(400).json({
+          error: valHorario.error,
+          fechaConflicto: bloque.inicio.toISOString()
+        });
+      }
+
+      // 2. Validar feriados
+      const fechaSoloDia = new Date(bloque.inicio.getFullYear(), bloque.inicio.getMonth(), bloque.inicio.getDate());
+      const feriadoCoincidente = feriados.find(f => {
+        const fDia = new Date(f.fecha.getFullYear(), f.fecha.getMonth(), f.fecha.getDate());
+        return fDia.getTime() === fechaSoloDia.getTime();
+      });
+
+      if (feriadoCoincidente) {
+        return res.status(409).json({
+          code: 'FERIADO_BLOQUEADO',
+          error: `No se puede reservar el ${bloque.inicio.toLocaleDateString()}: coincide con feriado (${feriadoCoincidente.motivo})`,
+          fechaConflicto: bloque.inicio.toISOString()
+        });
+      }
+    }
+
+    // Ejecución transaccional atómica serializable protegida por PostgreSQL EXCLUDE (HU-15)
     const resultado = await prisma.$transaction(async (tx) => {
-      // Búsqueda de solapamiento en estados activos (Pendiente o Aprobada)
-      const conflicto = await tx.reserva.findFirst({
-        where: {
-          laboratorioId: labId,
-          estado: { in: ['Pendiente', 'Aprobada', 'Confirmada'] },
-          fechaInicio: { lt: fin },
-          fechaFin: { gt: inicio }
-        },
-        include: {
-          usuario: { select: { nombreCompleto: true } }
-        }
-      });
+      const reservasCreadas = [];
+      const serieId = recurrente ? `SERIE-${Date.now()}` : undefined;
 
-      if (conflicto) {
-        throw new Error('CONFLICTO_HORARIO');
+      for (const bloque of bloquesReserva) {
+        // Doble verificación lógica previa a la inserción
+        const conflicto = await tx.reserva.findFirst({
+          where: {
+            laboratorioId,
+            numeroComputadora: numeroComputadora ? numeroComputadora : null,
+            estado: { in: ['Pendiente', 'Aprobada', 'Confirmada'] },
+            fechaInicio: { lt: bloque.fin },
+            fechaFin: { gt: bloque.inicio }
+          }
+        });
+
+        if (conflicto) {
+          throw new Error('CONFLICTO_HORARIO');
+        }
+
+        const nueva = await tx.reserva.create({
+          data: {
+            usuarioId,
+            laboratorioId,
+            fechaInicio: bloque.inicio,
+            fechaFin: bloque.fin,
+            materia: materia.trim(),
+            cantidadAlumnos,
+            numeroComputadora: numeroComputadora || null,
+            motivo: recurrente ? `[Serie: ${serieId}] ${motivo ? motivo.trim() : ''}`.trim() : (motivo ? motivo.trim() : null),
+            estado: 'Pendiente'
+          }
+        });
+
+        reservasCreadas.push(nueva);
       }
 
-      const nuevaReserva = await tx.reserva.create({
-        data: {
-          usuarioId,
-          laboratorioId: labId,
-          fechaInicio: inicio,
-          fechaFin: fin,
-          materia: materia.trim(),
-          cantidadAlumnos: alumnos,
-          motivo: motivo ? motivo.trim() : null,
-          estado: 'Pendiente'
-        },
-        include: {
-          laboratorio: { select: { nombre: true } }
-        }
-      });
-
-      // Crear notificación para administradores o responsables
+      // Crear notificación para el solicitante
       await tx.notificacion.create({
         data: {
           usuarioId,
-          mensaje: `Tu solicitud de reserva para ${nuevaReserva.laboratorio.nombre} (${materia}) fue enviada exitosamente y está pendiente de aprobación.`
+          mensaje: recurrente
+            ? `Tu serie semestral de ${reservasCreadas.length} reservas para ${laboratorio.nombre} (${materia}) fue solicitada exitosamente y está en revisión.`
+            : `Tu solicitud de reserva para ${laboratorio.nombre} (${materia}) fue enviada exitosamente y está pendiente de aprobación.`
         }
       }).catch(() => null);
 
-      return nuevaReserva;
+      return reservasCreadas;
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable
     });
 
     return res.status(201).json({
       success: true,
-      mensaje: 'Solicitud de reserva enviada exitosamente. El responsable revisará la solicitud.',
-      reserva: resultado
+      mensaje: recurrente
+        ? `Serie semestral de ${resultado.length} solicitudes de reserva registrada exitosamente.`
+        : 'Solicitud de reserva enviada exitosamente. El responsable revisará la solicitud.',
+      totalReservas: resultado.length,
+      reserva: resultado[0],
+      reservas: resultado
     });
 
   } catch (error: any) {
-    if (error.message === 'CONFLICTO_HORARIO') {
-      return res.status(409).json({
-        error: 'El horario solicitado entra en colisión con otra reserva activa o pendiente en este laboratorio.'
-      });
-    }
+    // Intercepción de conflicto de exclusión de PostgreSQL (23P01) o condición Serializable P2034
+    const esConflictoExclusion =
+      error.message?.includes('23P01') ||
+      error.message?.includes('reservas_sin_solapamiento') ||
+      error.message === 'CONFLICTO_HORARIO' ||
+      (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034');
 
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+    if (esConflictoExclusion) {
       return res.status(409).json({
-        error: 'Conflicto de concurrencia: el horario fue tomado por otra solicitud en este instante. Intenta nuevamente.'
+        code: 'RESERVA_SOLAPADA',
+        error: 'El horario solicitado entra en colisión con otra reserva activa o pendiente en este laboratorio.'
       });
     }
 
