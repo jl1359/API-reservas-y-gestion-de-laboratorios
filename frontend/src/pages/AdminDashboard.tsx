@@ -29,11 +29,15 @@ interface ReservaPendiente {
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'laboratorios' | 'solicitudes' | 'reservas'>('laboratorios');
+  const [activeTab, setActiveTab] = useState<'laboratorios' | 'solicitudes' | 'reservas' | 'feriados'>('laboratorios');
   const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([]);
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [reservasPendientes, setReservasPendientes] = useState<ReservaPendiente[]>([]);
+  const [feriadosList, setFeriadosList] = useState<{ id: number; fecha: string; motivo: string; bloqueoActivo: boolean }[]>([]);
+  const [isFeriadoModalOpen, setIsFeriadoModalOpen] = useState(false);
+  const [feriadoForm, setFeriadoForm] = useState({ fecha: '', motivo: '' });
+  const [isSubmittingFeriado, setIsSubmittingFeriado] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isRechazarModalOpen, setIsRechazarModalOpen] = useState(false);
@@ -93,6 +97,9 @@ export default function AdminDashboard() {
 
       const resReservas = await axios.get('http://localhost:3000/api/reservas/pendientes', { headers });
       setReservasPendientes(resReservas.data.data || []);
+
+      const resFeriados = await axios.get('http://localhost:3000/api/feriados');
+      setFeriadosList(resFeriados.data.data || []);
     } catch (error) {
       toast.error('Error al cargar datos');
     } finally {
@@ -255,6 +262,43 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCrearFeriado = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feriadoForm.fecha || !feriadoForm.motivo.trim()) {
+      return toast.error('La fecha y el motivo son obligatorios');
+    }
+
+    setIsSubmittingFeriado(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:3000/api/feriados', feriadoForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Feriado o día bloqueado registrado correctamente');
+      setIsFeriadoModalOpen(false);
+      setFeriadoForm({ fecha: '', motivo: '' });
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al registrar feriado');
+    } finally {
+      setIsSubmittingFeriado(false);
+    }
+  };
+
+  const handleEliminarFeriado = async (id: number, motivo: string) => {
+    if (!window.confirm(`¿Estás seguro de anular la restricción para "${motivo}"? El día quedará reabierto para reservas.`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:3000/api/feriados/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Feriado eliminado. El día ha sido reabierto para reservas.');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al eliminar feriado');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter">
       <Navbar />
@@ -275,6 +319,11 @@ export default function AdminDashboard() {
             <button onClick={() => setActiveTab('reservas')} className={`flex items-center px-5 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'reservas' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
               Bandeja Reservas
               {reservasPendientes.length > 0 && <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === 'reservas' ? 'bg-white text-tech-blue' : 'bg-amber-500 text-white'}`}>{reservasPendientes.length}</span>}
+            </button>
+            <button onClick={() => setActiveTab('feriados')} className={`flex items-center px-5 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'feriados' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <Calendar className="w-4 h-4 mr-1.5" />
+              Feriados y Bloqueos
+              {feriadosList.length > 0 && <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === 'feriados' ? 'bg-white text-tech-blue' : 'bg-indigo-600 text-white'}`}>{feriadosList.length}</span>}
             </button>
           </div>
         </div>
@@ -427,7 +476,162 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {activeTab === 'feriados' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-poppins font-bold text-slate-900 dark:text-white">
+                  Calendario de Feriados y Días Bloqueados (HU-29)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Las fechas aquí registradas inhabilitan automáticamente cualquier solicitud de reserva en la facultad.
+                </p>
+              </div>
+              <button
+                onClick={() => { setFeriadoForm({ fecha: '', motivo: '' }); setIsFeriadoModalOpen(true); }}
+                className="bg-tech-blue hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center shadow-sm transition-all"
+              >
+                <Plus className="w-5 h-5 mr-2" /> Nuevo Feriado / Bloqueo
+              </button>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                  <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                      <th className="px-6 py-4 font-bold">Fecha Restringida</th>
+                      <th className="px-6 py-4 font-bold">Motivo Institucional</th>
+                      <th className="px-6 py-4 font-bold">Estado</th>
+                      <th className="px-6 py-4 font-bold text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr><td colSpan={4} className="px-6 py-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div></td></tr>
+                    ) : feriadosList.length === 0 ? (
+                      <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-500">No hay feriados o días bloqueados configurados</td></tr>
+                    ) : (
+                      feriadosList.map((f) => {
+                        const fechaObj = new Date(f.fecha);
+                        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                          timeZone: 'UTC',
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        });
+
+                        return (
+                          <tr key={f.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-900 dark:text-white capitalize flex items-center">
+                                <Calendar className="w-4 h-4 mr-2 text-rose-500" />
+                                {fechaFormateada}
+                              </p>
+                              <span className="text-xs font-mono text-slate-400">{f.fecha.split('T')[0]}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">{f.motivo}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                f.bloqueoActivo
+                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                              }`}>
+                                {f.bloqueoActivo ? '⛔ Bloqueo Activo' : '⚪ Inactivo'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => handleEliminarFeriado(f.id, f.motivo)}
+                                title="Anular restricción y reabrir fecha"
+                                className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Modal Registrar Nuevo Feriado / Bloqueo (HU-29) */}
+      {isFeriadoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-tech-blue" />
+                Registrar Feriado o Día Bloqueado
+              </h2>
+              <button onClick={() => setIsFeriadoModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearFeriado} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Fecha a Bloquear <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={feriadoForm.fecha}
+                  onChange={(e) => setFeriadoForm({ ...feriadoForm, fecha: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Motivo Institucional o Causa de Cierre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Aniversario de la Facultad, Día del Estudiante..."
+                  value={feriadoForm.motivo}
+                  onChange={(e) => setFeriadoForm({ ...feriadoForm, motivo: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-amber-800 dark:text-amber-300 text-xs">
+                ℹ️ Al guardar, ningún docente ni estudiante podrá reservar laboratorios en esta fecha.
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setIsFeriadoModalOpen(false)}
+                  disabled={isSubmittingFeriado}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingFeriado}
+                  className="px-5 py-2 text-sm font-bold text-white bg-tech-blue hover:bg-blue-600 disabled:opacity-50 rounded-xl shadow transition flex items-center"
+                >
+                  {isSubmittingFeriado ? 'Guardando...' : 'Guardar Feriado'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal Rechazar Reserva con Motivo Obligatorio (HU-17) */}
       {isRechazarModalOpen && reservaARechazar && (

@@ -39,6 +39,7 @@ Cada historia de usuario documentada en esta serie cuenta con los siguientes apa
 | **HU-25** | Reportes | Auditoría General de Reservas | Sprint 2 | Andrés | 3 | Analizar | [sprint-2.md#hu-25](./sprint-2.md#hu-25) |
 | **HU-09** | Laboratorios | Modificación de Información de Lab | Sprint 2 | Marco | 4 | Aplicar | [sprint-2.md#hu-09](./sprint-2.md#hu-09) |
 | **HU-20** | Reservas | Notificaciones de Estado de Solicitud | Sprint 2 | Andrés | 3 | **Crear** | [sprint-2.md#hu-20](./sprint-2.md#hu-20) |
+| **HU-29** | Calendario | Configurar Días Feriados y Bloqueados | Sprint 2 | Miguel | 3 | Aplicar | [sprint-2.md#hu-29](./sprint-2.md#hu-29) |
 | **HU-10** | Laboratorios | Gestión de Estado Operativo de Lab | Sprint 3 | Marco | 3 | Analizar | [sprint-3.md#hu-10](./sprint-3.md#hu-10) |
 | **HU-11** | Laboratorios | Registro de Reporte de Mantenimiento | Sprint 3 | Herlan | 8 | **Crear** | [sprint-3.md#hu-11](./sprint-3.md#hu-11) |
 | **HU-18** | Reservas | Cancelación Voluntaria de Reserva | Sprint 3 | José | 3 | Aplicar | [sprint-3.md#hu-18](./sprint-3.md#hu-18) |

@@ -176,10 +176,15 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
       }
 
       // 2. Validar feriados
-      const fechaSoloDia = new Date(bloque.inicio.getFullYear(), bloque.inicio.getMonth(), bloque.inicio.getDate());
+      const inicioUTCStr = bloque.inicio.toISOString().split('T')[0];
+      const anioL = bloque.inicio.getFullYear();
+      const mesL = String(bloque.inicio.getMonth() + 1).padStart(2, '0');
+      const diaL = String(bloque.inicio.getDate()).padStart(2, '0');
+      const inicioLocalStr = `${anioL}-${mesL}-${diaL}`;
+
       const feriadoCoincidente = feriados.find(f => {
-        const fDia = new Date(f.fecha.getFullYear(), f.fecha.getMonth(), f.fecha.getDate());
-        return fDia.getTime() === fechaSoloDia.getTime();
+        const fStr = f.fecha.toISOString().split('T')[0];
+        return fStr === inicioUTCStr || fStr === inicioLocalStr;
       });
 
       if (feriadoCoincidente) {

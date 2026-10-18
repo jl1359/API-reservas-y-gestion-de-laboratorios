@@ -34,11 +34,35 @@ export default function SolicitudReservaModal({
   const [recurrente, setRecurrente] = useState(false);
   const [fechaFinSemestre, setFechaFinSemestre] = useState(fechaFinSugerida);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feriados, setFeriados] = useState<{ id: number; fecha: string; motivo: string; bloqueoActivo: boolean }[]>([]);
+
+  // HU-29: Cargar feriados para bloqueo anticipado en el calendario
+  React.useEffect(() => {
+    if (isOpen) {
+      axios.get('http://localhost:3000/api/feriados')
+        .then(res => {
+          if (res.data.data) {
+            setFeriados(res.data.data.filter((f: any) => f.bloqueoActivo));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
+
+  // Identificar si la fecha seleccionada coincide con un feriado institucional
+  const feriadoSeleccionado = feriados.find(f => {
+    const fStr = f.fecha.split('T')[0];
+    return fStr === fecha;
+  });
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (feriadoSeleccionado) {
+      return toast.error(`No se puede reservar: El día seleccionado está bloqueado (${feriadoSeleccionado.motivo})`);
+    }
 
     if (!materia.trim()) {
       return toast.error('El nombre de la materia es obligatorio');
@@ -170,8 +194,20 @@ export default function SolicitudReservaModal({
               min={hoy}
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white transition"
+              className={`w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border rounded-xl focus:ring-2 focus:outline-none dark:text-white transition ${
+                feriadoSeleccionado
+                  ? 'border-red-500 focus:ring-red-400 bg-red-50/50 dark:bg-red-950/20'
+                  : 'border-slate-200 dark:border-slate-700 focus:ring-tech-blue'
+              }`}
             />
+            {feriadoSeleccionado && (
+              <div className="mt-2 p-2.5 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs rounded-xl flex items-center animate-fade-in">
+                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>
+                  <strong>Día Bloqueado / Feriado:</strong> {feriadoSeleccionado.motivo}. La facultad suspende actividades institucionales en esta fecha.
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Horario: Inicio y Fin */}
@@ -299,8 +335,9 @@ export default function SolicitudReservaModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl shadow-lg shadow-blue-500/25 transition flex items-center"
+              disabled={isSubmitting || Boolean(feriadoSeleccionado)}
+              title={feriadoSeleccionado ? 'Día bloqueado por feriado' : undefined}
+              className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-lg shadow-blue-500/25 transition flex items-center"
             >
               {isSubmitting ? (
                 <>
@@ -310,7 +347,7 @@ export default function SolicitudReservaModal({
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 mr-1.5" />
-                  Enviar Solicitud
+                  {feriadoSeleccionado ? 'Día Inhabilitado' : 'Enviar Solicitud'}
                 </>
               )}
             </button>

@@ -210,3 +210,38 @@
   - `GET /api/notificaciones` (Autenticado) -> `200 OK { total, data: [...] }`
   - `GET /api/notificaciones/resumen` (Autenticado) -> `200 OK { noLeidas: number }`
   - `PATCH /api/notificaciones/:id/leer` (Autenticado) -> `200 OK`
+
+---
+
+<a id="hu-29"></a>
+## HU-29: Configurar Días Feriados y Bloqueados
+- **Épica:** Calendario / Administración
+- **Responsable:** Miguel Rodriguez Peña
+- **Estimación:** 3 puntos
+- **Nivel Bloom:** **Aplicar** (Persistencia, validación temporal preventiva y anulación reactiva de restricciones de calendario).
+- **Estado Actual:** **Completada e Integrada al 100%**.
+
+### 1. Definición y Criterios de Aceptación
+> **Como** Administrador,  
+> **Quiero** configurar fechas de feriados y días bloqueados en el calendario institucional,  
+> **Para** evitar que docentes o estudiantes reserven laboratorios en días que la facultad estará cerrada.
+
+1. **Adición de Fechas Restrictivas:**  
+   Dado que el Administrador necesita inhabilitar un día por motivos institucionales (ej. Aniversario de Facultad o Día del Estudiante), cuando accede a la gestión de feriados y registra la fecha exacta junto a un motivo, entonces el sistema valida la entrada con Zod e inserta este bloqueo permanente en la tabla `feriados` de la base de datos maestra.
+2. **Bloqueo Absoluto en el Motor de Reservas y Frontend:**  
+   Dado que un feriado oficial ha sido configurado en el sistema, cuando cualquier usuario cargue los calendarios o formularios para hacer una solicitud, entonces la plataforma sombrea la fecha, muestra una alerta visual institucional y desactiva el botón de envío. Si se intenta una petición directa vía API, el backend rechaza con **HTTP 409 Conflict** (`code: 'FERIADO_BLOQUEADO'`).
+3. **Anulación de Restricción (Reapertura Inmediata):**  
+   Dado que la facultad revoca la suspensión de actividades y el feriado se cancela, cuando el Administrador elimina ese registro de su panel, entonces el sistema reabre inmediatamente ese día en todos los calendarios y el motor de reservas vuelve a admitir solicitudes con HTTP 201 Created.
+
+### 2. Especificación Técnica
+- **Endpoints REST:**
+  - `GET /api/feriados` (Público/Autenticado) -> `200 OK { total, data: [...] }`
+  - `POST /api/feriados` (Solo Admin) -> Body: `{ fecha: 'YYYY-MM-DD', motivo: string, bloqueoActivo?: boolean }` -> `201 Created` | `400` | `409`
+  - `DELETE /api/feriados/:id` (Solo Admin) -> `200 OK { success: true, mensaje: '...' }`
+  - `PATCH /api/feriados/:id/toggle` (Solo Admin) -> `200 OK`
+- **Frontend:**
+  - `AdminDashboard.tsx`: Pestaña dedicada "Feriados y Bloqueos" con tabla de gestión y modal de creación/eliminación.
+  - `SolicitudReservaModal.tsx`: Consulta reactiva de feriados activos, banner de alerta y bloqueo del botón de envío.
+- **Evidencia de Pruebas:**
+  - `test_feriados_hu29.js`: Script de prueba integral que valida la creación, el rechazo de reservas con código 409 y la reapertura inmediata tras la anulación con código 201.
+
