@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { Prisma, Reserva } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { verificarSancionActiva } from '../services/sanciones.service';
+import { emitirNotificacionEstadoReserva } from './notificaciones.controller';
 
 // =========================================================================
 // CONSTANTES Y HELPERS GENERALES
@@ -130,8 +132,31 @@ export const crearReservaIndividual = async (
     return res.status(400).json({ error: 'El motivo no puede superar los 255 caracteres' });
   }
 
+  const usuarioId = req.user?.id;
+  if (!usuarioId) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
+  // HU-30: Interceptar petición y verificar sanción activa
+  const estadoSancion = await verificarSancionActiva(usuarioId);
+  if (estadoSancion.estaSancionado && estadoSancion.sancionActiva) {
+    const { horasRestantes, minutosRestantes, fechaFin: fFin, motivo: mot } = estadoSancion.sancionActiva;
+    return res.status(403).json({
+      success: false,
+      codigo: 'PRIVILEGIOS_SUSPENDIDOS_SANCION',
+      error: `Tus privilegios de reserva están suspendidos temporalmente debido a una sanción activa por inasistencia. Podrás reservar nuevamente en ${horasRestantes}h ${minutosRestantes}m (hasta el ${fFin.toLocaleString('es-ES')}).`,
+      detalles: {
+        motivo: mot,
+        fechaFin: fFin,
+        horasRestantes,
+        minutosRestantes
+      }
+    });
+  }
+
   try {
     const reserva = await prisma.$transaction<Reserva>(async (tx) => {
+
       const laboratorio = await tx.laboratorio.findUnique({
         where: { id: laboratorioId },
         include: { equipos: { include: { equipamiento: true } } },
@@ -225,7 +250,25 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
       return res.status(401).json({ error: 'Usuario no autenticado' });
     }
 
+    // HU-30: Interceptar petición y verificar sanción activa
+    const estadoSancion = await verificarSancionActiva(usuarioId);
+    if (estadoSancion.estaSancionado && estadoSancion.sancionActiva) {
+      const { horasRestantes, minutosRestantes, fechaFin: fFin, motivo: mot } = estadoSancion.sancionActiva;
+      return res.status(403).json({
+        success: false,
+        codigo: 'PRIVILEGIOS_SUSPENDIDOS_SANCION',
+        error: `Tus privilegios de reserva están suspendidos temporalmente debido a una sanción activa por inasistencia. Podrás reservar nuevamente en ${horasRestantes}h ${minutosRestantes}m (hasta el ${fFin.toLocaleString('es-ES')}).`,
+        detalles: {
+          motivo: mot,
+          fechaFin: fFin,
+          horasRestantes,
+          minutosRestantes
+        }
+      });
+    }
+
     // Solo Docentes, Auxiliares o Admins pueden reservar un laboratorio completo
+
     const rolesPermitidos = ['Docente', 'Auxiliar de Docencia', 'Admin', 'Responsable de Laboratorio'];
     if (!rolesPermitidos.includes(usuarioRol || '')) {
       return res.status(403).json({
@@ -905,6 +948,16 @@ export const escanearQr = async (req: AuthRequest, res: Response): Promise<any> 
       console.warn('Advertencia al registrar auditoría:', auditError);
     }
 
+    // HU-19: Notificar al usuario que su asistencia fue confirmada
+    if (reservaActualizada.usuarioId) {
+      emitirNotificacionEstadoReserva(
+        reservaActualizada.usuarioId,
+        reservaActualizada.id,
+        'Asistió',
+        reservaActualizada.laboratorio.nombre
+      ).catch(() => {});
+    }
+
     return res.status(200).json({
       success: true,
       mensaje: 'Acceso Permitido: Ingreso validado y asistencia confirmada exitosamente',
@@ -961,6 +1014,16 @@ export const aprobarReserva = async (req: AuthRequest, res: Response): Promise<a
       }
     });
 
+    // HU-19: Emitir notificación al usuario de que su reserva fue aprobada
+    if (reservaAprobada.usuarioId) {
+      emitirNotificacionEstadoReserva(
+        reservaAprobada.usuarioId,
+        reservaAprobada.id,
+        'Aprobada',
+        reservaAprobada.laboratorio.nombre
+      ).catch(() => {});
+    }
+
     return res.status(200).json({
       success: true,
       mensaje: 'Reserva aprobada exitosamente y código QR generado',
@@ -970,6 +1033,62 @@ export const aprobarReserva = async (req: AuthRequest, res: Response): Promise<a
   } catch (error) {
     console.error('Error al aprobar reserva:', error);
     return res.status(500).json({ success: false, error: 'Error interno al aprobar la reserva' });
+  }
+};
+
+/**
+ * HU-19: Rechaza una reserva pendiente y notifica al usuario con el motivo.
+ */
+export const rechazarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { motivo } = req.body;
+
+    const reserva = await prisma.reserva.findUnique({
+      where: { id: Number(id) },
+      include: { laboratorio: { select: { nombre: true } } }
+    });
+
+    if (!reserva) {
+      return res.status(404).json({ success: false, error: 'Reserva no encontrada' });
+    }
+
+    if (reserva.estado !== 'Pendiente') {
+      return res.status(400).json({
+        success: false,
+        error: `Solo se pueden rechazar reservas en estado 'Pendiente'. Estado actual: '${reserva.estado}'`
+      });
+    }
+
+    const reservaRechazada = await prisma.reserva.update({
+      where: { id: Number(id) },
+      data: { estado: 'Rechazada' },
+      include: {
+        laboratorio: true,
+        usuario: { select: { nombreCompleto: true, correo: true } }
+      }
+    });
+
+    // HU-19: Emitir notificación al usuario con el motivo del rechazo
+    if (reserva.usuarioId) {
+      emitirNotificacionEstadoReserva(
+        reserva.usuarioId,
+        reserva.id,
+        'Rechazada',
+        reserva.laboratorio.nombre,
+        motivo || 'Sin motivo especificado'
+      ).catch(() => {});
+    }
+
+    return res.status(200).json({
+      success: true,
+      mensaje: 'Reserva rechazada exitosamente y notificación enviada al usuario',
+      data: reservaRechazada
+    });
+
+  } catch (error) {
+    console.error('Error al rechazar reserva:', error);
+    return res.status(500).json({ success: false, error: 'Error interno al rechazar la reserva' });
   }
 };
 
@@ -1006,5 +1125,69 @@ export const listarTodasLasReservas = async (req: AuthRequest, res: Response): P
   } catch (error) {
     console.error('Error al listar todas las reservas:', error);
     return res.status(500).json({ success: false, error: 'Error interno al obtener reservas' });
+  }
+};
+
+// =========================================================================
+// CANCELACIÓN DE RESERVAS (HERLAN)
+// =========================================================================
+
+
+/**
+ * Cancela una reserva antes de que inicie.
+ */
+export const cancelarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const usuarioId = req.user?.id;
+    const rol = req.user?.rol;
+
+    const reserva = await prisma.reserva.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!reserva) {
+      return res.status(404).json({ success: false, error: 'Reserva no encontrada' });
+    }
+
+    const esPropietario = reserva.usuarioId === usuarioId;
+    const esAdmin = rol === 'Admin' || rol === 'Responsable de Laboratorio';
+
+    if (!esPropietario && !esAdmin) {
+      return res.status(403).json({ success: false, error: 'No tienes permiso para cancelar esta reserva' });
+    }
+
+    if (['Cancelada', 'Ausente', 'Asistió'].includes(reserva.estado)) {
+      return res.status(400).json({
+        success: false,
+        error: `No se puede cancelar una reserva que ya está en estado '${reserva.estado}'`
+      });
+    }
+
+    const reservaActualizada = await prisma.reserva.update({
+      where: { id: Number(id) },
+      data: { estado: 'Cancelada' },
+      include: { laboratorio: { select: { nombre: true } } }
+    });
+
+    // HU-19: Emitir notificación de cancelación
+    if (reservaActualizada.usuarioId) {
+      emitirNotificacionEstadoReserva(
+        reservaActualizada.usuarioId,
+        reservaActualizada.id,
+        'Cancelada',
+        reservaActualizada.laboratorio.nombre
+      ).catch(() => {});
+    }
+
+    return res.status(200).json({
+      success: true,
+      mensaje: 'Reserva cancelada correctamente',
+      data: reservaActualizada
+    });
+
+  } catch (error) {
+    console.error('Error al cancelar reserva:', error);
+    return res.status(500).json({ success: false, error: 'Error interno al cancelar reserva' });
   }
 };

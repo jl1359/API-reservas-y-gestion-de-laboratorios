@@ -8,6 +8,8 @@ import {
   obtenerMisReservas,
   escanearQr,
   aprobarReserva,
+  rechazarReserva,
+  cancelarReserva,
   listarTodasLasReservas,
   crearReservaIndividual
 } from '../controllers/reservas.controller';
@@ -32,6 +34,7 @@ const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): v
 // =========================================================================
 // HU-15: SOLICITUD DE RESERVA DE LABORATORIO (DOCENTE, AUXILIAR, ADMIN)
 // POST /api/reservas
+// Interceptada por HU-30 en caso de sanción activa
 // =========================================================================
 router.post('/', verificarToken, crearReserva);
 
@@ -71,6 +74,17 @@ router.put(
   permitirRoles('Admin', 'Responsable de Laboratorio'),
   aprobarReserva
 );
+
+// Rechazar una reserva pendiente con motivo
+router.put(
+  '/:id/rechazar',
+  verificarToken,
+  permitirRoles('Admin', 'Responsable de Laboratorio'),
+  rechazarReserva
+);
+
+// Cancelar una reserva existente
+router.put('/:id/cancelar', verificarToken, cancelarReserva);
 
 // =========================================================================
 // HU-22: OBTENER CÓDIGO QR ESPECÍFICO

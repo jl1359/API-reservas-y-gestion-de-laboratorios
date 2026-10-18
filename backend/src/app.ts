@@ -9,6 +9,8 @@ import horariosRoutes from './routes/horarios.routes';
 import reservasRoutes from './routes/reservas.routes';
 import reportesRoutes from './routes/reportes.routes';
 import feriadosRoutes from './routes/feriados.routes';
+import sancionesRoutes from './routes/sanciones.routes';
+import notificacionesRoutes from './routes/notificaciones.routes';
 
 const app = express();
 
@@ -25,5 +27,7 @@ app.use('/api/equipamientos', equipamientoRoutes);
 app.use('/api/reservas', reservasRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/feriados', feriadosRoutes);
+app.use('/api/sanciones', sancionesRoutes);
+app.use('/api/notificaciones', notificacionesRoutes);
 
 export default app;

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, MapPin, Users, Monitor, Box, Calendar as CalendarIcon, Clock, CheckCircle, CalendarPlus } from 'lucide-react';
+
+
 import Navbar from '../components/Navbar';
 import ReservaComputadoraModal from '../components/ReservaComputadoraModal';
 import toast from 'react-hot-toast';
@@ -78,6 +80,7 @@ export default function LabDetail() {
       setIsLoading(false);
     }
   };
+
 
 
   useEffect(() => {
@@ -166,7 +169,7 @@ export default function LabDetail() {
               </div>
             </div>
 
-            {puedeReservarComputadora && (
+            {puedeReservarComputadora ? (
               <button
                 type="button"
                 onClick={() => setMostrarReserva(true)}
@@ -174,7 +177,16 @@ export default function LabDetail() {
               >
                 Reservar computadora
               </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsModalReservaOpen(true)}
+                className="w-full md:w-auto bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all shadow-blue-500/30 cursor-pointer"
+              >
+                Solicitar Reserva
+              </button>
             )}
+
           </div>
         </div>
 
