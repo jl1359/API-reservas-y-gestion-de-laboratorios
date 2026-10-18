@@ -36,12 +36,30 @@ export default function Perfil() {
   const [isLoadingReservas, setIsLoadingReservas] = useState(true);
   const [reservaSeleccionada, setReservaSeleccionada] = useState<Reserva | null>(null);
   const [isModalQrOpen, setIsModalQrOpen] = useState(false);
+  const [sancionActiva, setSancionActiva] = useState<any>(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     const rol = localStorage.getItem('userRole') || 'Usuario';
     setUsuario({ rol });
+
+    // Consultar estado disciplinario de sanciones (HU-30)
+    const fetchSancionEstado = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:3000/api/sanciones/mi-estado', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success && res.data.data.estaSancionado) {
+          setSancionActiva(res.data.data.sancionActiva);
+        } else {
+          setSancionActiva(null);
+        }
+      } catch (err) {
+        console.error('Error al consultar estado de sanción:', err);
+      }
+    };
 
     // Cargar roles disponibles
     const fetchRoles = async () => {
@@ -74,6 +92,7 @@ export default function Perfil() {
       }
     };
 
+    fetchSancionEstado();
     fetchRoles();
     fetchMisReservas();
   }, []);
@@ -144,6 +163,35 @@ export default function Perfil() {
             </div>
           </div>
         </div>
+
+        {/* ALERTA VISIBLE DE SANCIÓN ACTIVA (HU-30) */}
+        {sancionActiva && (
+          <div className="bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 rounded-3xl p-6 mb-8 flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4 shadow-sm animate-in fade-in duration-200">
+            <div className="p-3 bg-rose-500 text-white rounded-2xl flex-shrink-0">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Sanción Disciplinaria Activa (24 Horas)
+                </span>
+                <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+                  Caduca en: {sancionActiva.horasRestantes}h {sancionActiva.minutosRestantes}m
+                </span>
+              </div>
+              <h2 className="text-lg font-poppins font-bold text-rose-900 dark:text-rose-200">
+                Tus privilegios de reserva están suspendidos temporalmente
+              </h2>
+              <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">
+                Se detectó una falta de inasistencia en una reserva previa sin registro oportuno de código QR. Conforme a las normas del campus (HU-30), tu cuenta no puede generar nuevas reservas hasta el{' '}
+                <span className="font-bold underline">{new Date(sancionActiva.fechaFin).toLocaleString('es-ES')}</span>.
+              </p>
+              <p className="text-xs text-rose-600 dark:text-rose-400 mt-2 italic bg-rose-100/60 dark:bg-rose-900/30 p-2.5 rounded-xl border border-rose-200 dark:border-rose-800/40">
+                Detalle oficial: {sancionActiva.motivo}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Selector de Pestañas */}
         <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-700 mb-8">

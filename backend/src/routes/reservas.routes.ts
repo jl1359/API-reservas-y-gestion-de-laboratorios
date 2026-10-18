@@ -4,7 +4,10 @@ import {
   listarMisReservas,
   escanearQr,
   aprobarReserva,
-  listarTodasLasReservas
+  rechazarReserva,
+  listarTodasLasReservas,
+  crearReserva,
+  cancelarReserva
 } from '../controllers/reservas.controller';
 import { verificarToken, permitirRoles } from '../middlewares/auth.middleware';
 
@@ -41,6 +44,14 @@ router.put(
   aprobarReserva
 );
 
+// Rechazar una reserva pendiente con motivo
+router.put(
+  '/:id/rechazar',
+  verificarToken,
+  permitirRoles('Admin', 'Responsable de Laboratorio'),
+  rechazarReserva
+);
+
 // Listar todas las reservas del sistema (con filtros)
 router.get(
   '/',
@@ -48,5 +59,11 @@ router.get(
   permitirRoles('Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'),
   listarTodasLasReservas
 );
+
+// Crear nueva reserva (interceptada por HU-30 en caso de sanción activa)
+router.post('/', verificarToken, crearReserva);
+
+// Cancelar una reserva existente
+router.put('/:id/cancelar', verificarToken, cancelarReserva);
 
 export default router;

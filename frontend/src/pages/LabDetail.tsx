@@ -1,7 +1,7 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, MapPin, Users, Monitor, Box, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Monitor, Box, Calendar as CalendarIcon, Clock, CheckCircle, X, AlertTriangle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 
@@ -41,6 +41,69 @@ export default function LabDetail() {
   const [lab, setLab] = useState<Laboratorio | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Estados para modal de solicitud de reserva (HU-30 Criterio 3)
+  const [isReservaModalOpen, setIsReservaModalOpen] = useState(false);
+  const [isSubmittingReserva, setIsSubmittingReserva] = useState(false);
+  const [errorSancion, setErrorSancion] = useState<string | null>(null);
+  const [reservaForm, setReservaForm] = useState({
+    fechaInicio: '',
+    fechaFin: '',
+    motivo: '',
+    materia: '',
+    numeroComputadora: '',
+    cantidadAlumnos: ''
+  });
+
+  const handleCrearReserva = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorSancion(null);
+    setIsSubmittingReserva(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const payload: any = {
+        laboratorioId: Number(id),
+        fechaInicio: new Date(reservaForm.fechaInicio).toISOString(),
+        fechaFin: new Date(reservaForm.fechaFin).toISOString(),
+        motivo: reservaForm.motivo,
+        materia: reservaForm.materia
+      };
+
+      if (lab?.reservaPorComputadora && reservaForm.numeroComputadora) {
+        payload.numeroComputadora = Number(reservaForm.numeroComputadora);
+      }
+      if (!lab?.reservaPorComputadora && reservaForm.cantidadAlumnos) {
+        payload.cantidadAlumnos = Number(reservaForm.cantidadAlumnos);
+      }
+
+      await axios.post('http://localhost:3000/api/reservas', payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success('¡Reserva solicitada exitosamente! Se encuentra en estado Pendiente.');
+      setIsReservaModalOpen(false);
+      setReservaForm({ fechaInicio: '', fechaFin: '', motivo: '', materia: '', numeroComputadora: '', cantidadAlumnos: '' });
+
+      // Recargar agenda del laboratorio
+      const resCal = await axios.get(`http://localhost:3000/api/laboratorios/${id}/calendario`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReservas(resCal.data.reservas || []);
+
+    } catch (error: any) {
+      const data = error.response?.data;
+      // CRITERIO 3 (HU-30): Si el usuario tiene una sanción activa, imprimir en pantalla que está suspendido
+      if (data?.codigo === 'PRIVILEGIOS_SUSPENDIDOS_SANCION' || data?.codigo === 'USUARIO_SANCIONADO') {
+        setErrorSancion(data.error);
+        toast.error('Trámite rechazado: Privilegios suspendidos por inasistencia');
+      } else {
+        toast.error(data?.error || 'Error al procesar la reserva');
+      }
+    } finally {
+      setIsSubmittingReserva(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -143,7 +206,10 @@ export default function LabDetail() {
               </div>
             </div>
 
-            <button className="w-full md:w-auto bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all shadow-blue-500/30">
+            <button
+              onClick={() => { setErrorSancion(null); setIsReservaModalOpen(true); }}
+              className="w-full md:w-auto bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all shadow-blue-500/30 cursor-pointer"
+            >
               Solicitar Reserva
             </button>
           </div>
@@ -239,6 +305,152 @@ export default function LabDetail() {
         </div>
 
       </div>
+
+      {/* Modal de Solicitud de Reserva (HU-30: Intercepción y Alerta de Sanción) */}
+      {isReservaModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-poppins font-bold text-slate-900 dark:text-white">
+                  Solicitar Reserva
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {lab.nombre} • {lab.reservaPorComputadora ? 'Puesto Individual' : 'Sala Completa'}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsReservaModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto">
+              {/* CRITERIO 3 (HU-30): Alerta de bloqueo punitivo en pantalla */}
+              {errorSancion && (
+                <div className="mb-5 bg-rose-50 dark:bg-rose-950/50 border-2 border-rose-300 dark:border-rose-800 rounded-2xl p-4 flex items-start space-x-3 text-rose-800 dark:text-rose-200 text-xs animate-in zoom-in-95">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold uppercase tracking-wider text-rose-900 dark:text-rose-100">
+                      Privilegios de Reserva Suspendidos
+                    </p>
+                    <p className="mt-1 leading-relaxed">{errorSancion}</p>
+                  </div>
+                </div>
+              )}
+
+              <form id="reservaFormModal" onSubmit={handleCrearReserva} className="space-y-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                      Fecha y Hora Inicio
+                    </label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={reservaForm.fechaInicio}
+                      onChange={(e) => setReservaForm({ ...reservaForm, fechaInicio: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-tech-blue"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                      Fecha y Hora Fin
+                    </label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={reservaForm.fechaFin}
+                      onChange={(e) => setReservaForm({ ...reservaForm, fechaFin: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-tech-blue"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                    Motivo o Justificación
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: Práctica de Redes, Examen Parcial..."
+                    value={reservaForm.motivo}
+                    onChange={(e) => setReservaForm({ ...reservaForm, motivo: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-tech-blue"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                    Materia (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Taller de Sistemas Operativos"
+                    value={reservaForm.materia}
+                    onChange={(e) => setReservaForm({ ...reservaForm, materia: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-tech-blue"
+                  />
+                </div>
+
+                {lab.reservaPorComputadora ? (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                      N° de Computadora (1 a {lab.capacidad})
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={lab.capacidad}
+                      placeholder="Dejar vacío para asignación automática"
+                      value={reservaForm.numeroComputadora}
+                      onChange={(e) => setReservaForm({ ...reservaForm, numeroComputadora: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-tech-blue"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                      Cantidad Estimada de Alumnos
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={lab.capacidad}
+                      placeholder={`Máximo ${lab.capacidad} alumnos`}
+                      value={reservaForm.cantidadAlumnos}
+                      onChange={(e) => setReservaForm({ ...reservaForm, cantidadAlumnos: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-tech-blue"
+                    />
+                  </div>
+                )}
+              </form>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-3 bg-slate-50 dark:bg-slate-800/80">
+              <button
+                type="button"
+                onClick={() => setIsReservaModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="reservaFormModal"
+                disabled={isSubmittingReserva}
+                className="px-6 py-2.5 rounded-xl font-bold bg-tech-blue hover:bg-blue-600 disabled:opacity-50 text-white shadow-md transition-colors text-sm"
+              >
+                {isSubmittingReserva ? 'Procesando...' : 'Confirmar Reserva'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

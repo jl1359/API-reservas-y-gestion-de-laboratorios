@@ -2,6 +2,8 @@ import { Response } from 'express';
 import crypto from 'crypto';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { verificarSancionActiva } from '../services/sanciones.service';
+import { emitirNotificacionEstadoReserva } from './notificaciones.controller';
 
 // =========================================================================
 // HU-22: VER CÓDIGO QR DE RESERVA APROBADA
@@ -308,6 +310,16 @@ export const escanearQr = async (req: AuthRequest, res: Response): Promise<any> 
       console.warn('Advertencia al registrar auditoría:', auditError);
     }
 
+    // HU-19: Notificar al usuario que su asistencia fue confirmada
+    if (reservaActualizada.usuarioId) {
+      emitirNotificacionEstadoReserva(
+        reservaActualizada.usuarioId,
+        reservaActualizada.id,
+        'Asistió',
+        reservaActualizada.laboratorio.nombre
+      ).catch(() => {});
+    }
+
     return res.status(200).json({
       success: true,
       mensaje: 'Acceso Permitido: Ingreso validado y asistencia confirmada exitosamente',
@@ -364,6 +376,16 @@ export const aprobarReserva = async (req: AuthRequest, res: Response): Promise<a
       }
     });
 
+    // HU-19: Emitir notificación al usuario de que su reserva fue aprobada
+    if (reservaAprobada.usuarioId) {
+      emitirNotificacionEstadoReserva(
+        reservaAprobada.usuarioId,
+        reservaAprobada.id,
+        'Aprobada',
+        reservaAprobada.laboratorio.nombre
+      ).catch(() => {});
+    }
+
     return res.status(200).json({
       success: true,
       mensaje: 'Reserva aprobada exitosamente y código QR generado',
@@ -373,6 +395,62 @@ export const aprobarReserva = async (req: AuthRequest, res: Response): Promise<a
   } catch (error) {
     console.error('Error al aprobar reserva:', error);
     return res.status(500).json({ success: false, error: 'Error interno al aprobar la reserva' });
+  }
+};
+
+/**
+ * HU-19: Rechaza una reserva pendiente y notifica al usuario con el motivo.
+ */
+export const rechazarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { motivo } = req.body;
+
+    const reserva = await prisma.reserva.findUnique({
+      where: { id: Number(id) },
+      include: { laboratorio: { select: { nombre: true } } }
+    });
+
+    if (!reserva) {
+      return res.status(404).json({ success: false, error: 'Reserva no encontrada' });
+    }
+
+    if (reserva.estado !== 'Pendiente') {
+      return res.status(400).json({
+        success: false,
+        error: `Solo se pueden rechazar reservas en estado 'Pendiente'. Estado actual: '${reserva.estado}'`
+      });
+    }
+
+    const reservaRechazada = await prisma.reserva.update({
+      where: { id: Number(id) },
+      data: { estado: 'Rechazada' },
+      include: {
+        laboratorio: true,
+        usuario: { select: { nombreCompleto: true, correo: true } }
+      }
+    });
+
+    // HU-19: Emitir notificación al usuario con el motivo del rechazo
+    if (reserva.usuarioId) {
+      emitirNotificacionEstadoReserva(
+        reserva.usuarioId,
+        reserva.id,
+        'Rechazada',
+        reserva.laboratorio.nombre,
+        motivo || 'Sin motivo especificado'
+      ).catch(() => {});
+    }
+
+    return res.status(200).json({
+      success: true,
+      mensaje: 'Reserva rechazada exitosamente y notificación enviada al usuario',
+      data: reservaRechazada
+    });
+
+  } catch (error) {
+    console.error('Error al rechazar reserva:', error);
+    return res.status(500).json({ success: false, error: 'Error interno al rechazar la reserva' });
   }
 };
 
@@ -409,5 +487,205 @@ export const listarTodasLasReservas = async (req: AuthRequest, res: Response): P
   } catch (error) {
     console.error('Error al listar todas las reservas:', error);
     return res.status(500).json({ success: false, error: 'Error interno al obtener reservas' });
+  }
+};
+
+// =========================================================================
+// HU-30: CRITERIO 3 (BLOQUEO PUNITIVO DE TRANSACCIONES) Y CREACIÓN DE RESERVAS
+// =========================================================================
+
+/**
+ * Solicita una nueva reserva de laboratorio.
+ * Intercepta la petición y verifica si el usuario cuenta con una sanción activa en la BD.
+ * Si está sancionado, rechaza el trámite e imprime en pantalla que sus privilegios están suspendidos temporalmente (HU-30).
+ */
+export const crearReserva = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const usuarioId = req.user?.id;
+    if (!usuarioId) {
+      return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+    }
+
+    // 1. CRITERIO 3 (HU-30): Interceptar petición y verificar sanción activa
+    const estadoSancion = await verificarSancionActiva(usuarioId);
+    if (estadoSancion.estaSancionado && estadoSancion.sancionActiva) {
+      const { horasRestantes, minutosRestantes, fechaFin, motivo } = estadoSancion.sancionActiva;
+      return res.status(403).json({
+        success: false,
+        codigo: 'PRIVILEGIOS_SUSPENDIDOS_SANCION',
+        error: `Tus privilegios de reserva están suspendidos temporalmente debido a una sanción activa por inasistencia. Podrás reservar nuevamente en ${horasRestantes}h ${minutosRestantes}m (hasta el ${fechaFin.toLocaleString('es-ES')}).`,
+        detalles: {
+          motivo,
+          fechaFin,
+          horasRestantes,
+          minutosRestantes
+        }
+      });
+    }
+
+    // 2. Extraer parámetros del body
+    const { laboratorioId, fechaInicio, fechaFin, motivo, materia, cantidadAlumnos, numeroComputadora } = req.body;
+
+    if (!laboratorioId || !fechaInicio || !fechaFin) {
+      return res.status(400).json({ success: false, error: 'laboratorioId, fechaInicio y fechaFin son obligatorios' });
+    }
+
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+
+    if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+      return res.status(400).json({ success: false, error: 'Formato de fecha inválido. Utiliza formato ISO 8601' });
+    }
+
+    if (inicio >= fin) {
+      return res.status(400).json({ success: false, error: 'La hora de inicio debe ser anterior a la hora de fin' });
+    }
+
+    // 3. Verificar que el laboratorio exista y esté operativo
+    const laboratorio = await prisma.laboratorio.findUnique({
+      where: { id: Number(laboratorioId) }
+    });
+
+    if (!laboratorio) {
+      return res.status(404).json({ success: false, error: 'Laboratorio no encontrado' });
+    }
+
+    if (laboratorio.estadoOperativo === 'Clausurado' || laboratorio.estadoOperativo === 'Inactivo') {
+      return res.status(400).json({ success: false, error: `El laboratorio no está disponible actualmente (${laboratorio.estadoOperativo})` });
+    }
+
+    // 4. Validar choques de horario con otras reservas Aprobadas o Pendientes
+    if (laboratorio.reservaPorComputadora) {
+      if (numeroComputadora) {
+        const pcNum = Number(numeroComputadora);
+        if (pcNum < 1 || pcNum > laboratorio.capacidad) {
+          return res.status(400).json({
+            success: false,
+            error: `El número de computadora debe estar entre 1 y ${laboratorio.capacidad}`
+          });
+        }
+
+        const colisionPc = await prisma.reserva.findFirst({
+          where: {
+            laboratorioId: laboratorio.id,
+            numeroComputadora: pcNum,
+            estado: { in: ['Aprobada', 'Pendiente'] },
+            fechaInicio: { lt: fin },
+            fechaFin: { gt: inicio }
+          }
+        });
+
+        if (colisionPc) {
+          return res.status(409).json({
+            success: false,
+            error: `La computadora #${pcNum} ya se encuentra reservada en el horario seleccionado`
+          });
+        }
+      }
+    } else {
+      const colision = await prisma.reserva.findFirst({
+        where: {
+          laboratorioId: laboratorio.id,
+          estado: { in: ['Aprobada', 'Pendiente'] },
+          fechaInicio: { lt: fin },
+          fechaFin: { gt: inicio }
+        }
+      });
+
+      if (colision) {
+        return res.status(409).json({
+          success: false,
+          error: 'El laboratorio ya se encuentra reservado en el horario seleccionado'
+        });
+      }
+    }
+
+    // 5. Crear la reserva
+    const nuevaReserva = await prisma.reserva.create({
+      data: {
+        usuarioId,
+        laboratorioId: laboratorio.id,
+        fechaInicio: inicio,
+        fechaFin: fin,
+        motivo,
+        materia,
+        cantidadAlumnos: cantidadAlumnos ? Number(cantidadAlumnos) : null,
+        numeroComputadora: numeroComputadora ? Number(numeroComputadora) : null,
+        estado: 'Pendiente'
+      },
+      include: {
+        laboratorio: { select: { id: true, nombre: true, ubicacion: true } },
+        usuario: { select: { id: true, nombreCompleto: true, correo: true } }
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      mensaje: 'Reserva solicitada exitosamente. Se encuentra en estado Pendiente de aprobación.',
+      data: nuevaReserva
+    });
+
+  } catch (error) {
+    console.error('Error al crear reserva:', error);
+    return res.status(500).json({ success: false, error: 'Error interno al procesar la reserva' });
+  }
+};
+
+/**
+ * Cancela una reserva antes de que inicie.
+ */
+export const cancelarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const usuarioId = req.user?.id;
+    const rol = req.user?.rol;
+
+    const reserva = await prisma.reserva.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!reserva) {
+      return res.status(404).json({ success: false, error: 'Reserva no encontrada' });
+    }
+
+    const esPropietario = reserva.usuarioId === usuarioId;
+    const esAdmin = rol === 'Admin' || rol === 'Responsable de Laboratorio';
+
+    if (!esPropietario && !esAdmin) {
+      return res.status(403).json({ success: false, error: 'No tienes permiso para cancelar esta reserva' });
+    }
+
+    if (['Cancelada', 'Ausente', 'Asistió'].includes(reserva.estado)) {
+      return res.status(400).json({
+        success: false,
+        error: `No se puede cancelar una reserva que ya está en estado '${reserva.estado}'`
+      });
+    }
+
+    const reservaActualizada = await prisma.reserva.update({
+      where: { id: Number(id) },
+      data: { estado: 'Cancelada' },
+      include: { laboratorio: { select: { nombre: true } } }
+    });
+
+    // HU-19: Emitir notificación de cancelación
+    if (reservaActualizada.usuarioId) {
+      emitirNotificacionEstadoReserva(
+        reservaActualizada.usuarioId,
+        reservaActualizada.id,
+        'Cancelada',
+        reservaActualizada.laboratorio.nombre
+      ).catch(() => {});
+    }
+
+    return res.status(200).json({
+      success: true,
+      mensaje: 'Reserva cancelada correctamente',
+      data: reservaActualizada
+    });
+
+  } catch (error) {
+    console.error('Error al cancelar reserva:', error);
+    return res.status(500).json({ success: false, error: 'Error interno al cancelar reserva' });
   }
 };

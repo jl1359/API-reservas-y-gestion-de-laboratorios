@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode } from 'lucide-react';
+import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode, Bell, CheckCheck } from 'lucide-react';
+import axios from 'axios';
 import LogoIcon from './LogoIcon';
 
 export default function Navbar() {
@@ -11,6 +12,11 @@ export default function Navbar() {
   
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Estados de Notificaciones (HU-19)
+  const [notificaciones, setNotificaciones] = useState<any[]>([]);
+  const [noLeidas, setNoLeidas] = useState(0);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -42,6 +48,52 @@ export default function Navbar() {
     localStorage.removeItem('userRole');
     navigate('/login');
     window.location.reload();
+  };
+
+  // HU-19: Consultar notificaciones en tiempo real
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchNotificaciones = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:3000/api/notificaciones', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success) {
+          setNotificaciones(res.data.notificaciones || []);
+          setNoLeidas(res.data.noLeidas || 0);
+        }
+      } catch (e) {
+        // Silencioso si la sesión expira
+      }
+    };
+
+    fetchNotificaciones();
+    const interval = setInterval(fetchNotificaciones, 15000); // Polling cada 15s
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  const handleMarcarTodasLeidas = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put('http://localhost:3000/api/notificaciones/marcar-todas', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNoLeidas(0);
+      setNotificaciones(prev => prev.map(n => ({ ...n, leido: true })));
+    } catch (e) {}
+  };
+
+  const handleMarcarLeida = async (id: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:3000/api/notificaciones/${id}/leida`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, leido: true } : n));
+      setNoLeidas(prev => Math.max(0, prev - 1));
+    } catch (e) {}
   };
 
   return (
@@ -100,6 +152,80 @@ export default function Navbar() {
           >
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
+
+          {/* HU-19: Campana de Notificaciones */}
+          {isAuthenticated && (
+            <div className="relative">
+              <button
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors relative"
+                title="Notificaciones"
+              >
+                <Bell className="w-5 h-5" />
+                {noLeidas > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                    {noLeidas > 9 ? '9+' : noLeidas}
+                  </span>
+                )}
+              </button>
+
+              {/* Menú Flotante de Notificaciones */}
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 py-3 z-50">
+                  <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
+                      <Bell className="w-4 h-4 text-tech-blue" /> Notificaciones
+                      {noLeidas > 0 && (
+                        <span className="text-xs font-normal text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full">
+                          {noLeidas} nuevas
+                        </span>
+                      )}
+                    </h3>
+                    {noLeidas > 0 && (
+                      <button
+                        onClick={handleMarcarTodasLeidas}
+                        className="text-xs text-tech-blue hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 font-medium"
+                      >
+                        <CheckCheck className="w-3.5 h-3.5" /> Marcar leídas
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                    {notificaciones.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+                        No tienes notificaciones
+                      </div>
+                    ) : (
+                      notificaciones.map((notif: any) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => !notif.leido && handleMarcarLeida(notif.id)}
+                          className={`p-3 text-xs cursor-pointer transition-colors ${
+                            !notif.leido 
+                              ? 'bg-blue-50/60 dark:bg-blue-950/30 hover:bg-blue-50 dark:hover:bg-blue-950/50' 
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="text-[10px] text-slate-400">
+                              {notif.fechaCreacion ? new Date(notif.fechaCreacion).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
+                            {!notif.leido && (
+                              <span className="w-2 h-2 rounded-full bg-tech-blue shrink-0 mt-1" />
+                            )}
+                          </div>
+                          <p className="text-slate-700 dark:text-slate-200 mt-1 leading-relaxed">
+                            {notif.mensaje}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {isAuthenticated ? (
             <div className="hidden md:block">

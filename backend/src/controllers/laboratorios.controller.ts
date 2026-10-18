@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 
@@ -8,9 +8,9 @@ export const listarLaboratorios = async (
   res: Response
 ): Promise<any> => {
   try {
-    const { disponibleDesde, disponibleHasta, carrera, capacidadRequerida, reservaPorAsiento, tieneProyector } = req.query;
+    const { disponibleDesde, disponibleHasta, carrera, categoria, capacidadRequerida, reservaPorAsiento, tieneProyector } = req.query;
 
-    const carreraTexto = typeof carrera === 'string' ? carrera.trim() : '';
+    const categoriaTexto = typeof (categoria || carrera) === 'string' ? String(categoria || carrera).trim() : '';
 
     const filtros: Prisma.LaboratorioWhereInput = {}; if (req.query.incluirTodos !== 'true') { filtros.estadoOperativo = 'Activo'; }
 
@@ -22,10 +22,11 @@ export const listarLaboratorios = async (
       filtros.capacidad = { gte: capacidad };
     }
 
-    if (carreraTexto) {
-      filtros.carrera = {
-        nombre: { contains: carreraTexto, mode: 'insensitive' }
-      };
+    if (categoriaTexto) {
+      filtros.OR = [
+        { carrera: { nombre: { contains: categoriaTexto, mode: 'insensitive' } } },
+        { nombre: { contains: categoriaTexto, mode: 'insensitive' } }
+      ];
     }
 
     // FILTRO: Por Tipo de Reserva (Estudiante individual vs Clase completa)
