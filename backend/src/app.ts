@@ -7,6 +7,7 @@ import carrerasRoutes from './routes/carreras.routes';
 import equipamientoRoutes from './routes/equipamiento.routes';
 import horariosRoutes from './routes/horarios.routes';
 import reservasRoutes from './routes/reservas.routes';
+import reportesRoutes from './routes/reportes.routes';
 
 const app = express();
 
@@ -21,5 +22,6 @@ app.use('/api/laboratorios', horariosRoutes);
 app.use('/api/laboratorios', reservasRoutes);
 app.use('/api/equipamientos', equipamientoRoutes);
 app.use('/api/reservas', reservasRoutes);
+app.use('/api/reportes', reportesRoutes);
 
 export default app;
