@@ -1,13 +1,22 @@
 import { Router, Response, NextFunction } from 'express';
 import {
+  crearReserva,
+  listarReservasPendientes,
+  gestionarReserva,
   obtenerQrReserva,
   listarMisReservas,
+  obtenerMisReservas,
   escanearQr,
   aprobarReserva,
   listarTodasLasReservas,
   crearReservaIndividual
 } from '../controllers/reservas.controller';
-import { AuthRequest, verificarToken, permitirRoles } from '../middlewares/auth.middleware';
+import {
+  AuthRequest,
+  verificarToken,
+  permitirRoles,
+  esAdminOResponsable
+} from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -21,24 +30,27 @@ const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): v
 };
 
 // =========================================================================
-// HU-28: RESERVA INDIVIDUAL DE COMPUTADORA (MARCO)
-// Montado bajo /api/laboratorios/:id/reservas
+// HU-15: SOLICITUD DE RESERVA DE LABORATORIO (DOCENTE, AUXILIAR, ADMIN)
+// POST /api/reservas
 // =========================================================================
-router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndividual);
+router.post('/', verificarToken, crearReserva);
 
 // =========================================================================
-// HU-22: VER CÓDIGO QR DE RESERVA APROBADA
+// HU-16: BANDEJA DE RESERVAS PENDIENTES (RESPONSABLE Y ADMIN)
+// GET /api/reservas/pendientes
 // =========================================================================
-// Consultar mis reservas personales (incluye tokenQr únicamente si la reserva está Aprobada)
+router.get('/pendientes', verificarToken, esAdminOResponsable, listarReservasPendientes);
+
+// =========================================================================
+// HU-22: VER CÓDIGO QR DE RESERVA APROBADA / HISTORIAL PERSONAL
+// GET /api/reservas/mis-reservas
+// =========================================================================
 router.get('/mis-reservas', verificarToken, listarMisReservas);
-
-// Consultar o generar el código QR de una reserva aprobada específica
-router.get('/:id/qr', verificarToken, obtenerQrReserva);
 
 // =========================================================================
 // HU-23: ESCANEAR CÓDIGO QR DE RESERVA
+// POST /api/reservas/escanear-qr
 // =========================================================================
-// Escaneo y validación de QR: Exclusivo para personal autorizado (Admin, Responsable, Auxiliar)
 router.post(
   '/escanear-qr',
   verificarToken,
@@ -47,9 +59,12 @@ router.post(
 );
 
 // =========================================================================
-// RUTAS DE GESTIÓN ADMINISTRATIVA
+// HU-17: APROBAR O RECHAZAR RESERVA (RESPONSABLE Y ADMIN)
+// PUT /api/reservas/:id/gestionar
 // =========================================================================
-// Aprobar una reserva y expedir su código QR criptográfico
+router.put('/:id/gestionar', verificarToken, esAdminOResponsable, gestionarReserva);
+
+// PUT /api/reservas/:id/aprobar
 router.put(
   '/:id/aprobar',
   verificarToken,
@@ -57,7 +72,22 @@ router.put(
   aprobarReserva
 );
 
-// Listar todas las reservas del sistema (con filtros)
+// =========================================================================
+// HU-22: OBTENER CÓDIGO QR ESPECÍFICO
+// GET /api/reservas/:id/qr
+// =========================================================================
+router.get('/:id/qr', verificarToken, obtenerQrReserva);
+
+// =========================================================================
+// HU-28: RESERVA INDIVIDUAL DE COMPUTADORA (MARCO)
+// POST /api/laboratorios/:id/reservas
+// =========================================================================
+router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndividual);
+
+// =========================================================================
+// GESTIÓN / CONSULTA GENERAL
+// GET /api/reservas
+// =========================================================================
 router.get(
   '/',
   verificarToken,
