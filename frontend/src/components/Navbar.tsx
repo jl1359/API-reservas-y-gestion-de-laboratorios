@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode } from 'lucide-react';
+import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode, FileText } from 'lucide-react';
 import LogoIcon from './LogoIcon';
 
 export default function Navbar() {
@@ -8,6 +8,7 @@ export default function Navbar() {
   const isAuthenticated = !!localStorage.getItem('token');
   const userRole = localStorage.getItem('userRole');
   const puedeEscanear = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole || '');
+  const puedeVerReportes = ['Admin', 'Responsable de Laboratorio'].includes(userRole || '');
   
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -83,6 +84,17 @@ export default function Navbar() {
               </Link>
             )}
 
+            {/* Acceso a Reportes de Asistencias (HU-24) */}
+            {puedeVerReportes && (
+              <Link 
+                to="/reportes" 
+                className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-semibold flex items-center space-x-1 transition-colors"
+              >
+                <FileText className="w-4 h-4 text-tech-blue" />
+                <span>Reportes</span>
+              </Link>
+            )}
+
             {userRole === 'Admin' && (
               <Link to="/admin" className="text-tech-blue dark:text-blue-400 font-bold flex items-center">
                 <Shield className="w-4 h-4 mr-1" /> Panel Admin
@@ -140,6 +152,12 @@ export default function Navbar() {
             <Link to="/escanear-qr" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2">
               <QrCode className="w-4 h-4" />
               <span>Escanear QR</span>
+            </Link>
+          )}
+          {puedeVerReportes && (
+            <Link to="/reportes" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2">
+              <FileText className="w-4 h-4" />
+              <span>Reportes de Asistencias</span>
             </Link>
           )}
           {userRole === 'Admin' && (

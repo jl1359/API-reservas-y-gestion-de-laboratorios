@@ -4,7 +4,12 @@ import { permitirRoles, verificarToken } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// HU-24: la auditoría general de reservas solo puede verla un administrador.
-router.get('/asistencias', verificarToken, permitirRoles('Admin'), reporteAsistenciasDiarias);
+// HU-24: Auditoría general de reservas disponible para Administrador y Responsable de Laboratorio
+router.get(
+  '/asistencias',
+  verificarToken,
+  permitirRoles('Admin', 'Responsable de Laboratorio'),
+  reporteAsistenciasDiarias
+);
 
 export default router;
