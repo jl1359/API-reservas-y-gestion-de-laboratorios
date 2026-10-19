@@ -121,16 +121,18 @@ export default function SolicitudReservaModal({
         onClose();
       }
     } catch (error: any) {
-      console.error('Error al solicitar reserva:', error);
-      const code = error.response?.data?.code;
+      const code = error.response?.data?.code || error.response?.data?.codigo;
       const msg = error.response?.data?.error || 'Error al procesar la solicitud de reserva';
       if (code === 'RESERVA_SOLAPADA') {
-        toast.error(`⚠️ Colisión de Horario: ${msg}`, { duration: 5000 });
+        toast.error(`Colisión de Horario: ${msg}`, { duration: 5000 });
       } else if (code === 'FERIADO_BLOQUEADO') {
-        toast.error(`📅 Feriado: ${msg}`, { duration: 5000 });
+        toast.error(`Feriado Institucional: ${msg}`, { duration: 5000 });
+      } else if (code === 'PRIVILEGIOS_SUSPENDIDOS_SANCION') {
+        toast.error(`Privilegios Suspendidos: ${msg}`, { duration: 6000 });
       } else {
         toast.error(msg);
       }
+
     } finally {
       setIsSubmitting(false);
     }

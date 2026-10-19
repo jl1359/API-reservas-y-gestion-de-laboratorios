@@ -26,7 +26,11 @@ export interface EstadoSancionUsuario {
 export const verificarSancionActiva = async (usuarioId: number): Promise<EstadoSancionUsuario> => {
   const ahora = new Date();
 
+  // 0. Auto-procesar inasistencias vencidas para garantizar sanción inmediata
+  await procesarInasistenciasPendientes().catch(() => {});
+
   // 1. Auto-expirar sanciones pasadas que sigan figurando como 'Activa'
+
   await prisma.sancion.updateMany({
     where: {
       usuarioId,
