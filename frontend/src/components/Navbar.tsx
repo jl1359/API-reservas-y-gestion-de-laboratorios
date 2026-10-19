@@ -8,9 +8,9 @@ import LogoIcon from './LogoIcon';
 export default function Navbar() {
   const navigate = useNavigate();
   const isAuthenticated = !!localStorage.getItem('token');
-  const userRole = localStorage.getItem('userRole');
-  const puedeEscanear = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole || '');
-  const puedeVerReportes = ['Admin', 'Responsable de Laboratorio'].includes(userRole || '');
+  const [userRole, setUserRole] = useState<string>(() => localStorage.getItem('userRole') || '');
+  const puedeEscanear = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole);
+  const puedeVerReportes = ['Admin', 'Responsable de Laboratorio'].includes(userRole);
   
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -19,6 +19,34 @@ export default function Navbar() {
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
   const [noLeidas, setNoLeidas] = useState(0);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  // Sincronizar rol real desde el backend (HU-02 / HU-04)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const syncUserRole = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await axios.get('http://localhost:3000/api/usuarios/perfil', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data?.success && res.data?.data) {
+          const perfil = res.data.data;
+          const rolNombre = typeof perfil.rol === 'object' && perfil.rol !== null
+            ? (perfil.rol.nombre || 'Estudiante')
+            : (perfil.rol || 'Estudiante');
+          if (rolNombre && rolNombre !== userRole) {
+            localStorage.setItem('userRole', rolNombre);
+            setUserRole(rolNombre);
+          }
+        }
+      } catch (e) {
+        // Silencioso si la sesión expira
+      }
+    };
+    syncUserRole();
+  }, [isAuthenticated, userRole]);
+
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
