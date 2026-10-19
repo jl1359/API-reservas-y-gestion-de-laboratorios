@@ -18,14 +18,17 @@ import {
   History,
   AlertTriangle,
   Search,
-  Phone
+  Phone,
+  Ban
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import { usuariosApi } from '../api/usuarios.api';
 import { laboratoriosApi } from '../api/laboratorios.api';
 import { reservasApi } from '../api/reservas.api';
-import type { Usuario, Mantenimiento, AuditoriaEvento, Rol } from '../types';
+import { sancionesApi } from '../api/sanciones.api';
+import type { Usuario, Mantenimiento, AuditoriaEvento, Rol, Sancion } from '../types';
+
 
 interface Carrera { id: number; nombre: string; }
 interface Laboratorio {
@@ -53,7 +56,7 @@ interface ReservaPendiente {
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'laboratorios' | 'usuarios' | 'reservas' | 'mantenimientos' | 'feriados' | 'auditoria'>('laboratorios');
+  const [activeTab, setActiveTab] = useState<'laboratorios' | 'usuarios' | 'reservas' | 'mantenimientos' | 'feriados' | 'auditoria' | 'sanciones'>('laboratorios');
   const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([]);
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
@@ -89,6 +92,18 @@ export default function AdminDashboard() {
 
   // HU-05: Auditoría de Sesiones y Accesos
   const [auditoriaList, setAuditoriaList] = useState<AuditoriaEvento[]>([]);
+
+  // HU-33: Gestión y Levantamiento de Sanciones Disciplinarias
+  const [sancionesList, setSancionesList] = useState<Sancion[]>([]);
+  const [filtroEstadoSancion, setFiltroEstadoSancion] = useState<'Todas' | 'Activa' | 'Expirada' | 'Perdonada'>('Todas');
+  const [isManualSancionModalOpen, setIsManualSancionModalOpen] = useState(false);
+  const [manualSancionForm, setManualSancionForm] = useState({ usuarioId: '', horasDuracion: '24', motivo: '' });
+  const [isSubmittingManualSancion, setIsSubmittingManualSancion] = useState(false);
+  const [isPerdonarModalOpen, setIsPerdonarModalOpen] = useState(false);
+  const [sancionAPerdonar, setSancionAPerdonar] = useState<Sancion | null>(null);
+  const [motivoPerdon, setMotivoPerdon] = useState('');
+  const [isSubmittingPerdon, setIsSubmittingPerdon] = useState(false);
+  const [isProcesandoInasistencias, setIsProcesandoInasistencias] = useState(false);
 
   const [isRechazarModalOpen, setIsRechazarModalOpen] = useState(false);
   const [reservaARechazar, setReservaARechazar] = useState<ReservaPendiente | null>(null);
@@ -136,7 +151,7 @@ export default function AdminDashboard() {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [resLabs, resCarreras, resSols, resReservas, resFeriados, users, mants, audits, rolesRes] = await Promise.all([
+      const [resLabs, resCarreras, resSols, resReservas, resFeriados, users, mants, audits, rolesRes, sanctions] = await Promise.all([
         axios.get('http://localhost:3000/api/laboratorios?incluirTodos=true'),
         axios.get('http://localhost:3000/api/carreras'),
         axios.get('http://localhost:3000/api/roles/requests', { headers }),
@@ -145,7 +160,8 @@ export default function AdminDashboard() {
         usuariosApi.listar().catch(() => []),
         laboratoriosApi.listarMantenimientos().catch(() => []),
         usuariosApi.obtenerAuditoriaSesiones(100).catch(() => []),
-        axios.get('http://localhost:3000/api/roles').catch(() => ({ data: [] }))
+        axios.get('http://localhost:3000/api/roles').catch(() => ({ data: [] })),
+        sancionesApi.listarTodas().catch(() => [])
       ]);
 
       setLaboratorios(resLabs.data.laboratorios || []);
@@ -157,6 +173,7 @@ export default function AdminDashboard() {
       setMantenimientosList(mants || []);
       setAuditoriaList(audits || []);
       setRolesList(rolesRes.data || []);
+      setSancionesList(sanctions || []);
     } catch (error) {
       toast.error('Error al cargar datos del sistema');
     } finally {
@@ -269,6 +286,77 @@ export default function AdminDashboard() {
       setIsSubmittingFuerzaMayor(false);
     }
   };
+
+  // HU-33: Abrir modal de levantamiento / perdón de sanción
+  const handleAbrirPerdonar = (sancion: Sancion) => {
+    setSancionAPerdonar(sancion);
+    setMotivoPerdon('');
+    setIsPerdonarModalOpen(true);
+  };
+
+  // HU-33: Confirmar levantamiento de sanción
+  const handleConfirmarPerdonar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sancionAPerdonar) return;
+    setIsSubmittingPerdon(true);
+    try {
+      await sancionesApi.perdonarSancion(sancionAPerdonar.id, motivoPerdon.trim() || undefined);
+      toast.success(`Sanción levantada para ${sancionAPerdonar.usuario.nombreCompleto}`);
+      setIsPerdonarModalOpen(false);
+      setSancionAPerdonar(null);
+      setMotivoPerdon('');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al levantar sanción');
+    } finally {
+      setIsSubmittingPerdon(false);
+    }
+  };
+
+  // HU-33: Crear sanción manual
+  const handleCrearSancionManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualSancionForm.usuarioId || !manualSancionForm.motivo.trim()) {
+      return toast.error('Selecciona un usuario e ingresa el motivo');
+    }
+    const horas = Number(manualSancionForm.horasDuracion);
+    if (isNaN(horas) || horas < 1 || horas > 720) {
+      return toast.error('Las horas de duración deben estar entre 1 y 720');
+    }
+
+    setIsSubmittingManualSancion(true);
+    try {
+      await sancionesApi.crearSancionManual({
+        usuarioId: Number(manualSancionForm.usuarioId),
+        horasDuracion: horas,
+        motivo: manualSancionForm.motivo.trim()
+      });
+      toast.success('Sanción disciplinaria aplicada exitosamente');
+      setIsManualSancionModalOpen(false);
+      setManualSancionForm({ usuarioId: '', horasDuracion: '24', motivo: '' });
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al aplicar sanción manual');
+    } finally {
+      setIsSubmittingManualSancion(false);
+    }
+  };
+
+  // HU-30: Ejecutar barrido manual de inasistencias
+  const handleEjecutarInasistencias = async () => {
+    if (!window.confirm('¿Ejecutar proceso de detección de inasistencias? Se evaluarán todas las reservas aprobadas cuyo tiempo de tolerancia haya expirado.')) return;
+    setIsProcesandoInasistencias(true);
+    try {
+      const res = await sancionesApi.procesarInasistencias(15);
+      toast.success(res.mensaje || 'Proceso completado exitosamente');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al procesar inasistencias');
+    } finally {
+      setIsProcesandoInasistencias(false);
+    }
+  };
+
 
   const usuariosFiltrados = usuariosList.filter(u => {
     if (!busquedaUsuario.trim()) return true;
@@ -517,6 +605,15 @@ export default function AdminDashboard() {
             <button onClick={() => setActiveTab('auditoria')} className={`flex items-center px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'auditoria' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
               <History className="w-4 h-4 mr-1.5" />
               Auditoría
+            </button>
+            <button onClick={() => setActiveTab('sanciones')} className={`flex items-center px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'sanciones' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <Ban className="w-4 h-4 mr-1.5" />
+              Sanciones (HU-33)
+              {sancionesList.filter(s => s.estado === 'Activa').length > 0 && (
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === 'sanciones' ? 'bg-white text-tech-blue' : 'bg-rose-500 text-white'}`}>
+                  {sancionesList.filter(s => s.estado === 'Activa').length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -1070,6 +1167,147 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* Pestaña: Gestión y Levantamiento de Sanciones Disciplinarias (HU-33) */}
+        {activeTab === 'sanciones' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div>
+                <h3 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                  <Ban className="w-5 h-5 mr-2 text-rose-600" />
+                  Régimen Disciplinario y Sanciones (HU-30 y HU-33)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Control institucional de bloqueos por inasistencia y aplicación/levantamiento de sanciones a docentes y estudiantes.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleEjecutarInasistencias}
+                  disabled={isProcesandoInasistencias}
+                  className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition flex items-center shadow-xs disabled:opacity-50"
+                  title="Detectar reservas sin check-in tras el tiempo de tolerancia y suspender por 24 horas"
+                >
+                  <Clock className="w-4 h-4 mr-1.5 text-amber-500" />
+                  {isProcesandoInasistencias ? 'Procesando...' : 'Barrer Inasistencias (HU-30)'}
+                </button>
+                <button
+                  onClick={() => {
+                    setManualSancionForm({ usuarioId: '', horasDuracion: '24', motivo: '' });
+                    setIsManualSancionModalOpen(true);
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition flex items-center shadow-sm"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Aplicar Sanción Manual
+                </button>
+              </div>
+            </div>
+
+            {/* Filtros rápidos de estado */}
+            <div className="flex items-center space-x-2">
+              {(['Todas', 'Activa', 'Perdonada', 'Expirada'] as const).map((est) => {
+                const cant = est === 'Todas' ? sancionesList.length : sancionesList.filter(s => s.estado === est).length;
+                return (
+                  <button
+                    key={est}
+                    onClick={() => setFiltroEstadoSancion(est)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      filtroEstadoSancion === est
+                        ? 'bg-tech-blue text-white shadow'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {est} ({cant})
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                  <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700 text-xs">
+                    <tr>
+                      <th className="px-6 py-4 font-bold">Usuario Sancionado</th>
+                      <th className="px-6 py-4 font-bold">Causa / Justificación</th>
+                      <th className="px-6 py-4 font-bold">Período de Penalización</th>
+                      <th className="px-6 py-4 font-bold">Estado</th>
+                      <th className="px-6 py-4 font-bold text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div></td></tr>
+                    ) : (
+                      sancionesList
+                        .filter(s => filtroEstadoSancion === 'Todas' || s.estado === filtroEstadoSancion)
+                        .map((s) => {
+                          const inicio = new Date(s.fechaInicio);
+                          const fin = new Date(s.fechaFin);
+                          const ahora = new Date();
+                          const activaReal = s.estado === 'Activa' && ahora < fin;
+
+                          return (
+                            <tr key={s.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
+                              <td className="px-6 py-4">
+                                <p className="font-bold text-slate-900 dark:text-white">{s.usuario?.nombreCompleto || 'Usuario'}</p>
+                                <p className="text-xs text-slate-500">{s.usuario?.correo}</p>
+                                {s.reserva?.laboratorio && (
+                                  <p className="text-[11px] text-tech-blue dark:text-blue-400 mt-0.5">
+                                    Reserva: {s.reserva.laboratorio.nombre}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 max-w-xs truncate" title={s.motivo}>
+                                {s.motivo}
+                              </td>
+                              <td className="px-6 py-4 text-xs">
+                                <p className="font-semibold text-slate-800 dark:text-slate-200">
+                                  Desde: {inicio.toLocaleDateString('es-ES')} {inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                                <p className="text-slate-500">
+                                  Hasta: {fin.toLocaleDateString('es-ES')} {fin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                  s.estado === 'Activa' && activaReal
+                                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
+                                    : s.estado === 'Perdonada'
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                                }`}>
+                                  {s.estado === 'Activa' && activaReal ? 'Activa' : s.estado === 'Perdonada' ? 'Perdonada' : 'Expirada'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                {s.estado === 'Activa' && activaReal ? (
+                                  <button
+                                    onClick={() => handleAbrirPerdonar(s)}
+                                    className="px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl transition shadow-xs"
+                                    title="Levantar sanción y restaurar privilegios de reserva"
+                                  >
+                                    Levantar Sanción
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-slate-400 italic">Sin acciones</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                    )}
+                    {!isLoading && sancionesList.filter(s => filtroEstadoSancion === 'Todas' || s.estado === filtroEstadoSancion).length === 0 && (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No se encontraron sanciones registradas en este estado</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal Registrar Nuevo Feriado / Bloqueo (HU-29) */}
@@ -1469,6 +1707,151 @@ export default function AdminDashboard() {
               <button type="button" onClick={() => setIsScheduleModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">Cancelar</button>
               <button type="button" onClick={handleSaveSchedule} className="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-colors">Guardar</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Aplicar Sanción Disciplinaria Manual (HU-33) */}
+      {isManualSancionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <Ban className="w-5 h-5 mr-2 text-rose-600" />
+                Aplicar Sanción Manual
+              </h2>
+              <button onClick={() => setIsManualSancionModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearSancionManual} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Usuario a Sancionar <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={manualSancionForm.usuarioId}
+                  onChange={(e) => setManualSancionForm({ ...manualSancionForm, usuarioId: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none dark:text-white"
+                >
+                  <option value="" disabled>Seleccione un usuario...</option>
+                  {usuariosList.map((u) => (
+                    <option key={u.id} value={u.id}>{u.nombreCompleto} ({u.correo}) - {u.rol?.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Duración de la Suspensión (Horas) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="720"
+                  required
+                  value={manualSancionForm.horasDuracion}
+                  onChange={(e) => setManualSancionForm({ ...manualSancionForm, horasDuracion: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none dark:text-white"
+                  placeholder="24"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">24 horas por inasistencia estándar, o hasta 720 horas (30 días) para sanciones graves.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Motivo / Falta Disciplinaria <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={manualSancionForm.motivo}
+                  onChange={(e) => setManualSancionForm({ ...manualSancionForm, motivo: e.target.value })}
+                  placeholder="Detalla el motivo institucional (ej. uso indebido de equipamiento, inasistencia reiterada, daño a periféricos)..."
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none dark:text-white resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setIsManualSancionModalOpen(false)}
+                  disabled={isSubmittingManualSancion}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingManualSancion}
+                  className="px-5 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl shadow transition flex items-center"
+                >
+                  {isSubmittingManualSancion ? 'Aplicando...' : 'Aplicar Sanción'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Levantar / Perdonar Sanción (HU-33) */}
+      {isPerdonarModalOpen && sancionAPerdonar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <CheckCircle className="w-5 h-5 mr-2 text-emerald-600" />
+                Levantar Sanción Disciplinaria
+              </h2>
+              <button onClick={() => setIsPerdonarModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmarPerdonar} className="mt-4 space-y-4">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                <p><strong>Usuario:</strong> {sancionAPerdonar.usuario?.nombreCompleto}</p>
+                <p><strong>Causa original:</strong> {sancionAPerdonar.motivo}</p>
+                <p><strong>Vencimiento:</strong> {new Date(sancionAPerdonar.fechaFin).toLocaleString('es-ES')}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Justificación del Levantamiento (Opcional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={motivoPerdon}
+                  onChange={(e) => setMotivoPerdon(e.target.value)}
+                  placeholder="Ej. Presentó certificado médico en decanato, corte de energía en el laboratorio..."
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white resize-none"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs">
+                Al confirmar, el usuario recuperará inmediatamente el privilegio de solicitar y reservar laboratorios.
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setIsPerdonarModalOpen(false)}
+                  disabled={isSubmittingPerdon}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition"
+                >
+                  Regresar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingPerdon}
+                  className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl shadow transition flex items-center"
+                >
+                  {isSubmittingPerdon ? 'Restableciendo...' : 'Confirmar Levantamiento'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

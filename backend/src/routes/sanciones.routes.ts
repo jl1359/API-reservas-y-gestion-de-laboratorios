@@ -4,7 +4,8 @@ import {
   listarMisSanciones,
   listarTodasLasSanciones,
   ejecutarProcesamientoInasistencias,
-  perdonarSancion
+  perdonarSancion,
+  aplicarSancionManual
 } from '../controllers/sanciones.controller';
 import { verificarToken, permitirRoles, esAdmin } from '../middlewares/auth.middleware';
 
@@ -20,7 +21,7 @@ router.get('/mi-estado', verificarToken, consultarMiEstadoSancion);
 router.get('/mis-sanciones', verificarToken, listarMisSanciones);
 
 // =========================================================================
-// RUTAS DE GESTIÓN ADMINISTRATIVA (HU-30)
+// RUTAS DE GESTIÓN ADMINISTRATIVA (HU-30 y HU-33)
 // =========================================================================
 // Listar todas las sanciones institucionales
 router.get(
@@ -38,7 +39,7 @@ router.post(
   ejecutarProcesamientoInasistencias
 );
 
-// Perdonar o levantar una sanción manualmente
+// Perdonar o levantar una sanción manualmente (HU-33)
 router.put(
   '/:id/perdonar',
   verificarToken,
@@ -46,4 +47,13 @@ router.put(
   perdonarSancion
 );
 
+// Aplicar sanción disciplinaria manual (HU-33)
+router.post(
+  '/manual',
+  verificarToken,
+  esAdmin,
+  aplicarSancionManual
+);
+
 export default router;
+

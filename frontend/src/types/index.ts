@@ -91,3 +91,28 @@ export interface AuditoriaEvento {
     rol?: { nombre: string };
   };
 }
+
+export interface Sancion {
+  id: number;
+  usuarioId: number;
+  reservaId?: number | null;
+  motivo: string;
+  fechaInicio: string;
+  fechaFin: string;
+  estado: 'Activa' | 'Expirada' | 'Perdonada';
+  usuario: {
+    id: number;
+    nombreCompleto: string;
+    correo: string;
+  };
+  reserva?: {
+    id: number;
+    fechaInicio: string;
+    fechaFin: string;
+    laboratorio?: {
+      id?: number;
+      nombre: string;
+      ubicacion?: string | null;
+    };
+  } | null;
+}
