@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Search, MapPin, Monitor } from 'lucide-react';
+import { Users, Search, MapPin, Monitor, SearchX } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -118,8 +118,14 @@ export default function Home() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tech-blue"></div>
           </div>
         ) : laboratorios.length === 0 ? (
-          <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-12 text-center">
-            <p className="text-slate-500 dark:text-slate-400 font-medium">No se encontraron laboratorios con esos filtros.</p>
+          <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-12 text-center bg-white/40 dark:bg-slate-800/40">
+            <SearchX className="w-14 h-14 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+              No se encontraron laboratorios con esos criterios
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 max-w-md mx-auto">
+              Intenta disminuir la capacidad requerida o probar con otro término de búsqueda o categoría académica.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

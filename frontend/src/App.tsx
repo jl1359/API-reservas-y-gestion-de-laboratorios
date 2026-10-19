@@ -5,6 +5,7 @@ import LabDetail from './pages/LabDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import Perfil from './pages/Perfil';
 import EscanearQr from './pages/EscanearQr';
+import ReporteAsistencias from './pages/ReporteAsistencias';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
@@ -44,6 +45,20 @@ const StaffRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Ruta protegida para auditoría y reportes diarios de asistencia (HU-24)
+const ReportesRoute = ({ children }: { children: React.ReactNode }) => {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('userRole');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  const rolesAutorizados = ['Admin', 'Responsable de Laboratorio'];
+  if (!role || !rolesAutorizados.includes(role)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <Router>
@@ -59,6 +74,10 @@ function App() {
         
         {/* Ruta para escaneo de código QR (HU-23) */}
         <Route path="/escanear-qr" element={<StaffRoute><EscanearQr /></StaffRoute>} />
+
+        {/* Ruta para reporte diario de asistencias (HU-24) */}
+        <Route path="/reportes" element={<ReportesRoute><ReporteAsistencias /></ReportesRoute>} />
+        <Route path="/reporte-asistencias" element={<ReportesRoute><ReporteAsistencias /></ReportesRoute>} />
 
         {/* Ruta protegida estrictamente para Administradores */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

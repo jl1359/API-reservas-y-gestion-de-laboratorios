@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "migrate:concurrencia": "tsx prisma/apply_concurrency_constraint.ts",
+    "test:concurrencia": "node test_concurrencia_hu15.js",
+    "test:feriados": "node test_feriados_hu29.js"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +37,6 @@
     "zod": "^4.5.4"
   },
   "prisma": {
-    "seed": "node prisma/seed.cjs"
+    "seed": "tsx prisma/seed.ts"
   }
 }

@@ -1,0 +1,896 @@
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import axios from 'axios';
+import { 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  User, 
+  Monitor, 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle, 
+  Filter, 
+  RefreshCw, 
+  Printer, 
+  ArrowLeft, 
+  FileText, 
+  ShieldCheck, 
+  Building2,
+  PieChart,
+  BarChart3,
+  Download
+} from 'lucide-react';
+import Navbar from '../components/Navbar';
+import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+
+interface UsuarioReserva {
+  id: number;
+  nombreCompleto: string;
+  correo: string;
+}
+
+interface LaboratorioReserva {
+  id: number;
+  nombre: string;
+  ubicacion: string | null;
+}
+
+interface ReservaReporte {
+  id: number;
+  fechaInicio: string;
+  fechaFin: string;
+  estado: string;
+  horaAsistencia: string | null;
+  numeroComputadora: number | null;
+  usuario: UsuarioReserva;
+  laboratorio: LaboratorioReserva;
+}
+
+interface ResumenReporte {
+  totalReservas: number;
+  asistenciasRegistradas: number;
+  inasistenciasRegistradas: number;
+  porEstado: Record<string, number>;
+}
+
+interface ReporteData {
+  fecha: string;
+  zonaHoraria: string;
+  criterio: string;
+  laboratorioId: number | null;
+  resumen: ResumenReporte;
+  reservas: ReservaReporte[];
+}
+
+interface LaboratorioOpcion {
+  id: number;
+  nombre: string;
+}
+
+// Configuración de colores para los estados
+const COLORES_ESTADOS: Record<string, { bg: string; fill: string; hex: string; stroke: string }> = {
+  'Asistió': { bg: 'bg-emerald-500', fill: 'fill-emerald-500', hex: '#10b981', stroke: '#059669' },
+  'Aprobada': { bg: 'bg-blue-500', fill: 'fill-blue-500', hex: '#0284c7', stroke: '#0369a1' },
+  'Ausente': { bg: 'bg-rose-500', fill: 'fill-rose-500', hex: '#f43f5e', stroke: '#e11d48' },
+  'Cancelada': { bg: 'bg-slate-400', fill: 'fill-slate-400', hex: '#94a3b8', stroke: '#64748b' },
+  'Pendiente': { bg: 'bg-amber-500', fill: 'fill-amber-500', hex: '#f59e0b', stroke: '#d97706' }
+};
+
+export default function ReporteAsistencias() {
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  const [fecha, setFecha] = useState<string>(hoyStr);
+  const [laboratorioId, setLaboratorioId] = useState<string>('');
+  const [laboratorios, setLaboratorios] = useState<LaboratorioOpcion[]>([]);
+  
+  const [reporte, setReporte] = useState<ReporteData | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [vistaGraficos, setVistaGraficos] = useState<'ambos' | 'pastel' | 'barras'>('ambos');
+
+  // Cargar lista de laboratorios para el filtro desplegable
+  useEffect(() => {
+    const fetchLaboratorios = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:3000/api/laboratorios', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setLaboratorios(res.data.data.map((l: any) => ({ id: l.id, nombre: l.nombre })));
+        }
+      } catch (err) {
+        console.error('Error al cargar catálogo de laboratorios:', err);
+      }
+    };
+    fetchLaboratorios();
+  }, []);
+
+  // Consultar reporte de asistencias
+  const consultarReporte = useCallback(async (mostrarFeedback = false) => {
+    if (!fecha) {
+      toast.error('Selecciona una fecha válida');
+      return;
+    }
+
+    try {
+      if (mostrarFeedback) setIsRefreshing(true);
+      else setIsLoading(true);
+
+      const token = localStorage.getItem('token');
+      const params: Record<string, string> = { fecha };
+      if (laboratorioId) {
+        params.laboratorioId = laboratorioId;
+      }
+
+      const res = await axios.get('http://localhost:3000/api/reportes/asistencias', {
+        headers: { Authorization: `Bearer ${token}` },
+        params
+      });
+
+      setReporte(res.data);
+      if (mostrarFeedback) {
+        toast.success('Reporte de asistencias actualizado');
+      }
+    } catch (err: any) {
+      console.error('Error al consultar reporte:', err);
+      const msg = err.response?.data?.error || 'No se pudo obtener el reporte de asistencias';
+      toast.error(msg);
+      setReporte(null);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [fecha, laboratorioId]);
+
+  useEffect(() => {
+    consultarReporte();
+  }, [consultarReporte]);
+
+  // Formateador de horas (HH:mm)
+  const formatearHora = (isoDate: string) => {
+    try {
+      const d = new Date(isoDate);
+      return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch {
+      return '--:--';
+    }
+  };
+
+  // Formateador de fecha/hora completa de asistencia
+  const formatearHoraExacta = (isoDate: string | null) => {
+    if (!isoDate) return null;
+    try {
+      const d = new Date(isoDate);
+      return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    } catch {
+      return isoDate;
+    }
+  };
+
+  // Exportar Dataset compatible con Power BI (CSV estructurado con BOM UTF-8)
+  const exportarDatasetPowerBI = () => {
+    if (!reporte?.reservas || reporte.reservas.length === 0) {
+      toast.error('No hay datos disponibles para exportar en esta fecha');
+      return;
+    }
+
+    const encabezados = [
+      'ID_Reserva',
+      'Fecha',
+      'Hora_Inicio',
+      'Hora_Fin',
+      'Laboratorio',
+      'Ubicacion',
+      'Usuario_Titular',
+      'Correo_Usuario',
+      'Modalidad',
+      'Numero_Computadora',
+      'Estado_Reserva',
+      'Asistencia_Registrada',
+      'Hora_Ingreso_QR'
+    ];
+
+    const filas = reporte.reservas.map(r => {
+      const horaIni = formatearHora(r.fechaInicio);
+      const horaFin = formatearHora(r.fechaFin);
+      const modalidad = r.numeroComputadora ? 'Computadora Individual' : 'Laboratorio Completo';
+      const numPc = r.numeroComputadora ? `PC-${r.numeroComputadora}` : 'N/A';
+      const asistio = r.horaAsistencia ? 'SI' : 'NO';
+      const horaCheckin = formatearHoraExacta(r.horaAsistencia) || 'N/A';
+      const labNombre = (r.laboratorio?.nombre || '').replace(/"/g, '""');
+      const labUbicacion = (r.laboratorio?.ubicacion || '').replace(/"/g, '""');
+      const usuarioNombre = (r.usuario?.nombreCompleto || '').replace(/"/g, '""');
+      const usuarioCorreo = (r.usuario?.correo || '').replace(/"/g, '""');
+
+      return [
+        r.id,
+        fecha,
+        `"${horaIni}"`,
+        `"${horaFin}"`,
+        `"${labNombre}"`,
+        `"${labUbicacion}"`,
+        `"${usuarioNombre}"`,
+        `"${usuarioCorreo}"`,
+        `"${modalidad}"`,
+        `"${numPc}"`,
+        `"${r.estado}"`,
+        `"${asistio}"`,
+        `"${horaCheckin}"`
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [encabezados.join(','), ...filas].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Dataset_PowerBI_Asistencias_${fecha}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Dataset exportado para Microsoft Power BI (CSV UTF-8)');
+  };
+
+  // Cálculo para el Gráfico de Dona / Pastel (Distribución por Estados)
+  const segmentosPastel = useMemo(() => {
+    if (!reporte?.resumen?.porEstado) return [];
+    const total = reporte.resumen.totalReservas;
+    if (total === 0) return [];
+
+    let acumulado = 0;
+    const radio = 40;
+    const circunferencia = 2 * Math.PI * radio;
+
+    return Object.entries(reporte.resumen.porEstado).map(([estado, cantidad]) => {
+      const porcentaje = cantidad / total;
+      const longitudGuion = porcentaje * circunferencia;
+      const desfase = (1 - acumulado) * circunferencia;
+      acumulado += porcentaje;
+
+      const confColor = COLORES_ESTADOS[estado] || { hex: '#6366f1', bg: 'bg-indigo-500' };
+
+      return {
+        estado,
+        cantidad,
+        porcentaje: Math.round(porcentaje * 100),
+        strokeDasharray: `${longitudGuion} ${circunferencia - longitudGuion}`,
+        strokeDashoffset: desfase,
+        color: confColor.hex,
+        bgColor: confColor.bg
+      };
+    });
+  }, [reporte]);
+
+  // Cálculo para el Gráfico de Barras (Ocupación Horaria por Franjas)
+  const distribucionHoraria = useMemo(() => {
+    const franjas = [
+      { etiqueta: '06:45 - 08:15', inicioH: 6.75, finH: 8.25, cantidad: 0 },
+      { etiqueta: '08:15 - 09:45', inicioH: 8.25, finH: 9.75, cantidad: 0 },
+      { etiqueta: '09:45 - 11:15', inicioH: 9.75, finH: 11.25, cantidad: 0 },
+      { etiqueta: '11:15 - 12:45', inicioH: 11.25, finH: 12.75, cantidad: 0 },
+      { etiqueta: '12:45 - 14:15', inicioH: 12.75, finH: 14.25, cantidad: 0 },
+      { etiqueta: '14:15 - 15:45', inicioH: 14.25, finH: 15.75, cantidad: 0 },
+      { etiqueta: '15:45 - 17:15', inicioH: 15.75, finH: 17.25, cantidad: 0 },
+      { etiqueta: '17:15 - 18:45', inicioH: 17.25, finH: 18.75, cantidad: 0 },
+      { etiqueta: '18:45 - 20:15', inicioH: 18.75, finH: 20.25, cantidad: 0 },
+      { etiqueta: '20:15 - 21:45', inicioH: 20.25, finH: 21.75, cantidad: 0 },
+    ];
+
+    if (!reporte?.reservas) return { franjas, maximo: 1 };
+
+    let max = 0;
+    for (const r of reporte.reservas) {
+      try {
+        const d = new Date(r.fechaInicio);
+        const horaDecimal = d.getHours() + d.getMinutes() / 60;
+        
+        // Encontrar franja correspondiente
+        for (const f of franjas) {
+          if (horaDecimal >= f.inicioH - 0.25 && horaDecimal < f.finH + 0.1) {
+            f.cantidad += 1;
+            if (f.cantidad > max) max = f.cantidad;
+            break;
+          }
+        }
+      } catch {
+        // Ignorar fechas malformadas
+      }
+    }
+
+    return { franjas, maximo: max > 0 ? max : 1 };
+  }, [reporte]);
+
+  // Badge para estados de reserva
+  const renderBadgeEstado = (estado: string) => {
+    switch (estado) {
+      case 'Asistió':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Asistió
+          </span>
+        );
+      case 'Aprobada':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+            <Clock className="w-3 h-3 mr-1" />
+            Aprobada
+          </span>
+        );
+      case 'Ausente':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 border border-rose-300 dark:border-rose-700">
+            <XCircle className="w-3 h-3 mr-1" />
+            Ausente
+          </span>
+        );
+      case 'Cancelada':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Cancelada
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+            {estado}
+          </span>
+        );
+    }
+  };
+
+  const total = reporte?.resumen?.totalReservas || 0;
+  const asistencias = reporte?.resumen?.asistenciasRegistradas || 0;
+  const ausencias = reporte?.resumen?.inasistenciasRegistradas || 0;
+  const porcentajeAsistencia = total > 0 ? Math.round((asistencias / total) * 100) : 0;
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter transition-colors duration-200">
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Cabecera y Navegación de Regreso */}
+        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <Link 
+              to="/" 
+              className="inline-flex items-center space-x-2 text-slate-500 hover:text-tech-blue dark:text-slate-400 dark:hover:text-blue-400 font-medium mb-3 transition-colors text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Volver al inicio</span>
+            </Link>
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 bg-blue-100 dark:bg-blue-900/40 text-tech-blue dark:text-blue-400 rounded-2xl shadow-sm">
+                <FileText className="w-7 h-7" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-poppins font-bold text-slate-900 dark:text-white">
+                  Auditoría y Reporte Diario de Asistencias
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  Control de asistencia por código QR y analítica visual de ocupación (HU-24)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Acciones de exportación, impresión y Power BI */}
+          <div className="flex flex-wrap items-center gap-2">
+            
+            {/* Botón: Exportar a Power BI (CSV UTF-8) */}
+            <button
+              onClick={exportarDatasetPowerBI}
+              type="button"
+              className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl font-medium transition-all shadow-sm text-xs sm:text-sm"
+              title="Descarga el conjunto de datos preparado para modelar en Microsoft Power BI Desktop"
+            >
+              <Download className="w-4 h-4" />
+              <span>Exportar a Power BI</span>
+            </button>
+
+            {/* Botón: Imprimir Reporte */}
+            <button
+              onClick={() => window.print()}
+              type="button"
+              className="inline-flex items-center space-x-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-xl font-medium transition-all shadow-sm text-xs sm:text-sm"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">Imprimir</span>
+            </button>
+
+            {/* Botón: Actualizar */}
+            <button
+              onClick={() => consultarReporte(true)}
+              disabled={isRefreshing || isLoading}
+              type="button"
+              className="inline-flex items-center space-x-2 bg-tech-blue hover:bg-blue-600 disabled:opacity-60 text-white px-3.5 py-2 rounded-xl font-medium transition-all shadow-md shadow-blue-500/20 text-xs sm:text-sm"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Actualizar</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Barra de Filtros */}
+        <section className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 mb-8 transition-colors">
+          <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300 font-semibold mb-4 text-sm">
+            <Filter className="w-4 h-4 text-tech-blue" />
+            <span>Filtros de Auditoría</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Selector de Fecha */}
+            <div>
+              <label htmlFor="fecha-reporte" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                Fecha de Auditoría *
+              </label>
+              <div className="relative">
+                <input
+                  id="fecha-reporte"
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-tech-blue/30 focus:border-tech-blue transition-all"
+                />
+                <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Selector de Laboratorio */}
+            <div>
+              <label htmlFor="lab-reporte" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                Laboratorio Específico
+              </label>
+              <div className="relative">
+                <select
+                  id="lab-reporte"
+                  value={laboratorioId}
+                  onChange={(e) => setLaboratorioId(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-tech-blue/30 focus:border-tech-blue transition-all"
+                >
+                  <option value="">Todos los Laboratorios</option>
+                  {laboratorios.map((lab) => (
+                    <option key={lab.id} value={lab.id}>
+                      {lab.nombre}
+                    </option>
+                  ))}
+                </select>
+                <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Información de Zona Horaria */}
+            <div className="sm:col-span-2 lg:col-span-1 flex items-end">
+              <div className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-2.5 text-xs text-slate-500 dark:text-slate-400 flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                <span className="truncate">
+                  Zona horaria: <strong>Bolivia (America/La_Paz, UTC-04:00)</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Tarjetas de Estadísticas (KPIs) */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          
+          {/* Total Reservas */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between transition-colors">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Reservas del Día
+              </p>
+              <p className="text-2xl sm:text-3xl font-poppins font-bold text-slate-900 dark:text-white mt-1">
+                {isLoading ? '--' : total}
+              </p>
+              <span className="text-[11px] text-slate-400">Total programado</span>
+            </div>
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-tech-blue dark:text-blue-400 rounded-xl">
+              <Calendar className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Asistencias Confirmadas por QR */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between transition-colors">
+            <div>
+              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                Asistencias (QR)
+              </p>
+              <p className="text-2xl sm:text-3xl font-poppins font-bold text-emerald-700 dark:text-emerald-300 mt-1">
+                {isLoading ? '--' : asistencias}
+              </p>
+              <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-medium">
+                {porcentajeAsistencia}% de asistencia
+              </span>
+            </div>
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Inasistencias */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between transition-colors">
+            <div>
+              <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                Inasistencias
+              </p>
+              <p className="text-2xl sm:text-3xl font-poppins font-bold text-rose-700 dark:text-rose-300 mt-1">
+                {isLoading ? '--' : ausencias}
+              </p>
+              <span className="text-[11px] text-rose-500/80">Usuarios ausentes</span>
+            </div>
+            <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl">
+              <XCircle className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Desglose de Estados */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-center transition-colors">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+              Distribución Rápida
+            </p>
+            {isLoading ? (
+              <p className="text-xs text-slate-400">Cargando...</p>
+            ) : reporte?.resumen?.porEstado && Object.keys(reporte.resumen.porEstado).length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(reporte.resumen.porEstado).map(([estado, cant]) => (
+                  <span
+                    key={estado}
+                    className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
+                  >
+                    <strong>{cant}</strong>&nbsp;{estado}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">Sin registros</p>
+            )}
+          </div>
+        </section>
+
+        {/* SECCIÓN ANALÍTICA: GRÁFICOS ESTADÍSTICOS (PASTEL Y BARRAS) */}
+        <section className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 mb-8 transition-colors">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700/80 gap-3">
+            <div>
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="w-5 h-5 text-tech-blue" />
+                <h2 className="font-poppins font-bold text-slate-900 dark:text-white text-lg">
+                  Visualización Estadística de Ocupación y Asistencias
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Métricas visuales para la toma de decisiones y auditoría del servicio
+              </p>
+            </div>
+
+            {/* Selector de tipo de gráfico */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setVistaGraficos('ambos')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  vistaGraficos === 'ambos' 
+                    ? 'bg-white dark:bg-slate-800 text-tech-blue dark:text-blue-400 shadow-xs' 
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Completo
+              </button>
+              <button
+                type="button"
+                onClick={() => setVistaGraficos('pastel')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  vistaGraficos === 'pastel' 
+                    ? 'bg-white dark:bg-slate-800 text-tech-blue dark:text-blue-400 shadow-xs' 
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Distribución (Pastel)
+              </button>
+              <button
+                type="button"
+                onClick={() => setVistaGraficos('barras')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  vistaGraficos === 'barras' 
+                    ? 'bg-white dark:bg-slate-800 text-tech-blue dark:text-blue-400 shadow-xs' 
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Horarios (Barras)
+              </button>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="py-16 flex flex-col items-center justify-center space-y-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue"></div>
+              <p className="text-xs text-slate-400">Generando analítica visual...</p>
+            </div>
+          ) : total === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">
+              No hay reservas suficientes registradas en esta fecha para generar gráficos comparativos.
+            </div>
+          ) : (
+            <div className={`pt-6 grid gap-8 ${vistaGraficos === 'ambos' ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1'}`}>
+              
+              {/* GRÁFICO 1: PASTEL / DONA (DISTRIBUCIÓN DE ASISTENCIA) */}
+              {(vistaGraficos === 'ambos' || vistaGraficos === 'pastel') && (
+                <div className={`${vistaGraficos === 'ambos' ? 'lg:col-span-5' : 'max-w-2xl mx-auto w-full'} bg-slate-50/60 dark:bg-slate-900/40 rounded-2xl p-5 border border-slate-200/60 dark:border-slate-700/60`}>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <PieChart className="w-4 h-4 text-tech-blue" />
+                    <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+                      Distribución Porcentual por Estado
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                    {/* SVG Donut Chart */}
+                    <div className="relative w-44 h-44 flex items-center justify-center flex-shrink-0">
+                      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90 transform">
+                        {/* Círculo base gris */}
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          className="stroke-slate-200 dark:stroke-slate-700"
+                          strokeWidth="14"
+                          fill="transparent"
+                        />
+                        {/* Segmentos de estado */}
+                        {segmentosPastel.map((seg, idx) => (
+                          <circle
+                            key={idx}
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            stroke={seg.color}
+                            strokeWidth="14"
+                            strokeDasharray={seg.strokeDasharray}
+                            strokeDashoffset={seg.strokeDashoffset}
+                            fill="transparent"
+                            className="transition-all duration-500 ease-out hover:opacity-80"
+                          />
+                        ))}
+                      </svg>
+                      {/* Texto central */}
+                      <div className="absolute flex flex-col items-center justify-center text-center">
+                        <span className="text-xl font-poppins font-extrabold text-slate-900 dark:text-white leading-none">
+                          {porcentajeAsistencia}%
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                          Asistencia
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Leyenda interactiva */}
+                    <div className="w-full space-y-2">
+                      {segmentosPastel.map((seg) => (
+                        <div key={seg.estado} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center space-x-2 truncate">
+                            <span 
+                              className="w-3 h-3 rounded-md flex-shrink-0"
+                              style={{ backgroundColor: seg.color }}
+                            />
+                            <span className="text-slate-700 dark:text-slate-300 truncate">
+                              {seg.estado}
+                            </span>
+                          </div>
+                          <div className="font-semibold text-slate-900 dark:text-white ml-2 flex-shrink-0">
+                            {seg.cantidad} ({seg.porcentaje}%)
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* GRÁFICO 2: BARRAS (DISTRIBUCIÓN POR HORARIOS PICO) */}
+              {(vistaGraficos === 'ambos' || vistaGraficos === 'barras') && (
+                <div className={`${vistaGraficos === 'ambos' ? 'lg:col-span-7' : 'w-full'} bg-slate-50/60 dark:bg-slate-900/40 rounded-2xl p-5 border border-slate-200/60 dark:border-slate-700/60`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <BarChart3 className="w-4 h-4 text-tech-blue" />
+                      <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+                        Ocupación por Franjas Horarias (Horarios Pico)
+                      </h3>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      Pico máx: {distribucionHoraria.maximo} reservas
+                    </span>
+                  </div>
+
+                  {/* Visualizador de Barras Verticales */}
+                  <div className="h-44 flex items-end justify-between gap-2 pt-6 pb-2 border-b border-slate-200 dark:border-slate-700">
+                    {distribucionHoraria.franjas.map((f, i) => {
+                      const alturaPct = Math.round((f.cantidad / distribucionHoraria.maximo) * 100);
+                      const tieneReservas = f.cantidad > 0;
+
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                          
+                          {/* Tooltip flotante */}
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 bg-slate-900 text-white text-[10px] py-1 px-2 rounded-md pointer-events-none whitespace-nowrap z-20 shadow-md">
+                            {f.etiqueta}: <strong>{f.cantidad} reservas</strong>
+                          </div>
+
+                          {/* Valor encima de la barra */}
+                          {tieneReservas && (
+                            <span className="text-[10px] font-bold text-tech-blue mb-1">
+                              {f.cantidad}
+                            </span>
+                          )}
+
+                          {/* Barra */}
+                          <div 
+                            className={`w-full max-w-[28px] rounded-t-lg transition-all duration-300 ${
+                              tieneReservas 
+                                ? 'bg-gradient-to-t from-tech-blue to-blue-400 group-hover:brightness-110 shadow-sm' 
+                                : 'bg-slate-200/70 dark:bg-slate-700/50'
+                            }`}
+                            style={{ height: tieneReservas ? `${Math.max(alturaPct, 12)}%` : '6px' }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Etiquetas del eje X */}
+                  <div className="flex justify-between gap-1 pt-2">
+                    {distribucionHoraria.franjas.map((f, i) => (
+                      <div key={i} className="flex-1 text-center">
+                        <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium block truncate" title={f.etiqueta}>
+                          {f.etiqueta.split(' - ')[0]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+        </section>
+
+        {/* Tabla Detallada de Reservas */}
+        <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
+          <div className="p-5 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+            <h2 className="font-poppins font-bold text-slate-900 dark:text-white text-lg">
+              Detalle de Asistencias por Reserva
+            </h2>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Total listado: <strong>{reporte?.reservas?.length || 0}</strong>
+            </span>
+          </div>
+
+          {isLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center space-y-3">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-tech-blue"></div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Generando reporte de auditoría...</p>
+            </div>
+          ) : !reporte?.reservas || reporte.reservas.length === 0 ? (
+            <div className="py-16 px-4 text-center">
+              <div className="w-14 h-14 bg-slate-100 dark:bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto text-slate-400 mb-3">
+                <FileText className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                No se encontraron reservas
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                No hay actividades registradas para la fecha seleccionada ({fecha})
+                {laboratorioId ? ' en este laboratorio' : ''}.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-900/60 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                  <tr>
+                    <th scope="col" className="px-5 py-3.5">Horario Programado</th>
+                    <th scope="col" className="px-5 py-3.5">Laboratorio</th>
+                    <th scope="col" className="px-5 py-3.5">Usuario Titular</th>
+                    <th scope="col" className="px-5 py-3.5">Modalidad</th>
+                    <th scope="col" className="px-5 py-3.5">Estado</th>
+                    <th scope="col" className="px-5 py-3.5">Ingreso / Asistencia</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                  {reporte.reservas.map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors">
+                      
+                      {/* Horario */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-1.5 font-medium text-slate-800 dark:text-white">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          <span>{formatearHora(r.fechaInicio)} - {formatearHora(r.fechaFin)}</span>
+                        </div>
+                      </td>
+
+                      {/* Laboratorio */}
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-slate-900 dark:text-white">
+                          {r.laboratorio?.nombre || 'Laboratorio N/A'}
+                        </div>
+                        {r.laboratorio?.ubicacion && (
+                          <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            <MapPin className="w-3 h-3 mr-1 text-slate-400" />
+                            <span>{r.laboratorio.ubicacion}</span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Usuario */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs">
+                            <User className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-900 dark:text-white">
+                              {r.usuario?.nombreCompleto || 'Usuario'}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {r.usuario?.correo}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Modalidad */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {r.numeroComputadora ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-tech-blue dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <Monitor className="w-3.5 h-3.5 mr-1" />
+                            PC #{r.numeroComputadora}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300">
+                            <Building2 className="w-3.5 h-3.5 mr-1" />
+                            Lab. Completo
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Estado */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {renderBadgeEstado(r.estado)}
+                      </td>
+
+                      {/* Sello de Asistencia */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {r.horaAsistencia ? (
+                          <div className="text-emerald-700 dark:text-emerald-400 font-semibold text-xs flex items-center space-x-1">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            <span>Confirmada a las {formatearHoraExacta(r.horaAsistencia)}</span>
+                          </div>
+                        ) : r.estado === 'Ausente' ? (
+                          <div className="text-rose-600 dark:text-rose-400 font-medium text-xs flex items-center space-x-1">
+                            <XCircle className="w-4 h-4 text-rose-500" />
+                            <span>Inasistencia registrada</span>
+                          </div>
+                        ) : (
+                          <div className="text-slate-400 text-xs flex items-center space-x-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Sin escaneo de QR</span>
+                          </div>
+                        )}
+                      </td>
+
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+      </main>
+    </div>
+  );
+}
