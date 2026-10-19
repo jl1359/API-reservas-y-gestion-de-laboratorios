@@ -119,9 +119,10 @@ export default function Perfil() {
     const fetchRoles = async () => {
       try {
         const res = await axios.get('http://localhost:3000/api/roles');
-        setRoles(res.data);
-        if (res.data.length > 0) {
-          setRolSeleccionado(res.data[0].nombre);
+        const rolesData = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setRoles(rolesData);
+        if (rolesData.length > 0) {
+          setRolSeleccionado(rolesData[0].nombre);
         }
       } catch (error) {
         console.error('Error al cargar roles', error);
@@ -133,6 +134,11 @@ export default function Perfil() {
     fetchRoles();
     fetchMisReservas();
   }, []);
+
+  const nombreRol = typeof usuario?.rol === 'object' && usuario?.rol !== null
+    ? (usuario.rol.nombre || 'Estudiante')
+    : (typeof usuario?.rol === 'string' ? usuario.rol : (localStorage.getItem('userRole') || 'Estudiante'));
+
 
   const abrirQr = (reserva: Reserva) => {
     setReservaSeleccionada(reserva);
@@ -223,7 +229,7 @@ export default function Perfil() {
             </p>
             <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
               <span className="inline-block bg-umss-blue text-white px-3 py-1 rounded-full text-xs font-bold">
-                Rol: {usuario?.rol || 'Estudiante'}
+                Rol: {nombreRol}
               </span>
             </div>
           </div>
@@ -241,7 +247,7 @@ export default function Perfil() {
                   Sanción Disciplinaria Activa (24 Horas)
                 </span>
                 <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                  Caduca en: {sancionActiva.horasRestantes}h {sancionActiva.minutosRestantes}m
+                  Caduca en: {sancionActiva.horasRestantes ?? 0}h {sancionActiva.minutosRestantes ?? 0}m
                 </span>
               </div>
               <h2 className="text-lg font-poppins font-bold text-rose-900 dark:text-rose-200">
@@ -249,10 +255,10 @@ export default function Perfil() {
               </h2>
               <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">
                 Se detectó una falta de inasistencia en una reserva previa sin registro oportuno de código QR. Conforme a las normas del campus (HU-30), tu cuenta no puede generar nuevas reservas hasta el{' '}
-                <span className="font-bold underline">{new Date(sancionActiva.fechaFin).toLocaleString('es-ES')}</span>.
+                <span className="font-bold underline">{sancionActiva.fechaFin ? new Date(sancionActiva.fechaFin).toLocaleString('es-ES') : ''}</span>.
               </p>
               <p className="text-xs text-rose-600 dark:text-rose-400 mt-2 italic bg-rose-100/60 dark:bg-rose-900/30 p-2.5 rounded-xl border border-rose-200 dark:border-rose-800/40">
-                Detalle oficial: {sancionActiva.motivo}
+                Detalle oficial: {sancionActiva.motivo || 'Inasistencia a reserva'}
               </p>
             </div>
           </div>
@@ -344,7 +350,7 @@ export default function Perfil() {
                         </div>
 
                         <h3 className="text-xl font-poppins font-bold text-slate-900 dark:text-white">
-                          {reserva.laboratorio.nombre}
+                          {reserva.laboratorio?.nombre || 'Laboratorio'}
                         </h3>
 
                         <div className="flex flex-wrap gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400 mt-2">
@@ -482,7 +488,7 @@ export default function Perfil() {
                 </div>
               </form>
             </div>
-            {usuario?.rol === 'Estudiante' && (
+            {nombreRol === 'Estudiante' && (
               <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
                   <Shield className="w-5 h-5 mr-2 text-tech-blue" /> Solicitar Permisos
@@ -552,7 +558,7 @@ export default function Perfil() {
                     return (
                       <div key={res.id} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
                         <div>
-                          <p className="font-bold text-slate-900 dark:text-white">{res.laboratorio.nombre}</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{res.laboratorio?.nombre || 'Laboratorio'}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             Materia: <strong className="text-slate-700 dark:text-slate-300">{res.materia || 'Práctica'}</strong> • {res.cantidadAlumnos || 1} alumnos
                           </p>
