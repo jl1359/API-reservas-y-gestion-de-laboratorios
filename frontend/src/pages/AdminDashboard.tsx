@@ -1,8 +1,31 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, ShieldCheck, X, Box, Server, Clock, CheckCircle, XCircle, Users, Calendar, AlertCircle } from 'lucide-react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  ShieldCheck,
+  X,
+  Box,
+  Server,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Users,
+  Calendar,
+  AlertCircle,
+  Wrench,
+  History,
+  AlertTriangle,
+  Search,
+  Phone
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
+import { usuariosApi } from '../api/usuarios.api';
+import { laboratoriosApi } from '../api/laboratorios.api';
+import { reservasApi } from '../api/reservas.api';
+import type { Usuario, Mantenimiento, AuditoriaEvento, Rol } from '../types';
 
 interface Carrera { id: number; nombre: string; }
 interface Laboratorio {
@@ -30,7 +53,7 @@ interface ReservaPendiente {
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'laboratorios' | 'solicitudes' | 'reservas' | 'feriados'>('laboratorios');
+  const [activeTab, setActiveTab] = useState<'laboratorios' | 'usuarios' | 'reservas' | 'mantenimientos' | 'feriados' | 'auditoria'>('laboratorios');
   const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([]);
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
@@ -40,6 +63,32 @@ export default function AdminDashboard() {
   const [feriadoForm, setFeriadoForm] = useState({ fecha: '', motivo: '' });
   const [isSubmittingFeriado, setIsSubmittingFeriado] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // HU-02: Gestión Integral de Usuarios y Roles
+  const [usuariosList, setUsuariosList] = useState<Usuario[]>([]);
+  const [rolesList, setRolesList] = useState<Rol[]>([]);
+  const [subTabUsuarios, setSubTabUsuarios] = useState<'directorio' | 'solicitudes'>('directorio');
+  const [busquedaUsuario, setBusquedaUsuario] = useState('');
+
+  // HU-11: Mantenimientos
+  const [mantenimientosList, setMantenimientosList] = useState<Mantenimiento[]>([]);
+  const [isMantenimientoModalOpen, setIsMantenimientoModalOpen] = useState(false);
+  const [mantenimientoForm, setMantenimientoForm] = useState({
+    laboratorioId: '',
+    fechaInicio: '',
+    fechaFin: '',
+    motivo: ''
+  });
+  const [isSubmittingMantenimiento, setIsSubmittingMantenimiento] = useState(false);
+
+  // HU-19: Cancelación por Fuerza Mayor
+  const [isFuerzaMayorModalOpen, setIsFuerzaMayorModalOpen] = useState(false);
+  const [reservaAFuerzaMayor, setReservaAFuerzaMayor] = useState<ReservaPendiente | null>(null);
+  const [motivoFuerzaMayor, setMotivoFuerzaMayor] = useState('');
+  const [isSubmittingFuerzaMayor, setIsSubmittingFuerzaMayor] = useState(false);
+
+  // HU-05: Auditoría de Sesiones y Accesos
+  const [auditoriaList, setAuditoriaList] = useState<AuditoriaEvento[]>([]);
 
   const [isRechazarModalOpen, setIsRechazarModalOpen] = useState(false);
   const [reservaARechazar, setReservaARechazar] = useState<ReservaPendiente | null>(null);
@@ -87,28 +136,150 @@ export default function AdminDashboard() {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      const resLabs = await axios.get('http://localhost:3000/api/laboratorios?incluirTodos=true');
+      const [resLabs, resCarreras, resSols, resReservas, resFeriados, users, mants, audits, rolesRes] = await Promise.all([
+        axios.get('http://localhost:3000/api/laboratorios?incluirTodos=true'),
+        axios.get('http://localhost:3000/api/carreras'),
+        axios.get('http://localhost:3000/api/roles/requests', { headers }),
+        axios.get('http://localhost:3000/api/reservas/pendientes', { headers }),
+        axios.get('http://localhost:3000/api/feriados'),
+        usuariosApi.listar().catch(() => []),
+        laboratoriosApi.listarMantenimientos().catch(() => []),
+        usuariosApi.obtenerAuditoriaSesiones(100).catch(() => []),
+        axios.get('http://localhost:3000/api/roles').catch(() => ({ data: [] }))
+      ]);
+
       setLaboratorios(resLabs.data.laboratorios || []);
-
-      const resCarreras = await axios.get('http://localhost:3000/api/carreras');
       setCarreras(resCarreras.data || []);
-
-      const resSols = await axios.get('http://localhost:3000/api/roles/requests', { headers });
       setSolicitudes(resSols.data || []);
-
-      const resReservas = await axios.get('http://localhost:3000/api/reservas/pendientes', { headers });
       setReservasPendientes(resReservas.data.data || []);
-
-      const resFeriados = await axios.get('http://localhost:3000/api/feriados');
       setFeriadosList(resFeriados.data.data || []);
+      setUsuariosList(users || []);
+      setMantenimientosList(mants || []);
+      setAuditoriaList(audits || []);
+      setRolesList(rolesRes.data || []);
     } catch (error) {
-      toast.error('Error al cargar datos');
+      toast.error('Error al cargar datos del sistema');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  // HU-10: Cambiar estado operativo rápido
+  const handleCambiarEstadoOperativo = async (labId: number, nuevoEstado: 'Activo' | 'Mantenimiento' | 'Inactivo') => {
+    try {
+      await laboratoriosApi.cambiarEstadoOperativo(labId, nuevoEstado);
+      toast.success(`Estado operativo actualizado a "${nuevoEstado}"`);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al cambiar estado');
+    }
+  };
+
+  // HU-02: Cambiar rol directamente a un usuario
+  const handleCambiarRolUsuario = async (usuarioId: number, nuevoRolId: number, nombre: string) => {
+    const rolObj = rolesList.find(r => r.id === nuevoRolId);
+    if (!window.confirm(`¿Confirmas la asignación del rol "${rolObj?.nombre || 'Nuevo Rol'}" para ${nombre}?`)) return;
+    try {
+      await usuariosApi.cambiarRol(usuarioId, nuevoRolId);
+      toast.success(`Rol asignado correctamente a ${nombre}`);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al cambiar rol');
+    }
+  };
+
+  // HU-02: Activar o suspender cuenta de usuario
+  const handleCambiarEstadoUsuario = async (usuarioId: number, activoActual: boolean, nombre: string) => {
+    const nuevoEstado = !activoActual;
+    const accion = nuevoEstado ? 'habilitar' : 'suspender';
+    if (!window.confirm(`¿Confirmas ${accion} el acceso de ${nombre}?`)) return;
+    try {
+      await usuariosApi.cambiarEstado(usuarioId, nuevoEstado);
+      toast.success(`Cuenta de ${nombre} ${nuevoEstado ? 'habilitada' : 'suspendida'}`);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al modificar estado');
+    }
+  };
+
+  // HU-11: Registrar reporte de mantenimiento y bloqueo
+  const handleCrearMantenimiento = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mantenimientoForm.laboratorioId || !mantenimientoForm.fechaInicio || !mantenimientoForm.fechaFin || !mantenimientoForm.motivo.trim()) {
+      return toast.error('Todos los campos son obligatorios');
+    }
+    setIsSubmittingMantenimiento(true);
+    try {
+      await laboratoriosApi.registrarMantenimiento({
+        laboratorioId: Number(mantenimientoForm.laboratorioId),
+        fechaInicio: new Date(mantenimientoForm.fechaInicio).toISOString(),
+        fechaFin: new Date(mantenimientoForm.fechaFin).toISOString(),
+        motivo: mantenimientoForm.motivo.trim()
+      });
+      toast.success('Mantenimiento programado y agenda bloqueada correctamente');
+      setIsMantenimientoModalOpen(false);
+      setMantenimientoForm({ laboratorioId: '', fechaInicio: '', fechaFin: '', motivo: '' });
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al registrar mantenimiento');
+    } finally {
+      setIsSubmittingMantenimiento(false);
+    }
+  };
+
+  // HU-11: Eliminar mantenimiento
+  const handleEliminarMantenimiento = async (id: number, labNombre: string) => {
+    if (!window.confirm(`¿Anular el mantenimiento programado para ${labNombre}? Se reabrirá la agenda para reservas.`)) return;
+    try {
+      await laboratoriosApi.eliminarMantenimiento(id);
+      toast.success('Mantenimiento cancelado y agenda reabierta');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al cancelar mantenimiento');
+    }
+  };
+
+  // HU-19: Abrir modal de cancelación por fuerza mayor
+  const handleAbrirFuerzaMayor = (reserva: ReservaPendiente) => {
+    setReservaAFuerzaMayor(reserva);
+    setMotivoFuerzaMayor('');
+    setIsFuerzaMayorModalOpen(true);
+  };
+
+  // HU-19: Confirmar cancelación por fuerza mayor
+  const handleConfirmarFuerzaMayor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reservaAFuerzaMayor) return;
+    if (motivoFuerzaMayor.trim().length < 5) {
+      return toast.error('Ingresa una justificación formal de al menos 5 caracteres');
+    }
+    setIsSubmittingFuerzaMayor(true);
+    try {
+      await reservasApi.cancelarReservaFuerzaMayor(reservaAFuerzaMayor.id, motivoFuerzaMayor.trim());
+      toast.success('Reserva cancelada por fuerza mayor y notificación urgente enviada');
+      setIsFuerzaMayorModalOpen(false);
+      setReservaAFuerzaMayor(null);
+      setMotivoFuerzaMayor('');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al procesar cancelación');
+    } finally {
+      setIsSubmittingFuerzaMayor(false);
+    }
+  };
+
+  const usuariosFiltrados = usuariosList.filter(u => {
+    if (!busquedaUsuario.trim()) return true;
+    const q = busquedaUsuario.toLowerCase();
+    return (
+      u.nombreCompleto?.toLowerCase().includes(q) ||
+      u.correo?.toLowerCase().includes(q) ||
+      u.telefono?.toLowerCase().includes(q) ||
+      u.rol?.nombre?.toLowerCase().includes(q)
+    );
+  });
 
   const handleOpenCreate = () => {
     setModalMode('crear');
@@ -318,20 +489,34 @@ export default function AdminDashboard() {
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1">Gestiona laboratorios, inventario y solicitudes de usuarios.</p>
           </div>
-          <div className="flex space-x-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            <button onClick={() => setActiveTab('laboratorios')} className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'laboratorios' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Laboratorios</button>
-            <button onClick={() => setActiveTab('solicitudes')} className={`flex items-center px-5 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'solicitudes' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-              Roles
-              {solicitudes.length > 0 && <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === 'solicitudes' ? 'bg-white text-tech-blue' : 'bg-rose-500 text-white'}`}>{solicitudes.length}</span>}
+          <div className="flex flex-wrap gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <button onClick={() => setActiveTab('laboratorios')} className={`flex items-center px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'laboratorios' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <Server className="w-4 h-4 mr-1.5" />
+              Laboratorios
             </button>
-            <button onClick={() => setActiveTab('reservas')} className={`flex items-center px-5 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'reservas' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+            <button onClick={() => setActiveTab('usuarios')} className={`flex items-center px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'usuarios' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <Users className="w-4 h-4 mr-1.5" />
+              Usuarios & Roles
+              {solicitudes.length > 0 && <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === 'usuarios' ? 'bg-white text-tech-blue' : 'bg-rose-500 text-white'}`}>{solicitudes.length}</span>}
+            </button>
+            <button onClick={() => setActiveTab('reservas')} className={`flex items-center px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'reservas' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <Calendar className="w-4 h-4 mr-1.5" />
               Bandeja Reservas
               {reservasPendientes.length > 0 && <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === 'reservas' ? 'bg-white text-tech-blue' : 'bg-amber-500 text-white'}`}>{reservasPendientes.length}</span>}
             </button>
-            <button onClick={() => setActiveTab('feriados')} className={`flex items-center px-5 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'feriados' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-              <Calendar className="w-4 h-4 mr-1.5" />
+            <button onClick={() => setActiveTab('mantenimientos')} className={`flex items-center px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'mantenimientos' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <Wrench className="w-4 h-4 mr-1.5" />
+              Mantenimientos
+              {mantenimientosList.length > 0 && <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === 'mantenimientos' ? 'bg-white text-tech-blue' : 'bg-indigo-600 text-white'}`}>{mantenimientosList.length}</span>}
+            </button>
+            <button onClick={() => setActiveTab('feriados')} className={`flex items-center px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'feriados' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <Clock className="w-4 h-4 mr-1.5" />
               Feriados y Bloqueos
               {feriadosList.length > 0 && <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === 'feriados' ? 'bg-white text-tech-blue' : 'bg-indigo-600 text-white'}`}>{feriadosList.length}</span>}
+            </button>
+            <button onClick={() => setActiveTab('auditoria')} className={`flex items-center px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'auditoria' ? 'bg-tech-blue text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <History className="w-4 h-4 mr-1.5" />
+              Auditoría
             </button>
           </div>
         </div>
@@ -368,9 +553,22 @@ export default function AdminDashboard() {
                             <td className="px-6 py-4">{lab.capacidad} Asientos</td>
                             <td className="px-6 py-4">{lab.reservaPorComputadora ? 'Por PC' : 'Lab. Completo'}</td>
                             <td className="px-6 py-4">
-                              <span className={`px-2 py-1 rounded text-xs font-bold ${lab.estadoOperativo === 'En Mantenimiento' ? 'bg-amber-100 text-amber-700' : lab.estadoOperativo === 'Inactivo' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                {lab.estadoOperativo}
-                              </span>
+                              <select
+                                value={lab.estadoOperativo === 'En Mantenimiento' ? 'Mantenimiento' : lab.estadoOperativo || 'Activo'}
+                                onChange={(e) => handleCambiarEstadoOperativo(lab.id, e.target.value as any)}
+                                className={`text-xs font-bold rounded-lg px-2.5 py-1.5 border transition-colors outline-none cursor-pointer ${
+                                  lab.estadoOperativo === 'En Mantenimiento' || lab.estadoOperativo === 'Mantenimiento'
+                                    ? 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700'
+                                    : lab.estadoOperativo === 'Inactivo'
+                                    ? 'bg-red-50 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-700'
+                                    : 'bg-green-50 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-300 dark:border-green-700'
+                                }`}
+                                title="Cambiar estado operativo inmediatamente (HU-10)"
+                              >
+                                <option value="Activo">Activo</option>
+                                <option value="Mantenimiento">Mantenimiento</option>
+                                <option value="Inactivo">Inactivo</option>
+                              </select>
                             </td>
                             <td className="px-6 py-4 text-right space-x-2">
                               <button onClick={() => handleOpenSchedule(lab)} title="Horarios" className="p-2 text-slate-400 hover:text-indigo-500 transition-colors bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-600"><Clock className="w-4 h-4" /></button>
@@ -387,31 +585,151 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'solicitudes' && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700">
-                  <tr><th className="px-6 py-4 font-bold">Usuario</th><th className="px-6 py-4 font-bold">Rol Actual</th><th className="px-6 py-4 font-bold">Solicita</th><th className="px-6 py-4 font-bold">Motivo</th><th className="px-6 py-4 font-bold text-right">Decisión</th></tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (<tr><td colSpan={5} className="px-6 py-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div></td></tr>)
-                    : solicitudes.length === 0 ? (<tr><td colSpan={5} className="px-6 py-16 text-center"><Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" /><p className="text-slate-500 font-medium">No hay solicitudes pendientes.</p></td></tr>)
-                      : (solicitudes.map(sol => (
-                        <tr key={sol.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
-                          <td className="px-6 py-4"><p className="font-bold text-slate-900 dark:text-white">{sol.usuario.nombreCompleto}</p><p className="text-xs text-slate-500">{sol.usuario.correo}</p></td>
-                          <td className="px-6 py-4"><span className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">{(sol.usuario.rol as any)?.nombre || 'Estudiante'}</span></td>
-                          <td className="px-6 py-4 font-bold text-tech-blue dark:text-blue-400">{sol.rolSolicitado}</td>
-                          <td className="px-6 py-4 max-w-xs truncate" title={sol.motivo}>{sol.motivo}</td>
-                          <td className="px-6 py-4 text-right space-x-2">
-                            <button onClick={() => handleGestionarSolicitud(sol.id, 'Aprobar')} title="Aprobar" className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"><CheckCircle className="w-5 h-5" /></button>
-                            <button onClick={() => handleGestionarSolicitud(sol.id, 'Rechazar')} title="Rechazar" className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"><XCircle className="w-5 h-5" /></button>
-                          </td>
-                        </tr>
-                      )))}
-                </tbody>
-              </table>
+        {activeTab === 'usuarios' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setSubTabUsuarios('directorio')}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    subTabUsuarios === 'directorio'
+                      ? 'bg-tech-blue text-white shadow'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Directorio de Usuarios ({usuariosList.length})
+                </button>
+                <button
+                  onClick={() => setSubTabUsuarios('solicitudes')}
+                  className={`flex items-center px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    subTabUsuarios === 'solicitudes'
+                      ? 'bg-tech-blue text-white shadow'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Solicitudes Pendientes
+                  {solicitudes.length > 0 && (
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-rose-500 text-white">
+                      {solicitudes.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {subTabUsuarios === 'directorio' && (
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre, correo o rol..."
+                    value={busquedaUsuario}
+                    onChange={(e) => setBusquedaUsuario(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
+                  />
+                </div>
+              )}
             </div>
+
+            {subTabUsuarios === 'directorio' && (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                    <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700 text-xs">
+                      <tr>
+                        <th className="px-6 py-4 font-bold">Usuario</th>
+                        <th className="px-6 py-4 font-bold">Contacto</th>
+                        <th className="px-6 py-4 font-bold">Rol Asignado</th>
+                        <th className="px-6 py-4 font-bold">Estado de Cuenta</th>
+                        <th className="px-6 py-4 font-bold text-right">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isLoading ? (
+                        <tr><td colSpan={5} className="px-6 py-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div></td></tr>
+                      ) : usuariosFiltrados.length === 0 ? (
+                        <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No se encontraron usuarios coincidentes</td></tr>
+                      ) : (
+                        usuariosFiltrados.map((u) => (
+                          <tr key={u.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-900 dark:text-white">{u.nombreCompleto}</p>
+                              <p className="text-xs text-slate-500">{u.correo}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="flex items-center text-xs text-slate-600 dark:text-slate-300">
+                                <Phone className="w-3.5 h-3.5 mr-1 text-tech-blue" />
+                                {u.telefono || 'Sin teléfono'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <select
+                                value={u.rolId}
+                                onChange={(e) => handleCambiarRolUsuario(u.id, Number(e.target.value), u.nombreCompleto)}
+                                className="text-xs font-bold rounded-lg px-2.5 py-1.5 border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none cursor-pointer focus:ring-2 focus:ring-tech-blue"
+                                title="Cambiar rol institucional directamente"
+                              >
+                                {rolesList.map((r) => (
+                                  <option key={r.id} value={r.id}>{r.nombre}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                u.activo !== false
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400'
+                                  : 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400'
+                              }`}>
+                                {u.activo !== false ? 'Activo' : 'Suspendido'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => handleCambiarEstadoUsuario(u.id, u.activo !== false, u.nombreCompleto)}
+                                className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-colors shadow-sm ${
+                                  u.activo !== false
+                                    ? 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30'
+                                    : 'text-green-600 border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950/30'
+                                }`}
+                              >
+                                {u.activo !== false ? 'Suspender' : 'Habilitar'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {subTabUsuarios === 'solicitudes' && (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                    <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700">
+                      <tr><th className="px-6 py-4 font-bold">Usuario</th><th className="px-6 py-4 font-bold">Rol Actual</th><th className="px-6 py-4 font-bold">Solicita</th><th className="px-6 py-4 font-bold">Motivo</th><th className="px-6 py-4 font-bold text-right">Decisión</th></tr>
+                    </thead>
+                    <tbody>
+                      {isLoading ? (<tr><td colSpan={5} className="px-6 py-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div></td></tr>)
+                        : solicitudes.length === 0 ? (<tr><td colSpan={5} className="px-6 py-16 text-center"><Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" /><p className="text-slate-500 font-medium">No hay solicitudes pendientes.</p></td></tr>)
+                          : (solicitudes.map(sol => (
+                            <tr key={sol.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
+                              <td className="px-6 py-4"><p className="font-bold text-slate-900 dark:text-white">{sol.usuario.nombreCompleto}</p><p className="text-xs text-slate-500">{sol.usuario.correo}</p></td>
+                              <td className="px-6 py-4"><span className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">{(sol.usuario.rol as any)?.nombre || 'Estudiante'}</span></td>
+                              <td className="px-6 py-4 font-bold text-tech-blue dark:text-blue-400">{sol.rolSolicitado}</td>
+                              <td className="px-6 py-4 max-w-xs truncate" title={sol.motivo}>{sol.motivo}</td>
+                              <td className="px-6 py-4 text-right space-x-2">
+                                <button onClick={() => handleGestionarSolicitud(sol.id, 'Aprobar')} title="Aprobar" className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"><CheckCircle className="w-5 h-5" /></button>
+                                <button onClick={() => handleGestionarSolicitud(sol.id, 'Rechazar')} title="Rechazar" className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"><XCircle className="w-5 h-5" /></button>
+                              </td>
+                            </tr>
+                          )))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -487,6 +805,13 @@ export default function AdminDashboard() {
                               className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
                             >
                               <XCircle className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleAbrirFuerzaMayor(res)}
+                              title="Cancelar por Fuerza Mayor (HU-19)"
+                              className="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
+                            >
+                              <AlertTriangle className="w-5 h-5" />
                             </button>
                           </td>
                         </tr>
@@ -585,6 +910,166 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* Pestaña: Mantenimientos Programados y Bloqueos (HU-11) */}
+        {activeTab === 'mantenimientos' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                  <Wrench className="w-5 h-5 mr-2 text-tech-blue" />
+                  Programación de Mantenimiento y Bloqueos (HU-11)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Bloquea temporalmente el calendario de los laboratorios ante reparaciones preventivas o correctivas.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setMantenimientoForm({ laboratorioId: '', fechaInicio: '', fechaFin: '', motivo: '' });
+                  setIsMantenimientoModalOpen(true);
+                }}
+                className="bg-tech-blue hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center shadow-sm transition-all"
+              >
+                <Plus className="w-5 h-5 mr-2" /> Programar Mantenimiento
+              </button>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                  <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700 text-xs">
+                    <tr>
+                      <th className="px-6 py-4 font-bold">Laboratorio</th>
+                      <th className="px-6 py-4 font-bold">Período de Bloqueo</th>
+                      <th className="px-6 py-4 font-bold">Motivo / Causa</th>
+                      <th className="px-6 py-4 font-bold">Estado</th>
+                      <th className="px-6 py-4 font-bold text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div></td></tr>
+                    ) : mantenimientosList.length === 0 ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No hay mantenimientos activos ni programados</td></tr>
+                    ) : (
+                      mantenimientosList.map((m) => {
+                        const inicio = new Date(m.fechaInicio);
+                        const fin = new Date(m.fechaFin);
+                        const ahora = new Date();
+                        const enCurso = ahora >= inicio && ahora <= fin;
+
+                        return (
+                          <tr key={m.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-900 dark:text-white">{m.laboratorio?.nombre || `Laboratorio #${m.laboratorioId}`}</p>
+                              <p className="text-xs text-slate-500">{m.laboratorio?.ubicacion || 'Campus Central'}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                                {inicio.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} {inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                hasta {fin.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} {fin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4 max-w-xs truncate" title={m.motivo}>
+                              {m.motivo}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                enCurso
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                                  : ahora < inicio
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                              }`}>
+                                {enCurso ? 'En Curso' : ahora < inicio ? 'Programado' : 'Concluido'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => handleEliminarMantenimiento(m.id, m.laboratorio?.nombre || 'este laboratorio')}
+                                title="Anular mantenimiento y reabrir agenda"
+                                className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pestaña: Auditoría de Sesiones y Accesos (HU-05) */}
+        {activeTab === 'auditoria' && (
+          <div className="space-y-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <History className="w-5 h-5 mr-2 text-tech-blue" />
+                Historial de Accesos y Trazabilidad de Sesiones (HU-05)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Registro inmutable de ingresos, inicios de sesión y eventos críticos de seguridad para fines de auditoría.
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                  <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700 text-xs">
+                    <tr>
+                      <th className="px-6 py-4 font-bold">Fecha / Hora</th>
+                      <th className="px-6 py-4 font-bold">Usuario</th>
+                      <th className="px-6 py-4 font-bold">Evento / Acción</th>
+                      <th className="px-6 py-4 font-bold">Dirección IP</th>
+                      <th className="px-6 py-4 font-bold">Dispositivo / Agente</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div></td></tr>
+                    ) : auditoriaList.length === 0 ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No hay registros de auditoría disponibles</td></tr>
+                    ) : (
+                      auditoriaList.map((ev) => {
+                        const fechaEv = new Date(ev.fechaHora);
+                        return (
+                          <tr key={ev.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
+                            <td className="px-6 py-4 font-mono text-xs text-slate-800 dark:text-slate-200">
+                              {fechaEv.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}{' '}
+                              {fechaEv.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-900 dark:text-white">{ev.usuario?.nombreCompleto || 'Usuario del Sistema'}</p>
+                              <p className="text-xs text-slate-500">{ev.usuario?.correo || `ID: ${ev.usuarioId}`}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">{ev.accion}</span>
+                              {ev.detalles && <p className="text-xs text-slate-400 mt-0.5">{ev.detalles}</p>}
+                            </td>
+                            <td className="px-6 py-4 font-mono text-xs text-slate-600 dark:text-slate-400">
+                              {ev.ip || '127.0.0.1'}
+                            </td>
+                            <td className="px-6 py-4 text-xs text-slate-500 max-w-xs truncate" title={ev.userAgent || 'Desconocido'}>
+                              {ev.userAgent || 'Cliente Web'}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal Registrar Nuevo Feriado / Bloqueo (HU-29) */}
@@ -648,6 +1133,166 @@ export default function AdminDashboard() {
                   className="px-5 py-2 text-sm font-bold text-white bg-tech-blue hover:bg-blue-600 disabled:opacity-50 rounded-xl shadow transition flex items-center"
                 >
                   {isSubmittingFeriado ? 'Guardando...' : 'Guardar Feriado'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Programar Mantenimiento (HU-11) */}
+      {isMantenimientoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <Wrench className="w-5 h-5 mr-2 text-tech-blue" />
+                Programar Mantenimiento
+              </h2>
+              <button onClick={() => setIsMantenimientoModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearMantenimiento} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Laboratorio <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={mantenimientoForm.laboratorioId}
+                  onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, laboratorioId: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue outline-none dark:text-white"
+                >
+                  <option value="" disabled>Seleccione un laboratorio...</option>
+                  {laboratorios.map((lab) => (
+                    <option key={lab.id} value={lab.id}>{lab.nombre} ({lab.ubicacion || 'General'})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Inicio <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={mantenimientoForm.fechaInicio}
+                    onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, fechaInicio: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue outline-none dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Fin <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={mantenimientoForm.fechaFin}
+                    onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, fechaFin: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue outline-none dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Motivo / Tareas a Realizar <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={mantenimientoForm.motivo}
+                  onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, motivo: e.target.value })}
+                  placeholder="Ej. Mantenimiento de cableado de red, formateo preventivo, cambio de luminarias..."
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue outline-none dark:text-white resize-none"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-amber-800 dark:text-amber-300 text-xs">
+                El sistema bloqueará automáticamente la creación de nuevas reservas durante esta ventana horaria.
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setIsMantenimientoModalOpen(false)}
+                  disabled={isSubmittingMantenimiento}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingMantenimiento}
+                  className="px-5 py-2 text-sm font-bold text-white bg-tech-blue hover:bg-blue-600 disabled:opacity-50 rounded-xl shadow transition flex items-center"
+                >
+                  {isSubmittingMantenimiento ? 'Programando...' : 'Confirmar Mantenimiento'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Cancelar por Fuerza Mayor (HU-19) */}
+      {isFuerzaMayorModalOpen && reservaAFuerzaMayor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-2 text-amber-500" />
+                Cancelación por Fuerza Mayor
+              </h2>
+              <button onClick={() => setIsFuerzaMayorModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmarFuerzaMayor} className="mt-4 space-y-4">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                <p><strong>Docente:</strong> {reservaAFuerzaMayor.usuario?.nombreCompleto}</p>
+                <p><strong>Laboratorio:</strong> {reservaAFuerzaMayor.laboratorio?.nombre}</p>
+                <p><strong>Horario:</strong> {new Date(reservaAFuerzaMayor.fechaInicio).toLocaleString('es-ES')}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Justificación de Fuerza Mayor <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={motivoFuerzaMayor}
+                  onChange={(e) => setMotivoFuerzaMayor(e.target.value)}
+                  placeholder="Detalla el imprevisto institucional (ej. corte eléctrico no programado, filtración de agua, evento urgente)..."
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none dark:text-white resize-none"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-amber-800 dark:text-amber-300 text-xs">
+                Se notificará formalmente al usuario y se liberará el laboratorio.
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setIsFuerzaMayorModalOpen(false)}
+                  disabled={isSubmittingFuerzaMayor}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition"
+                >
+                  Regresar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingFuerzaMayor}
+                  className="px-5 py-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded-xl shadow transition flex items-center"
+                >
+                  {isSubmittingFuerzaMayor ? 'Cancelando...' : 'Confirmar Cancelación'}
                 </button>
               </div>
             </form>

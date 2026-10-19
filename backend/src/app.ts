@@ -11,6 +11,8 @@ import reportesRoutes from './routes/reportes.routes';
 import feriadosRoutes from './routes/feriados.routes';
 import sancionesRoutes from './routes/sanciones.routes';
 import notificacionesRoutes from './routes/notificaciones.routes';
+import usuariosRoutes from './routes/usuarios.routes';
+import mantenimientosRoutes from './routes/mantenimientos.routes';
 
 const app = express();
 
@@ -19,7 +21,9 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/laboratorios', laboratoriosRoutes);
+app.use('/api/mantenimientos', mantenimientosRoutes);
 app.use('/api/carreras', carrerasRoutes);
 app.use('/api/laboratorios', horariosRoutes); 
 app.use('/api/laboratorios', reservasRoutes);

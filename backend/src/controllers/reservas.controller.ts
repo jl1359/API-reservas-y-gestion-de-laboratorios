@@ -200,6 +200,23 @@ export const crearReservaIndividual = async (
         );
       }
 
+      // HU-11: Verificar mantenimiento en reserva individual
+      const mantenimientoColision = await tx.mantenimiento.findFirst({
+        where: {
+          laboratorioId,
+          fechaInicio: { lt: fechaFin },
+          fechaFin: { gt: fechaInicio },
+        },
+        select: { motivo: true },
+      });
+
+      if (mantenimientoColision) {
+        throw new ErrorReserva(
+          409,
+          `El laboratorio se encuentra en mantenimiento en ese horario (${mantenimientoColision.motivo})`,
+        );
+      }
+
       return tx.reserva.create({
         data: {
           usuarioId: req.user!.id,
@@ -384,6 +401,23 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
         return res.status(409).json({
           code: 'FERIADO_BLOQUEADO',
           error: `No se puede reservar el ${bloque.inicio.toLocaleDateString()}: coincide con feriado (${feriadoCoincidente.motivo})`,
+          fechaConflicto: bloque.inicio.toISOString()
+        });
+      }
+
+      // HU-11: Verificar si el laboratorio se encuentra en mantenimiento programado
+      const mantenimientoCoincidente = await prisma.mantenimiento.findFirst({
+        where: {
+          laboratorioId,
+          fechaInicio: { lt: bloque.fin },
+          fechaFin: { gt: bloque.inicio }
+        }
+      });
+
+      if (mantenimientoCoincidente) {
+        return res.status(409).json({
+          code: 'MANTENIMIENTO_BLOQUEADO',
+          error: `No se puede reservar el ${bloque.inicio.toLocaleDateString()}: el laboratorio estará en mantenimiento (${mantenimientoCoincidente.motivo})`,
           fechaConflicto: bloque.inicio.toISOString()
         });
       }
@@ -1191,3 +1225,82 @@ export const cancelarReserva = async (req: AuthRequest, res: Response): Promise<
     return res.status(500).json({ success: false, error: 'Error interno al cancelar reserva' });
   }
 };
+
+/**
+ * HU-19: Cancelación por Fuerza Mayor de reserva con notificación formal obligatoria
+ * PUT /api/reservas/:id/cancelar-fuerza-mayor
+ */
+export const cancelarReservaFuerzaMayor = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { motivo } = req.body;
+    const operadorId = req.user?.id;
+
+    if (!motivo || typeof motivo !== 'string' || motivo.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'Es obligatorio especificar la causa o motivo de fuerza mayor (mínimo 5 caracteres)'
+      });
+    }
+
+    const reserva = await prisma.reserva.findUnique({
+      where: { id: Number(id) },
+      include: {
+        laboratorio: { select: { id: true, nombre: true } },
+        usuario: { select: { id: true, nombreCompleto: true, correo: true } }
+      }
+    });
+
+    if (!reserva) {
+      return res.status(404).json({ success: false, error: 'Reserva no encontrada' });
+    }
+
+    if (['Cancelada', 'Ausente', 'Asistió'].includes(reserva.estado)) {
+      return res.status(400).json({
+        success: false,
+        error: `No se puede cancelar una reserva que ya está en estado '${reserva.estado}'`
+      });
+    }
+
+    const reservaActualizada = await prisma.reserva.update({
+      where: { id: Number(id) },
+      data: {
+        estado: 'Cancelada',
+        motivo: `Cancelada por fuerza mayor: ${motivo.trim()}`
+      },
+      include: {
+        laboratorio: { select: { id: true, nombre: true } },
+        usuario: { select: { id: true, nombreCompleto: true, correo: true } }
+      }
+    });
+
+    // Auditoría de la acción administrativa
+    await prisma.auditoria.create({
+      data: {
+        usuarioId: operadorId || null,
+        accion: `Cancelación por Fuerza Mayor (HU-19): Reserva #${reserva.id} (${reserva.laboratorio.nombre}) de ${reserva.usuario?.nombreCompleto || 'Docente'}. Causa: ${motivo.trim()}`
+      }
+    }).catch(() => null);
+
+    // Notificación formal al docente o estudiante
+    if (reserva.usuarioId) {
+      await prisma.notificacion.create({
+        data: {
+          usuarioId: reserva.usuarioId,
+          mensaje: `AVISO IMPORTANTE: Tu reserva #${reserva.id} para el ${reserva.laboratorio.nombre} ha sido cancelada por razones de fuerza mayor universitaria. Motivo: ${motivo.trim()}`
+        }
+      }).catch(() => null);
+    }
+
+    return res.status(200).json({
+      success: true,
+      mensaje: 'Reserva cancelada por fuerza mayor y notificación urgente enviada',
+      data: reservaActualizada
+    });
+
+  } catch (error) {
+    console.error('Error al cancelar reserva por fuerza mayor:', error);
+    return res.status(500).json({ success: false, error: 'Error interno al procesar cancelación por fuerza mayor' });
+  }
+};
+
