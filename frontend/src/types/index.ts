@@ -116,3 +116,28 @@ export interface Sancion {
     };
   } | null;
 }
+
+export interface MetricasLaboratorio {
+  laboratorioId: number;
+  nombre: string;
+  ubicacion: string;
+  capacidad: number;
+  totalReservas: number;
+  reservasAsistidas: number;
+  reservasAusentes: number;
+  reservasCanceladas: number;
+  reservasAprobadas: number;
+  horasUsoEfectivo: number;
+  tasaAsistencia: number;
+  alumnosBeneficiados: number;
+}
+
+export interface ResumenMetricasAcademicas {
+  totalReservasCampus: number;
+  totalHorasCampus: number;
+  tasaAsistenciaPromedio: number;
+  totalAlumnosBeneficiados: number;
+  laboratorioMasDemandado: string;
+  laboratorios: MetricasLaboratorio[];
+}
+
