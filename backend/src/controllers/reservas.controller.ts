@@ -5,7 +5,15 @@ import { Prisma, Reserva } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { verificarSancionActiva } from '../services/sanciones.service';
-import { emitirNotificacionEstadoReserva } from './notificaciones.controller';
+import { emitirNotificacionEstadoReserva } from '../services/notificaciones.service';
+import {
+  listarMisReservasService,
+  listarTodasLasReservasService,
+  listarReservasPendientesService,
+  aprobarReservaService,
+  rechazarReservaService,
+  cancelarReservaFuerzaMayorService
+} from '../services/reservas.service';
 
 // =========================================================================
 // CONSTANTES Y HELPERS GENERALES
@@ -513,42 +521,8 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
 export const listarReservasPendientes = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { laboratorioId } = req.query;
-
-    const whereClause: any = {
-      estado: 'Pendiente'
-    };
-
-    if (laboratorioId) {
-      const parsedId = Number(laboratorioId);
-      if (Number.isInteger(parsedId)) {
-        whereClause.laboratorioId = parsedId;
-      }
-    }
-
-    const reservas = await prisma.reserva.findMany({
-      where: whereClause,
-      include: {
-        usuario: {
-          select: {
-            id: true,
-            nombreCompleto: true,
-            correo: true,
-            rol: { select: { nombre: true } }
-          }
-        },
-        laboratorio: {
-          select: {
-            id: true,
-            nombre: true,
-            capacidad: true,
-            ubicacion: true
-          }
-        }
-      },
-      orderBy: {
-        fechaInicio: 'asc'
-      }
-    });
+    const labId = laboratorioId ? Number(laboratorioId) : undefined;
+    const reservas = await listarReservasPendientesService(labId);
 
     return res.json({
       success: true,
@@ -770,51 +744,11 @@ export const obtenerQrReserva = async (req: AuthRequest, res: Response): Promise
 export const listarMisReservas = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const usuarioId = req.user?.id;
-
     if (!usuarioId) {
       return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
     }
 
-    const reservas = await prisma.reserva.findMany({
-      where: { usuarioId },
-      include: {
-        laboratorio: {
-          select: { id: true, nombre: true, ubicacion: true, reservaPorComputadora: true, capacidad: true }
-        }
-      },
-      orderBy: { fechaInicio: 'desc' }
-    });
-
-    // Mapeo seguro: sólo revelar/asegurar tokenQr si la reserva está Aprobada
-    const reservasConQrSeguro = await Promise.all(
-      reservas.map(async (r) => {
-        let tokenQr = null;
-        if (r.estado === 'Aprobada') {
-          if (!r.tokenQr) {
-            tokenQr = crypto.randomBytes(32).toString('hex');
-            await prisma.reserva.update({
-              where: { id: r.id },
-              data: { tokenQr }
-            });
-          } else {
-            tokenQr = r.tokenQr;
-          }
-        }
-
-        return {
-          id: r.id,
-          fechaInicio: r.fechaInicio,
-          fechaFin: r.fechaFin,
-          motivo: r.motivo,
-          materia: r.materia,
-          numeroComputadora: r.numeroComputadora,
-          estado: r.estado,
-          horaAsistencia: r.horaAsistencia,
-          laboratorio: r.laboratorio,
-          tokenQr
-        };
-      })
-    );
+    const reservasConQrSeguro = await listarMisReservasService(usuarioId);
 
     return res.status(200).json({
       success: true,
@@ -822,7 +756,6 @@ export const listarMisReservas = async (req: AuthRequest, res: Response): Promis
       data: reservasConQrSeguro,
       reservas: reservasConQrSeguro
     });
-
   } catch (error) {
     console.error('Error al listar mis reservas:', error);
     return res.status(500).json({ success: false, error: 'Error interno al obtener reservas personales' });
@@ -1025,48 +958,19 @@ export const escanearQr = async (req: AuthRequest, res: Response): Promise<any> 
 export const aprobarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-
-    const reserva = await prisma.reserva.findUnique({
-      where: { id: Number(id) }
-    });
-
-    if (!reserva) {
-      return res.status(404).json({ success: false, error: 'Reserva no encontrada' });
-    }
-
-    const tokenQr = crypto.randomBytes(32).toString('hex');
-
-    const reservaAprobada = await prisma.reserva.update({
-      where: { id: Number(id) },
-      data: {
-        estado: 'Aprobada',
-        tokenQr
-      },
-      include: {
-        laboratorio: true,
-        usuario: { select: { nombreCompleto: true, correo: true } }
-      }
-    });
-
-    // HU-19: Emitir notificación al usuario de que su reserva fue aprobada
-    if (reservaAprobada.usuarioId) {
-      emitirNotificacionEstadoReserva(
-        reservaAprobada.usuarioId,
-        reservaAprobada.id,
-        'Aprobada',
-        reservaAprobada.laboratorio.nombre
-      ).catch(() => {});
-    }
+    const reservaAprobada = await aprobarReservaService(Number(id));
 
     return res.status(200).json({
       success: true,
       mensaje: 'Reserva aprobada exitosamente y código QR generado',
       data: reservaAprobada
     });
-
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error al aprobar reserva:', error);
-    return res.status(500).json({ success: false, error: 'Error interno al aprobar la reserva' });
+    return res.status(error.message === 'Reserva no encontrada' ? 404 : 500).json({
+      success: false,
+      error: error.message || 'Error interno al aprobar la reserva'
+    });
   }
 };
 
@@ -1077,52 +981,19 @@ export const rechazarReserva = async (req: AuthRequest, res: Response): Promise<
   try {
     const { id } = req.params;
     const { motivo } = req.body;
-
-    const reserva = await prisma.reserva.findUnique({
-      where: { id: Number(id) },
-      include: { laboratorio: { select: { nombre: true } } }
-    });
-
-    if (!reserva) {
-      return res.status(404).json({ success: false, error: 'Reserva no encontrada' });
-    }
-
-    if (reserva.estado !== 'Pendiente') {
-      return res.status(400).json({
-        success: false,
-        error: `Solo se pueden rechazar reservas en estado 'Pendiente'. Estado actual: '${reserva.estado}'`
-      });
-    }
-
-    const reservaRechazada = await prisma.reserva.update({
-      where: { id: Number(id) },
-      data: { estado: 'Rechazada' },
-      include: {
-        laboratorio: true,
-        usuario: { select: { nombreCompleto: true, correo: true } }
-      }
-    });
-
-    // HU-19: Emitir notificación al usuario con el motivo del rechazo
-    if (reserva.usuarioId) {
-      emitirNotificacionEstadoReserva(
-        reserva.usuarioId,
-        reserva.id,
-        'Rechazada',
-        reserva.laboratorio.nombre,
-        motivo || 'Sin motivo especificado'
-      ).catch(() => {});
-    }
+    const reservaRechazada = await rechazarReservaService(Number(id), motivo);
 
     return res.status(200).json({
       success: true,
       mensaje: 'Reserva rechazada exitosamente y notificación enviada al usuario',
       data: reservaRechazada
     });
-
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error al rechazar reserva:', error);
-    return res.status(500).json({ success: false, error: 'Error interno al rechazar la reserva' });
+    return res.status(error.message === 'Reserva no encontrada' ? 404 : 400).json({
+      success: false,
+      error: error.message || 'Error interno al rechazar la reserva'
+    });
   }
 };
 
@@ -1132,22 +1003,9 @@ export const rechazarReserva = async (req: AuthRequest, res: Response): Promise<
 export const listarTodasLasReservas = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { estado, laboratorioId } = req.query;
-
-    const where: any = {};
-    if (estado && typeof estado === 'string') {
-      where.estado = estado;
-    }
-    if (laboratorioId && !isNaN(Number(laboratorioId))) {
-      where.laboratorioId = Number(laboratorioId);
-    }
-
-    const reservas = await prisma.reserva.findMany({
-      where,
-      include: {
-        usuario: { select: { id: true, nombreCompleto: true, correo: true } },
-        laboratorio: { select: { id: true, nombre: true, ubicacion: true, reservaPorComputadora: true, capacidad: true } }
-      },
-      orderBy: { fechaInicio: 'desc' }
+    const reservas = await listarTodasLasReservasService({
+      estado: typeof estado === 'string' ? estado : undefined,
+      laboratorioId: laboratorioId ? Number(laboratorioId) : undefined
     });
 
     return res.status(200).json({
@@ -1155,7 +1013,6 @@ export const listarTodasLasReservas = async (req: AuthRequest, res: Response): P
       total: reservas.length,
       reservas
     });
-
   } catch (error) {
     console.error('Error al listar todas las reservas:', error);
     return res.status(500).json({ success: false, error: 'Error interno al obtener reservas' });
@@ -1243,54 +1100,7 @@ export const cancelarReservaFuerzaMayor = async (req: AuthRequest, res: Response
       });
     }
 
-    const reserva = await prisma.reserva.findUnique({
-      where: { id: Number(id) },
-      include: {
-        laboratorio: { select: { id: true, nombre: true } },
-        usuario: { select: { id: true, nombreCompleto: true, correo: true } }
-      }
-    });
-
-    if (!reserva) {
-      return res.status(404).json({ success: false, error: 'Reserva no encontrada' });
-    }
-
-    if (['Cancelada', 'Ausente', 'Asistió'].includes(reserva.estado)) {
-      return res.status(400).json({
-        success: false,
-        error: `No se puede cancelar una reserva que ya está en estado '${reserva.estado}'`
-      });
-    }
-
-    const reservaActualizada = await prisma.reserva.update({
-      where: { id: Number(id) },
-      data: {
-        estado: 'Cancelada',
-        motivo: `Cancelada por fuerza mayor: ${motivo.trim()}`
-      },
-      include: {
-        laboratorio: { select: { id: true, nombre: true } },
-        usuario: { select: { id: true, nombreCompleto: true, correo: true } }
-      }
-    });
-
-    // Auditoría de la acción administrativa
-    await prisma.auditoria.create({
-      data: {
-        usuarioId: operadorId || null,
-        accion: `Cancelación por Fuerza Mayor (HU-19): Reserva #${reserva.id} (${reserva.laboratorio.nombre}) de ${reserva.usuario?.nombreCompleto || 'Docente'}. Causa: ${motivo.trim()}`
-      }
-    }).catch(() => null);
-
-    // Notificación formal al docente o estudiante
-    if (reserva.usuarioId) {
-      await prisma.notificacion.create({
-        data: {
-          usuarioId: reserva.usuarioId,
-          mensaje: `AVISO IMPORTANTE: Tu reserva #${reserva.id} para el ${reserva.laboratorio.nombre} ha sido cancelada por razones de fuerza mayor universitaria. Motivo: ${motivo.trim()}`
-        }
-      }).catch(() => null);
-    }
+    const reservaActualizada = await cancelarReservaFuerzaMayorService(Number(id), motivo, operadorId);
 
     return res.status(200).json({
       success: true,
@@ -1298,9 +1108,12 @@ export const cancelarReservaFuerzaMayor = async (req: AuthRequest, res: Response
       data: reservaActualizada
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error al cancelar reserva por fuerza mayor:', error);
-    return res.status(500).json({ success: false, error: 'Error interno al procesar cancelación por fuerza mayor' });
+    return res.status(error.message === 'Reserva no encontrada' ? 404 : 400).json({
+      success: false,
+      error: error.message || 'Error interno al procesar cancelación por fuerza mayor'
+    });
   }
 };
 

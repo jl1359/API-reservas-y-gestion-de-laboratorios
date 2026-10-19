@@ -1,14 +1,8 @@
 import { Request, Response } from 'express';
-import { z } from 'zod';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { feriadoSchema } from '../validators/feriado.validator';
 
-// Esquema Zod para validación de feriados (HU-29)
-export const feriadoSchema = z.object({
-  fecha: z.string().min(1, 'La fecha es obligatoria (formato YYYY-MM-DD o ISO8601)'),
-  motivo: z.string().min(2, 'El motivo del feriado o bloqueo debe tener al menos 2 caracteres').max(150, 'Máximo 150 caracteres'),
-  bloqueoActivo: z.boolean().optional().default(true)
-});
 
 // GET /api/feriados - Listar todos los feriados y días bloqueados (Público / Autenticado)
 export const listarFeriados = async (req: Request, res: Response): Promise<any> => {
