@@ -68,6 +68,10 @@ export const cambiarRolUsuarioService = async (
     throw new Error('Usuario no encontrado');
   }
 
+  if (usuario.rol.nombre === 'Admin') {
+    throw new Error('No está permitido modificar el rol de una cuenta de Administrador institucional');
+  }
+
   const nuevoRol = await prisma.rol.findUnique({
     where: { id: nuevoRolId }
   });
@@ -96,7 +100,7 @@ export const cambiarRolUsuarioService = async (
   await prisma.auditoria.create({
     data: {
       usuarioId: adminId,
-      accion: `Gestión de Roles (HU-02): Modificación directa de rol de '${usuario.nombreCompleto}' (${usuario.correo}) de [${rolAnterior}] a [${nuevoRol.nombre}].${detalleMotivo}`
+      accion: `Gestión de Roles: Modificación directa de rol de '${usuario.nombreCompleto}' (${usuario.correo}) de [${rolAnterior}] a [${nuevoRol.nombre}].${detalleMotivo}`
     }
   }).catch(() => null);
 
@@ -121,11 +125,16 @@ export const cambiarEstadoUsuarioService = async (
   }
 
   const usuario = await prisma.usuario.findUnique({
-    where: { id: usuarioId }
+    where: { id: usuarioId },
+    include: { rol: true }
   });
 
   if (!usuario) {
     throw new Error('Usuario no encontrado');
+  }
+
+  if (usuario.rol.nombre === 'Admin') {
+    throw new Error('No está permitido suspender una cuenta de Administrador institucional');
   }
 
   const actualizado = await prisma.usuario.update({
@@ -141,7 +150,7 @@ export const cambiarEstadoUsuarioService = async (
   await prisma.auditoria.create({
     data: {
       usuarioId: adminId,
-      accion: `Gestión de Cuentas (HU-02): Cuenta de '${usuario.nombreCompleto}' (${usuario.correo}) marcada como [${estadoStr}].`
+      accion: `Gestión de Cuentas: Cuenta de '${usuario.nombreCompleto}' (${usuario.correo}) marcada como [${estadoStr}].`
     }
   }).catch(() => null);
 
@@ -153,11 +162,16 @@ export const actualizarPerfilService = async (
   datos: { nombreCompleto?: string; telefono?: string | null }
 ) => {
   const usuario = await prisma.usuario.findUnique({
-    where: { id: usuarioId }
+    where: { id: usuarioId },
+    include: { rol: true }
   });
 
   if (!usuario) {
     throw new Error('Usuario no encontrado');
+  }
+
+  if (usuario.rol.nombre === 'Admin') {
+    throw new Error('No está permitido suspender una cuenta de Administrador institucional');
   }
 
   const dataToUpdate: any = {};

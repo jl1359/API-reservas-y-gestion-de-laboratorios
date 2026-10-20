@@ -31,7 +31,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Ruta protegida para personal de control de acceso físico (HU-23)
+// Ruta protegida para personal de control de acceso físico
 const StaffRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('userRole');
@@ -45,7 +45,7 @@ const StaffRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Ruta protegida para auditoría y reportes diarios de asistencia (HU-24)
+// Ruta protegida para auditoría y reportes diarios de asistencia
 const ReportesRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('userRole');
@@ -72,10 +72,10 @@ function App() {
         <Route path="/laboratorio/:id" element={<ProtectedRoute><LabDetail /></ProtectedRoute>} />
         <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
         
-        {/* Ruta para escaneo de código QR (HU-23) */}
+        {/* Ruta para escaneo de código QR */}
         <Route path="/escanear-qr" element={<StaffRoute><EscanearQr /></StaffRoute>} />
 
-        {/* Ruta para reporte diario de asistencias (HU-24) */}
+        {/* Ruta para reporte diario de asistencias */}
         <Route path="/reportes" element={<ReportesRoute><ReporteAsistencias /></ReportesRoute>} />
         <Route path="/reporte-asistencias" element={<ReportesRoute><ReporteAsistencias /></ReportesRoute>} />
 

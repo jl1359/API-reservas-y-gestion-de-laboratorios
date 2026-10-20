@@ -84,7 +84,7 @@ export default function Perfil() {
     const rol = localStorage.getItem('userRole') || 'Usuario';
     setUsuario({ rol });
 
-    // Consultar información completa del perfil (HU-04)
+    // Consultar información completa del perfil
     const fetchPerfil = async () => {
       try {
         const data = await usuariosApi.obtenerMiPerfil();
@@ -98,7 +98,7 @@ export default function Perfil() {
       }
     };
 
-    // Consultar estado disciplinario de sanciones (HU-30)
+    // Consultar estado disciplinario de sanciones
     const fetchSancionEstado = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -235,7 +235,7 @@ export default function Perfil() {
           </div>
         </div>
 
-        {/* ALERTA VISIBLE DE SANCIÓN ACTIVA (HU-30) */}
+        {/* ALERTA VISIBLE DE SANCIÓN ACTIVA */}
         {sancionActiva && (
           <div className="bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 rounded-3xl p-6 mb-8 flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4 shadow-sm animate-in fade-in duration-200">
             <div className="p-3 bg-rose-500 text-white rounded-2xl flex-shrink-0">
@@ -254,7 +254,7 @@ export default function Perfil() {
                 Tus privilegios de reserva están suspendidos temporalmente
               </h2>
               <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">
-                Se detectó una falta de inasistencia en una reserva previa sin registro oportuno de código QR. Conforme a las normas del campus (HU-30), tu cuenta no puede generar nuevas reservas hasta el{' '}
+                Se detectó una falta de inasistencia en una reserva previa sin registro oportuno de código QR. Conforme al reglamento institucional del campus, tu cuenta no puede generar nuevas reservas hasta el{' '}
                 <span className="font-bold underline">{sancionActiva.fechaFin ? new Date(sancionActiva.fechaFin).toLocaleString('es-ES') : ''}</span>.
               </p>
               <p className="text-xs text-rose-600 dark:text-rose-400 mt-2 italic bg-rose-100/60 dark:bg-rose-900/30 p-2.5 rounded-xl border border-rose-200 dark:border-rose-800/40">
@@ -291,7 +291,7 @@ export default function Perfil() {
           </button>
         </div>
 
-        {/* CONTENIDO PESTAÑA 1: MIS RESERVAS (HU-22) */}
+        {/* CONTENIDO PESTAÑA 1: MIS RESERVAS */}
         {activeTab === 'reservas' && (
           <div>
             {isLoadingReservas ? (
@@ -382,7 +382,7 @@ export default function Perfil() {
                         )}
                       </div>
 
-                      {/* Botones de Acción (QR y Cancelación HU-18) */}
+                      {/* Botones de Acción (QR y Cancelación) */}
                       <div className="flex-shrink-0 flex flex-wrap items-center justify-end gap-2">
                         {esAprobada && (
                           <button
@@ -421,7 +421,7 @@ export default function Perfil() {
         {/* CONTENIDO PESTAÑA 2: CONFIGURACIÓN Y SEGURIDAD */}
         {activeTab === 'cuenta' && (
           <div className="space-y-6">
-            {/* HU-04: Información de Perfil Complementaria */}
+            {/* Información de Perfil Complementaria */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
                 <User className="w-5 h-5 mr-2 text-tech-blue" /> Información Personal y de Contacto
@@ -530,7 +530,7 @@ export default function Perfil() {
               </div>
             )}
 
-            {/* Sección Mis Reservas HU-15 / HU-16 / HU-17 */}
+            {/* Sección Mis Reservas */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-tech-blue" /> Mis Reservas de Laboratorio
@@ -618,7 +618,7 @@ export default function Perfil() {
 
       </div>
 
-      {/* Modal QR Oficial de la Reserva (HU-22) */}
+      {/* Modal QR Oficial de la Reserva */}
       <ModalQrReserva
         isOpen={isModalQrOpen}
         onClose={() => setIsModalQrOpen(false)}

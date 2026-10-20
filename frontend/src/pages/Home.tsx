@@ -160,7 +160,7 @@ export default function Home() {
                       Modalidad: {lab.reservaPorComputadora ? 'Por Computadora' : 'Laboratorio Completo'}
                     </div>
                     <button className="w-full bg-slate-50 hover:bg-tech-blue dark:bg-slate-700 dark:hover:bg-tech-blue text-slate-700 hover:text-white dark:text-white font-semibold py-2.5 rounded-xl border border-slate-200 hover:border-tech-blue dark:border-slate-600 dark:hover:border-tech-blue transition-colors">
-                      <Link to={"/laboratorio/" + lab.id}>Ver Disponibilidad</Link>
+                      <Link to={"/laboratorio/" + lab.id} className="block w-full h-full">Ver Disponibilidad</Link>
                     </button>
                   </div>
                 </div>

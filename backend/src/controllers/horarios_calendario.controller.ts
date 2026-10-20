@@ -1,9 +1,9 @@
-﻿import { Response } from 'express';
+import { Response } from 'express';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
 // =======================================================
-// MÓDULO DE HORARIOS (HU-06)
+// MÓDULO DE HORARIOS (HU-07)
 // =======================================================
 
 export const configurarHorarios = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -49,36 +49,57 @@ export const configurarHorarios = async (req: AuthRequest, res: Response): Promi
 };
 
 // =======================================================
-// MÓDULO DE BÚSQUEDA / CALENDARIO (HU-12)
+// MÓDULO DE BÚSQUEDA / CALENDARIO EN TIEMPO REAL (HU-12)
 // =======================================================
 
 export const verCalendarioLaboratorio = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
-    const laboratorio = await prisma.laboratorio.findUnique({ where: { id: Number(id) } });
+    const laboratorio = await prisma.laboratorio.findUnique({
+      where: { id: Number(id) },
+      include: {
+        horarios: true,
+        carrera: true
+      }
+    });
     if (!laboratorio) return res.status(404).json({ error: 'Laboratorio no encontrado' });
 
-    const reservas = await prisma.reserva.findMany({
-      where: {
-        laboratorioId: Number(id),
-        estado: { in: ['Aprobada', 'Pendiente'] }
-      },
-      select: {
-        id: true,
-        fechaInicio: true,
-        fechaFin: true,
-        estado: true,
-        motivo: true,
-        usuario: {
-          select: { nombreCompleto: true }
-        }
-      },
-      orderBy: { fechaInicio: 'asc' }
-    });
+    const [reservas, feriados, mantenimientos] = await Promise.all([
+      prisma.reserva.findMany({
+        where: {
+          laboratorioId: Number(id),
+          estado: { in: ['Aprobada', 'Pendiente', 'Confirmada'] }
+        },
+        select: {
+          id: true,
+          fechaInicio: true,
+          fechaFin: true,
+          estado: true,
+          motivo: true,
+          materia: true,
+          numeroComputadora: true,
+          usuario: {
+            select: { nombreCompleto: true }
+          }
+        },
+        orderBy: { fechaInicio: 'asc' }
+      }),
+      prisma.feriado.findMany({
+        where: { bloqueoActivo: true },
+        select: { id: true, fecha: true, motivo: true }
+      }),
+      prisma.mantenimiento.findMany({
+        where: { laboratorioId: Number(id) },
+        select: { id: true, fechaInicio: true, fechaFin: true, motivo: true }
+      })
+    ]);
 
     return res.json({
       laboratorio: laboratorio.nombre,
+      horarios: laboratorio.horarios,
+      feriados,
+      mantenimientos,
       reservas
     });
 

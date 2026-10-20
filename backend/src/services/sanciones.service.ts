@@ -129,7 +129,7 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
     await prisma.auditoria.create({
       data: {
         usuarioId: reserva.usuarioId,
-        accion: `Sanción HU-30 aplicada: 24 horas de suspensión por inasistencia a reserva #${reserva.id}`
+        accion: `Sanción disciplinaria aplicada: 24 horas de suspensión por inasistencia a reserva #${reserva.id}`
       }
     });
   } catch (errAudit) {

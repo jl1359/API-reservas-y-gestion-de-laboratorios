@@ -153,7 +153,7 @@ export default function EscanearQr() {
     return () => detenerCamara();
   }, [modo, resultado]);
 
-  // Validar el token contra el servidor (HU-23)
+  // Validar el token contra el servidor
   const procesarValidacion = async (tokenParaValidar: string) => {
     if (!tokenParaValidar || !tokenParaValidar.trim() || isProcessing) return;
 

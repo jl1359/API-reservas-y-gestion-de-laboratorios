@@ -27,7 +27,7 @@ export const cambiarEstadoOperativoService = async (
     await prisma.auditoria.create({
       data: {
         usuarioId: operadorId,
-        accion: `Cambio de Estado Operativo (HU-10): Laboratorio '${lab.nombre}' cambiado de [${estadoAnterior}] a [${estadoOperativo}].`
+        accion: `Cambio de Estado Operativo: Laboratorio '${lab.nombre}' cambiado de [${estadoAnterior}] a [${estadoOperativo}].`
       }
     }).catch(() => null);
   }
@@ -105,7 +105,7 @@ export const registrarMantenimientoService = async (
     await prisma.auditoria.create({
       data: {
         usuarioId: operadorId,
-        accion: `Programación de Mantenimiento (HU-11): Laboratorio '${lab.nombre}' bloqueado del ${fInicio.toISOString()} al ${fFin.toISOString()}. Motivo: ${datos.motivo.trim()}`
+        accion: `Programación de Mantenimiento: Laboratorio '${lab.nombre}' bloqueado del ${fInicio.toISOString()} al ${fFin.toISOString()}. Motivo: ${datos.motivo.trim()}`
       }
     }).catch(() => null);
   }
@@ -154,7 +154,7 @@ export const eliminarMantenimientoService = async (
     await prisma.auditoria.create({
       data: {
         usuarioId: operadorId,
-        accion: `Cancelación de Mantenimiento (HU-11): Mantenimiento del laboratorio '${mant.laboratorio.nombre}' programado para ${mant.fechaInicio.toISOString()} ha sido cancelado y liberado.`
+        accion: `Cancelación de Mantenimiento: Mantenimiento del laboratorio '${mant.laboratorio.nombre}' programado para ${mant.fechaInicio.toISOString()} ha sido cancelado y liberado.`
       }
     }).catch(() => null);
   }

@@ -15,12 +15,12 @@ export default function Navbar() {
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Estados de Notificaciones (HU-19)
+  // Estados de Notificaciones
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
   const [noLeidas, setNoLeidas] = useState(0);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
-  // Sincronizar rol real desde el backend (HU-02 / HU-04)
+  // Sincronizar rol real desde el backend
   useEffect(() => {
     if (!isAuthenticated) return;
     const syncUserRole = async () => {
@@ -80,7 +80,7 @@ export default function Navbar() {
     window.location.reload();
   };
 
-  // HU-19: Consultar notificaciones en tiempo real
+  // Consultar notificaciones en tiempo real
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -154,7 +154,7 @@ export default function Navbar() {
               Mi Perfil
             </Link>
             
-            {/* Acceso directo a Escanear QR para personal autorizado (HU-23) */}
+            {/* Acceso directo a Escanear QR para personal autorizado */}
             {puedeEscanear && (
               <Link 
                 to="/escanear-qr" 
@@ -165,7 +165,7 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Acceso a Reportes de Asistencias (HU-24) */}
+            {/* Acceso a Reportes de Asistencias */}
             {puedeVerReportes && (
               <Link 
                 to="/reportes" 
@@ -194,7 +194,7 @@ export default function Navbar() {
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          {/* HU-19: Campana de Notificaciones */}
+          {/* Campana de Notificaciones */}
           {isAuthenticated && (
             <div className="relative">
               <button

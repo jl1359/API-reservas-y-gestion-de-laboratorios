@@ -137,6 +137,7 @@ export const crearReservaIndividualService = async (
       throw new ReservaServiceError(409, `El laboratorio se encuentra en mantenimiento en ese horario (${mantenimientoColision.motivo})`);
     }
 
+    const tokenQr = crypto.randomBytes(32).toString('hex');
     return tx.reserva.create({
       data: {
         usuarioId,
@@ -146,7 +147,8 @@ export const crearReservaIndividualService = async (
         fechaFin,
         motivo: motivo || null,
         cantidadAlumnos: 1,
-        estado: 'Pendiente',
+        estado: 'Aprobada',
+        tokenQr,
       },
     });
   }, {
@@ -290,6 +292,7 @@ export const crearReservaService = async (
 
       if (conflicto) throw new Error('CONFLICTO_HORARIO');
 
+      const tokenQr = crypto.randomBytes(32).toString('hex');
       const nueva = await tx.reserva.create({
         data: {
           usuarioId,
@@ -300,7 +303,8 @@ export const crearReservaService = async (
           cantidadAlumnos: data.cantidadAlumnos,
           numeroComputadora: data.numeroComputadora || null,
           motivo: data.recurrente ? `[Serie: ${serieId}] ${data.motivo ? data.motivo.trim() : ''}`.trim() : (data.motivo ? data.motivo.trim() : null),
-          estado: 'Pendiente'
+          estado: 'Aprobada',
+          tokenQr
         }
       });
 
@@ -311,8 +315,8 @@ export const crearReservaService = async (
       data: {
         usuarioId,
         mensaje: data.recurrente
-          ? `Tu serie semestral de ${reservasCreadas.length} reservas para ${laboratorio.nombre} (${data.materia}) fue solicitada exitosamente.`
-          : `Tu solicitud de reserva para ${laboratorio.nombre} (${data.materia}) fue enviada exitosamente.`
+          ? `Tu serie semestral de ${reservasCreadas.length} reservas para ${laboratorio.nombre} (${data.materia}) fue aprobada y confirmada automáticamente. Tus códigos QR de ingreso están disponibles en tu perfil.`
+          : `Tu reserva para ${laboratorio.nombre} (${data.materia}) fue aprobada y confirmada automáticamente. Tu código QR de ingreso ya está disponible en tu perfil.`
       }
     }).catch(() => null);
 
@@ -555,7 +559,7 @@ export const cancelarReservaFuerzaMayorService = async (
   await prisma.auditoria.create({
     data: {
       usuarioId: operadorId || null,
-      accion: `Cancelación por Fuerza Mayor (HU-19): Reserva #${reserva.id} (${reserva.laboratorio.nombre}) de ${reserva.usuario?.nombreCompleto || 'Docente'}. Causa: ${motivo.trim()}`
+      accion: `Cancelación por Fuerza Mayor: Reserva #${reserva.id} (${reserva.laboratorio.nombre}) de ${reserva.usuario?.nombreCompleto || 'Docente'}. Causa: ${motivo.trim()}`
     }
   }).catch(() => null);
 

@@ -27,6 +27,7 @@ const handleServiceError = (res: Response, error: any, defaultMsg = 'Error al pr
   if (error instanceof ReservaServiceError) {
     return res.status(error.status).json({
       success: false,
+      code: error.code,
       codigo: error.code,
       error: error.message,
       detalles: error.details
@@ -78,7 +79,7 @@ export const crearReservaIndividual = async (req: AuthRequest, res: Response): P
 
     return res.status(201).json({
       success: true,
-      message: `Reserva de PC-${numeroComputadora} registrada correctamente`,
+      message: `Reserva de PC-${numeroComputadora} confirmada automáticamente con código QR generado`,
       data: reserva
     });
   } catch (error) {
@@ -108,8 +109,8 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
     return res.status(201).json({
       success: true,
       mensaje: parseResult.data.recurrente
-        ? `Serie semestral de ${resultado.length} solicitudes de reserva registrada exitosamente.`
-        : 'Solicitud de reserva enviada exitosamente. El responsable revisará la solicitud.',
+        ? `Serie semestral de ${resultado.length} reservas aprobada y confirmada exitosamente. Códigos QR generados.`
+        : 'Reserva aprobada y confirmada automáticamente. Tu código QR de ingreso ha sido generado.',
       totalReservas: resultado.length,
       reserva: resultado[0],
       reservas: resultado
