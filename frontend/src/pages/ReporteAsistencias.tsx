@@ -373,7 +373,7 @@ export default function ReporteAsistencias() {
                   Auditoría y Reporte Diario de Asistencias
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                  Control de asistencia por código QR y analítica visual de ocupación (HU-24)
+                  Control de asistencia por código QR y analítica visual de ocupación
                 </p>
               </div>
             </div>
@@ -877,7 +877,7 @@ export default function ReporteAsistencias() {
                         ) : (
                           <div className="text-slate-400 text-xs flex items-center space-x-1">
                             <Clock className="w-3.5 h-3.5" />
-                            <span>Sin escaneo de QR</span>
+                            <span>Pendiente de escaneo QR</span>
                           </div>
                         )}
                       </td>

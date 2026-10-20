@@ -129,7 +129,7 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
     await prisma.auditoria.create({
       data: {
         usuarioId: reserva.usuarioId,
-        accion: `Sanción HU-30 aplicada: 24 horas de suspensión por inasistencia a reserva #${reserva.id}`
+        accion: `Sanción disciplinaria aplicada: 24 horas de suspensión por inasistencia a reserva #${reserva.id}`
       }
     });
   } catch (errAudit) {
@@ -195,3 +195,143 @@ export const procesarInasistenciasPendientes = async (minutosTolerancia = MINUTO
     detalle: resultadosProcesados
   };
 };
+
+/**
+ * HU-33: Listar todas las sanciones registradas con auto-expiración de registros vencidos.
+ */
+export const listarTodasLasSancionesService = async (estado?: string) => {
+  const ahora = new Date();
+
+  // Auto-expirar sanciones cuya fechaFin ya pasó
+  await prisma.sancion.updateMany({
+    where: {
+      estado: 'Activa',
+      fechaFin: { lte: ahora }
+    },
+    data: { estado: 'Expirada' }
+  });
+
+  const where: any = {};
+  if (estado && estado !== 'Todas') {
+    where.estado = estado;
+  }
+
+  return prisma.sancion.findMany({
+    where,
+    include: {
+      usuario: { select: { id: true, nombreCompleto: true, correo: true } },
+      reserva: {
+        select: {
+          id: true,
+          fechaInicio: true,
+          fechaFin: true,
+          laboratorio: { select: { id: true, nombre: true, ubicacion: true } }
+        }
+      }
+    },
+    orderBy: { fechaInicio: 'desc' }
+  });
+};
+
+/**
+ * HU-33: Levantar o perdonar manualmente una sanción disciplinaria por parte del Administrador.
+ */
+export const perdonarSancionService = async (sancionId: number, adminId?: number, motivoPerdon?: string) => {
+  const sancion = await prisma.sancion.findUnique({
+    where: { id: sancionId },
+    include: { usuario: { select: { id: true, nombreCompleto: true, correo: true } } }
+  });
+
+  if (!sancion) {
+    throw new Error('Sanción no encontrada');
+  }
+
+  const justificacion = motivoPerdon || 'Sanción revocada por el Administrador ante justificación válida.';
+
+  const sancionActualizada = await prisma.sancion.update({
+    where: { id: sancionId },
+    data: { estado: 'Perdonada' }
+  });
+
+  // Notificar al usuario afectado
+  try {
+    await prisma.notificacion.create({
+      data: {
+        usuarioId: sancion.usuarioId,
+        mensaje: `Tu sanción disciplinaria #${sancion.id} ha sido levantada por la Administración. Motivo: "${justificacion}". Tus privilegios para solicitar laboratorios han sido restablecidos.`
+      }
+    });
+  } catch (errNotif) {
+    console.warn('Error al notificar levantamiento de sanción:', errNotif);
+  }
+
+  // Trazabilidad de Auditoría
+  try {
+    await prisma.auditoria.create({
+      data: {
+        usuarioId: adminId || null,
+        accion: `Sanción #${sancionId} de ${sancion.usuario.nombreCompleto} levantada/perdonada. Motivo: ${justificacion}`
+      }
+    });
+  } catch (errAudit) {
+    console.warn('Error al registrar auditoría de sanción perdonada:', errAudit);
+  }
+
+  return sancionActualizada;
+};
+
+/**
+ * HU-33: Aplicar sanción disciplinaria manual por parte del Administrador.
+ */
+export const aplicarSancionManualService = async (
+  usuarioId: number,
+  horasDuracion: number,
+  motivo: string,
+  adminId?: number
+) => {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: usuarioId },
+    select: { id: true, nombreCompleto: true, correo: true }
+  });
+
+  if (!usuario) {
+    throw new Error('El usuario especificado no existe');
+  }
+
+  const ahora = new Date();
+  const fechaFin = new Date(ahora.getTime() + horasDuracion * 60 * 60 * 1000);
+
+  const nuevaSancion = await prisma.sancion.create({
+    data: {
+      usuarioId,
+      reservaId: null,
+      motivo: `[Sanción Manual - Admin]: ${motivo}`,
+      fechaInicio: ahora,
+      fechaFin,
+      estado: 'Activa'
+    }
+  });
+
+  // Notificación institucional
+  try {
+    await prisma.notificacion.create({
+      data: {
+        usuarioId,
+        mensaje: `Se te ha aplicado una sanción disciplinaria manual por ${horasDuracion} hora(s) hasta ${fechaFin.toLocaleString('es-ES')}. Causa: ${motivo}`
+      }
+    });
+  } catch (e) {}
+
+  // Auditoría
+  try {
+    await prisma.auditoria.create({
+      data: {
+        usuarioId: adminId || null,
+        accion: `Sanción manual de ${horasDuracion}h aplicada al usuario ${usuario.nombreCompleto} (${usuario.correo}). Causa: ${motivo}`
+      }
+    });
+  } catch (e) {}
+
+  return nuevaSancion;
+};
+

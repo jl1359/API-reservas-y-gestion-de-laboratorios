@@ -12,13 +12,19 @@ interface SolicitudReservaModalProps {
     capacidad: number;
   };
   onReservaExitosa: () => void;
+  initialFecha?: string;
+  initialHoraInicio?: string;
+  initialHoraFin?: string;
 }
 
 export default function SolicitudReservaModal({
   isOpen,
   onClose,
   laboratorio,
-  onReservaExitosa
+  onReservaExitosa,
+  initialFecha,
+  initialHoraInicio,
+  initialHoraFin
 }: SolicitudReservaModalProps) {
   // Fecha mínima: mañana o hoy
   const hoy = new Date().toISOString().split('T')[0];
@@ -36,9 +42,12 @@ export default function SolicitudReservaModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feriados, setFeriados] = useState<{ id: number; fecha: string; motivo: string; bloqueoActivo: boolean }[]>([]);
 
-  // HU-29: Cargar feriados para bloqueo anticipado en el calendario
+  // Cargar feriados para bloqueo anticipado en el calendario
   React.useEffect(() => {
     if (isOpen) {
+      if (initialFecha) setFecha(initialFecha);
+      if (initialHoraInicio) setHoraInicio(initialHoraInicio);
+      if (initialHoraFin) setHoraFin(initialHoraFin);
       axios.get('http://localhost:3000/api/feriados')
         .then(res => {
           if (res.data.data) {
@@ -47,7 +56,7 @@ export default function SolicitudReservaModal({
         })
         .catch(() => {});
     }
-  }, [isOpen]);
+  }, [isOpen, initialFecha, initialHoraInicio, initialHoraFin]);
 
   // Identificar si la fecha seleccionada coincide con un feriado institucional
   const feriadoSeleccionado = feriados.find(f => {
@@ -280,7 +289,7 @@ export default function SolicitudReservaModal({
             />
           </div>
 
-          {/* Opciones de Recurrencia Semestral (HU-15) */}
+          {/* Opciones de Recurrencia Semestral */}
           <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
               <label htmlFor="recurrente-toggle" className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center cursor-pointer">

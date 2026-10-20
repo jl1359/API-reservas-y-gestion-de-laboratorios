@@ -8,17 +8,45 @@ import LogoIcon from './LogoIcon';
 export default function Navbar() {
   const navigate = useNavigate();
   const isAuthenticated = !!localStorage.getItem('token');
-  const userRole = localStorage.getItem('userRole');
-  const puedeEscanear = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole || '');
-  const puedeVerReportes = ['Admin', 'Responsable de Laboratorio'].includes(userRole || '');
+  const [userRole, setUserRole] = useState<string>(() => localStorage.getItem('userRole') || '');
+  const puedeEscanear = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole);
+  const puedeVerReportes = ['Admin', 'Responsable de Laboratorio'].includes(userRole);
   
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Estados de Notificaciones (HU-19)
+  // Estados de Notificaciones
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
   const [noLeidas, setNoLeidas] = useState(0);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  // Sincronizar rol real desde el backend
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const syncUserRole = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await axios.get('http://localhost:3000/api/usuarios/perfil', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data?.success && res.data?.data) {
+          const perfil = res.data.data;
+          const rolNombre = typeof perfil.rol === 'object' && perfil.rol !== null
+            ? (perfil.rol.nombre || 'Estudiante')
+            : (perfil.rol || 'Estudiante');
+          if (rolNombre && rolNombre !== userRole) {
+            localStorage.setItem('userRole', rolNombre);
+            setUserRole(rolNombre);
+          }
+        }
+      } catch (e) {
+        // Silencioso si la sesión expira
+      }
+    };
+    syncUserRole();
+  }, [isAuthenticated, userRole]);
+
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -52,7 +80,7 @@ export default function Navbar() {
     window.location.reload();
   };
 
-  // HU-19: Consultar notificaciones en tiempo real
+  // Consultar notificaciones en tiempo real
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -126,7 +154,7 @@ export default function Navbar() {
               Mi Perfil
             </Link>
             
-            {/* Acceso directo a Escanear QR para personal autorizado (HU-23) */}
+            {/* Acceso directo a Escanear QR para personal autorizado */}
             {puedeEscanear && (
               <Link 
                 to="/escanear-qr" 
@@ -137,7 +165,7 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Acceso a Reportes de Asistencias (HU-24) */}
+            {/* Acceso a Reportes de Asistencias */}
             {puedeVerReportes && (
               <Link 
                 to="/reportes" 
@@ -166,7 +194,7 @@ export default function Navbar() {
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          {/* HU-19: Campana de Notificaciones */}
+          {/* Campana de Notificaciones */}
           {isAuthenticated && (
             <div className="relative">
               <button

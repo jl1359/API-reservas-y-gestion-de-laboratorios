@@ -1,11 +1,30 @@
 import { useState, useEffect } from 'react';
-import { User, Shield, Key, Send, AlertTriangle, Calendar, QrCode, Clock, MapPin, Monitor, CheckCircle, AlertCircle } from 'lucide-react';
+import {
+  User,
+  Shield,
+  Key,
+  Send,
+  AlertTriangle,
+  Calendar,
+  QrCode,
+  Clock,
+  MapPin,
+  Monitor,
+  CheckCircle,
+  AlertCircle,
+  Phone,
+  Mail,
+  Save,
+  XCircle
+} from 'lucide-react';
 
 import Navbar from '../components/Navbar';
 import ModalQrReserva from '../components/ModalQrReserva';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { usuariosApi } from '../api/usuarios.api';
+import { reservasApi } from '../api/reservas.api';
 
 interface Reserva {
   id: number;
@@ -27,6 +46,9 @@ interface Reserva {
 export default function Perfil() {
   const [activeTab, setActiveTab] = useState<'reservas' | 'cuenta'>('reservas');
   const [usuario, setUsuario] = useState<any>(null);
+  const [perfilNombre, setPerfilNombre] = useState('');
+  const [perfilTelefono, setPerfilTelefono] = useState('');
+  const [isGuardandoPerfil, setIsGuardandoPerfil] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [roles, setRoles] = useState<any[]>([]);
   const [rolSeleccionado, setRolSeleccionado] = useState('');
@@ -42,11 +64,41 @@ export default function Perfil() {
 
   const navigate = useNavigate();
 
+  const fetchMisReservas = async () => {
+    try {
+      setIsLoadingReservas(true);
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await axios.get('http://localhost:3000/api/reservas/mis-reservas', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMisReservas(res.data.reservas || res.data.data || []);
+    } catch (error) {
+      console.error('Error al cargar mis reservas', error);
+    } finally {
+      setIsLoadingReservas(false);
+    }
+  };
+
   useEffect(() => {
     const rol = localStorage.getItem('userRole') || 'Usuario';
     setUsuario({ rol });
 
-    // Consultar estado disciplinario de sanciones (HU-30)
+    // Consultar información completa del perfil
+    const fetchPerfil = async () => {
+      try {
+        const data = await usuariosApi.obtenerMiPerfil();
+        if (data) {
+          setUsuario(data);
+          setPerfilNombre(data.nombreCompleto || '');
+          setPerfilTelefono(data.telefono || '');
+        }
+      } catch (err) {
+        console.error('Error al cargar perfil:', err);
+      }
+    };
+
+    // Consultar estado disciplinario de sanciones
     const fetchSancionEstado = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -67,37 +119,26 @@ export default function Perfil() {
     const fetchRoles = async () => {
       try {
         const res = await axios.get('http://localhost:3000/api/roles');
-        setRoles(res.data);
-        if (res.data.length > 0) {
-          setRolSeleccionado(res.data[0].nombre);
+        const rolesData = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setRoles(rolesData);
+        if (rolesData.length > 0) {
+          setRolSeleccionado(rolesData[0].nombre);
         }
       } catch (error) {
         console.error('Error al cargar roles', error);
       }
     };
 
-    // Cargar mis reservas (HU-22)
-    const fetchMisReservas = async () => {
-      try {
-        setIsLoadingReservas(true);
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        const res = await axios.get('http://localhost:3000/api/reservas/mis-reservas', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setMisReservas(res.data.reservas || res.data.data || []);
-      } catch (error) {
-        console.error('Error al cargar mis reservas', error);
-      } finally {
-        setIsLoadingReservas(false);
-      }
-    };
-
+    fetchPerfil();
     fetchSancionEstado();
-
     fetchRoles();
     fetchMisReservas();
   }, []);
+
+  const nombreRol = typeof usuario?.rol === 'object' && usuario?.rol !== null
+    ? (usuario.rol.nombre || 'Estudiante')
+    : (typeof usuario?.rol === 'string' ? usuario.rol : (localStorage.getItem('userRole') || 'Estudiante'));
+
 
   const abrirQr = (reserva: Reserva) => {
     setReservaSeleccionada(reserva);
@@ -121,6 +162,34 @@ export default function Perfil() {
       toast.error(error.response?.data?.error || 'Error al enviar solicitud');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const guardarPerfil = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsGuardandoPerfil(true);
+    try {
+      const actualizado = await usuariosApi.actualizarPerfil({
+        nombreCompleto: perfilNombre,
+        telefono: perfilTelefono || null
+      });
+      setUsuario(actualizado);
+      toast.success('Información de perfil complementaria actualizada');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al actualizar perfil');
+    } finally {
+      setIsGuardandoPerfil(false);
+    }
+  };
+
+  const cancelarReservaUsuario = async (reservaId: number, nombreLab: string) => {
+    if (!window.confirm(`¿Estás seguro de cancelar tu reserva para el ${nombreLab}?`)) return;
+    try {
+      await reservasApi.cancelarReservaPropia(reservaId);
+      toast.success('Reserva cancelada exitosamente');
+      fetchMisReservas();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al cancelar la reserva');
     }
   };
 
@@ -160,13 +229,13 @@ export default function Perfil() {
             </p>
             <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
               <span className="inline-block bg-umss-blue text-white px-3 py-1 rounded-full text-xs font-bold">
-                Rol: {usuario?.rol || 'Estudiante'}
+                Rol: {nombreRol}
               </span>
             </div>
           </div>
         </div>
 
-        {/* ALERTA VISIBLE DE SANCIÓN ACTIVA (HU-30) */}
+        {/* ALERTA VISIBLE DE SANCIÓN ACTIVA */}
         {sancionActiva && (
           <div className="bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 rounded-3xl p-6 mb-8 flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4 shadow-sm animate-in fade-in duration-200">
             <div className="p-3 bg-rose-500 text-white rounded-2xl flex-shrink-0">
@@ -178,18 +247,18 @@ export default function Perfil() {
                   Sanción Disciplinaria Activa (24 Horas)
                 </span>
                 <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                  Caduca en: {sancionActiva.horasRestantes}h {sancionActiva.minutosRestantes}m
+                  Caduca en: {sancionActiva.horasRestantes ?? 0}h {sancionActiva.minutosRestantes ?? 0}m
                 </span>
               </div>
               <h2 className="text-lg font-poppins font-bold text-rose-900 dark:text-rose-200">
                 Tus privilegios de reserva están suspendidos temporalmente
               </h2>
               <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">
-                Se detectó una falta de inasistencia en una reserva previa sin registro oportuno de código QR. Conforme a las normas del campus (HU-30), tu cuenta no puede generar nuevas reservas hasta el{' '}
-                <span className="font-bold underline">{new Date(sancionActiva.fechaFin).toLocaleString('es-ES')}</span>.
+                Se detectó una falta de inasistencia en una reserva previa sin registro oportuno de código QR. Conforme al reglamento institucional del campus, tu cuenta no puede generar nuevas reservas hasta el{' '}
+                <span className="font-bold underline">{sancionActiva.fechaFin ? new Date(sancionActiva.fechaFin).toLocaleString('es-ES') : ''}</span>.
               </p>
               <p className="text-xs text-rose-600 dark:text-rose-400 mt-2 italic bg-rose-100/60 dark:bg-rose-900/30 p-2.5 rounded-xl border border-rose-200 dark:border-rose-800/40">
-                Detalle oficial: {sancionActiva.motivo}
+                Detalle oficial: {sancionActiva.motivo || 'Inasistencia a reserva'}
               </p>
             </div>
           </div>
@@ -222,7 +291,7 @@ export default function Perfil() {
           </button>
         </div>
 
-        {/* CONTENIDO PESTAÑA 1: MIS RESERVAS (HU-22) */}
+        {/* CONTENIDO PESTAÑA 1: MIS RESERVAS */}
         {activeTab === 'reservas' && (
           <div>
             {isLoadingReservas ? (
@@ -281,7 +350,7 @@ export default function Perfil() {
                         </div>
 
                         <h3 className="text-xl font-poppins font-bold text-slate-900 dark:text-white">
-                          {reserva.laboratorio.nombre}
+                          {reserva.laboratorio?.nombre || 'Laboratorio'}
                         </h3>
 
                         <div className="flex flex-wrap gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400 mt-2">
@@ -313,22 +382,33 @@ export default function Perfil() {
                         )}
                       </div>
 
-                      {/* Botón de QR o Estado */}
-                      <div className="flex-shrink-0 flex items-center justify-end">
-                        {esAprobada ? (
+                      {/* Botones de Acción (QR y Cancelación) */}
+                      <div className="flex-shrink-0 flex flex-wrap items-center justify-end gap-2">
+                        {esAprobada && (
                           <button
                             onClick={() => abrirQr(reserva)}
-                            className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-tech-blue hover:bg-blue-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-md shadow-blue-500/20 transition-all text-sm"
+                            className="flex items-center justify-center space-x-1.5 bg-tech-blue hover:bg-blue-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-md shadow-blue-500/20 transition-all text-xs"
                           >
                             <QrCode className="w-4 h-4" />
                             <span>Ver Código QR</span>
                           </button>
-                        ) : reserva.estado === 'Pendiente' ? (
+                        )}
+                        {reserva.estado === 'Pendiente' && (
                           <div className="flex items-center text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-800">
                             <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
-                            <span>El QR se habilitará al ser aprobada</span>
+                            <span>Pendiente de aprobación</span>
                           </div>
-                        ) : null}
+                        )}
+                        {(reserva.estado === 'Pendiente' || reserva.estado === 'Aprobada') && (
+                          <button
+                            onClick={() => cancelarReservaUsuario(reserva.id, reserva.laboratorio.nombre)}
+                            className="flex items-center justify-center space-x-1.5 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold py-2.5 px-3.5 rounded-xl transition-all text-xs"
+                            title="Cancelar esta reserva"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            <span>Cancelar</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -341,7 +421,74 @@ export default function Perfil() {
         {/* CONTENIDO PESTAÑA 2: CONFIGURACIÓN Y SEGURIDAD */}
         {activeTab === 'cuenta' && (
           <div className="space-y-6">
-            {usuario?.rol === 'Estudiante' && (
+            {/* Información de Perfil Complementaria */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
+                <User className="w-5 h-5 mr-2 text-tech-blue" /> Información Personal y de Contacto
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                Mantén actualizados tus datos complementarios de contacto para notificaciones universitarias.
+              </p>
+              <form onSubmit={guardarPerfil} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                      Nombre Completo
+                    </label>
+                    <input
+                      type="text"
+                      value={perfilNombre}
+                      onChange={(e) => setPerfilNombre(e.target.value)}
+                      required
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-tech-blue"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 flex items-center">
+                      <Phone className="w-3.5 h-3.5 mr-1 text-slate-400" /> Teléfono de Contacto
+                    </label>
+                    <input
+                      type="text"
+                      value={perfilTelefono}
+                      onChange={(e) => setPerfilTelefono(e.target.value)}
+                      placeholder="+591 71234567"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-tech-blue"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1 flex items-center">
+                      <Mail className="w-3.5 h-3.5 mr-1 text-slate-400" /> Correo Institucional
+                    </label>
+                    <p className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
+                      {usuario?.correo || 'Cargando...'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">
+                      Carrera Asignada
+                    </label>
+                    <p className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
+                      {usuario?.carrera?.nombre || 'Informática'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isGuardandoPerfil}
+                    className="bg-tech-blue hover:bg-blue-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all flex items-center text-sm shadow-md shadow-blue-500/20 disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    <span>{isGuardandoPerfil ? 'Guardando...' : 'Guardar Datos'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+            {nombreRol === 'Estudiante' && (
               <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
                   <Shield className="w-5 h-5 mr-2 text-tech-blue" /> Solicitar Permisos
@@ -383,7 +530,7 @@ export default function Perfil() {
               </div>
             )}
 
-            {/* Sección Mis Reservas HU-15 / HU-16 / HU-17 */}
+            {/* Sección Mis Reservas */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-tech-blue" /> Mis Reservas de Laboratorio
@@ -411,7 +558,7 @@ export default function Perfil() {
                     return (
                       <div key={res.id} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
                         <div>
-                          <p className="font-bold text-slate-900 dark:text-white">{res.laboratorio.nombre}</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{res.laboratorio?.nombre || 'Laboratorio'}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             Materia: <strong className="text-slate-700 dark:text-slate-300">{res.materia || 'Práctica'}</strong> • {res.cantidadAlumnos || 1} alumnos
                           </p>
@@ -471,7 +618,7 @@ export default function Perfil() {
 
       </div>
 
-      {/* Modal QR Oficial de la Reserva (HU-22) */}
+      {/* Modal QR Oficial de la Reserva */}
       <ModalQrReserva
         isOpen={isModalQrOpen}
         onClose={() => setIsModalQrOpen(false)}

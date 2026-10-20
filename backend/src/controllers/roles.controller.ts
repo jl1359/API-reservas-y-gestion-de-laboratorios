@@ -122,12 +122,20 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
 
 export const listarRoles = async (req: Request, res: Response): Promise<any> => {
   try {
+    const { todos, paraAdmin } = req.query;
+    const where: any = {};
+
+    if (todos === 'true' || paraAdmin === 'true') {
+      // Para administración de usuarios en el Panel Admin, se incluyen los roles asignables
+      where.nombre = { not: 'Admin' };
+    } else {
+      // Para solicitudes de rol desde el perfil de estudiante
+      where.nombre = { notIn: ['Admin', 'Estudiante'] };
+    }
+
     const roles = await prisma.rol.findMany({
-      where: {
-        nombre: {
-          notIn: ['Admin', 'Estudiante']
-        }
-      }
+      where,
+      orderBy: { id: 'asc' }
     });
     return res.json(roles);
   } catch (error) {

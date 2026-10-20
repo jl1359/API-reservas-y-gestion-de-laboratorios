@@ -1,9 +1,9 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, X, KeyRound } from 'lucide-react';
 import LogoIcon from '../components/LogoIcon';
 
 interface Carrera {
@@ -225,7 +225,21 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Contraseña</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Contraseña</label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (correo) setForgotEmail(correo);
+                      setIsForgotModalOpen(true);
+                    }}
+                    className="text-xs font-semibold text-tech-blue hover:text-blue-500 hover:underline transition-colors"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                )}
+              </div>
               <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm text-slate-900 dark:text-white focus:ring-tech-blue focus:border-tech-blue" />
             </div>
@@ -267,14 +281,55 @@ export default function Login() {
         </div>
             {/* Modal Olvidé Contraseña */}
       {isForgotModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative">
-            <button onClick={() => setIsForgotModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white">X</button>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Recuperar Contraseña</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Ingresa tu correo institucional y te enviaremos un enlace.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => setIsForgotModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="p-2.5 bg-blue-100 dark:bg-blue-950/60 rounded-2xl text-tech-blue">
+                <KeyRound className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold font-poppins text-slate-900 dark:text-white">Recuperar Contraseña</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Restablecimiento seguro de credenciales</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+              Ingresa tu correo institucional y te enviaremos un enlace con vigencia temporal para definir una nueva contraseña.
+            </p>
             <form onSubmit={handleForgotPassword} className="space-y-4">
-              <input type="email" required placeholder="correo@est.umss.edu" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none" />
-              <button type="submit" className="w-full bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-colors">Enviar Enlace</button>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Correo Electrónico
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="ejemplo@fcyt.umss.edu.bo"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-tech-blue text-sm"
+                />
+              </div>
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotModalOpen(false)}
+                  className="w-1/2 py-3 px-4 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition shadow-sm text-sm"
+                >
+                  Enviar Enlace
+                </button>
+              </div>
             </form>
           </div>
         </div>

@@ -2,6 +2,11 @@ import { Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import {
+  obtenerMetricasOcupacionAcademicas,
+  generarCsvMetricasAcademicas
+} from '../services/reportes.service';
+
 
 /**
  * HU-24: reservas programadas para un día y su asistencia registrada.
@@ -80,3 +85,60 @@ export const reporteAsistenciasDiarias = async (req: AuthRequest, res: Response)
     res.status(500).json({ error: 'No se pudo generar el reporte de asistencias' });
   }
 };
+
+/**
+ * HU-35: Consulta de métricas consolidadas de ocupación para Dashboard e Informes Académicos.
+ */
+export const obtenerMetricasAcademicas = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { fechaInicio, fechaFin, laboratorioId } = req.query;
+
+    const idLab = laboratorioId && typeof laboratorioId === 'string' && /^[1-9]\d*$/.test(laboratorioId)
+      ? Number(laboratorioId)
+      : undefined;
+
+    const datos = await obtenerMetricasOcupacionAcademicas(
+      typeof fechaInicio === 'string' ? fechaInicio : undefined,
+      typeof fechaFin === 'string' ? fechaFin : undefined,
+      idLab
+    );
+
+    res.status(200).json({
+      success: true,
+      data: datos
+    });
+  } catch (error) {
+    console.error('Error al obtener métricas académicas:', error);
+    res.status(500).json({ success: false, error: 'No se pudieron calcular las métricas de ocupación' });
+  }
+};
+
+/**
+ * HU-35: Descarga directa de archivo CSV para Excel con métricas académicas y de ocupación.
+ */
+export const exportarCsvMetricasAcademicas = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { fechaInicio, fechaFin, laboratorioId } = req.query;
+
+    const idLab = laboratorioId && typeof laboratorioId === 'string' && /^[1-9]\d*$/.test(laboratorioId)
+      ? Number(laboratorioId)
+      : undefined;
+
+    const datos = await obtenerMetricasOcupacionAcademicas(
+      typeof fechaInicio === 'string' ? fechaInicio : undefined,
+      typeof fechaFin === 'string' ? fechaFin : undefined,
+      idLab
+    );
+
+    const csvData = generarCsvMetricasAcademicas(datos);
+    const fechaActual = new Date().toISOString().slice(0, 10);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="Metricas_Ocupacion_Campus_${fechaActual}.csv"`);
+    res.status(200).send(csvData);
+  } catch (error) {
+    console.error('Error al exportar CSV de métricas:', error);
+    res.status(500).json({ success: false, error: 'No se pudo exportar el informe CSV' });
+  }
+};
+

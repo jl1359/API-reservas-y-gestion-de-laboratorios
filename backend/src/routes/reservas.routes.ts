@@ -10,6 +10,7 @@ import {
   aprobarReserva,
   rechazarReserva,
   cancelarReserva,
+  cancelarReservaFuerzaMayor,
   listarTodasLasReservas,
   crearReservaIndividual
 } from '../controllers/reservas.controller';
@@ -83,8 +84,16 @@ router.put(
   rechazarReserva
 );
 
-// Cancelar una reserva existente
+// Cancelar una reserva existente (HU-18: Propietario o Admin)
 router.put('/:id/cancelar', verificarToken, cancelarReserva);
+
+// Cancelar una reserva por fuerza mayor con motivo obligatorio (HU-19: Admin o Responsable)
+router.put(
+  '/:id/cancelar-fuerza-mayor',
+  verificarToken,
+  esAdminOResponsable,
+  cancelarReservaFuerzaMayor
+);
 
 // =========================================================================
 // HU-22: OBTENER CÓDIGO QR ESPECÍFICO
