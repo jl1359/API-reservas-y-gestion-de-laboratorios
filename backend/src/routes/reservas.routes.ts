@@ -23,7 +23,7 @@ import {
 
 const router = Router();
 
-// Middleware específico para reservas individuales de estudiantes
+// Middleware especifico para reservas individuales de estudiantes
 const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): void => {
   if (req.user?.rol !== 'Estudiante') {
     res.status(403).json({ error: 'La reserva individual está disponible únicamente para estudiantes' });
@@ -32,28 +32,16 @@ const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): v
   next();
 };
 
-// =========================================================================
-// REGISTRO DE RESERVA DE LABORATORIO (DOCENTE, AUXILIAR, ADMIN)
-// POST /api/reservas
-// =========================================================================
+// Registro de reserva de laboratorio (Docente, Auxiliar, Admin)
 router.post('/', verificarToken, crearReserva);
 
-// =========================================================================
-// BANDEJA DE RESERVAS PENDIENTES (RESPONSABLE Y ADMIN)
-// GET /api/reservas/pendientes
-// =========================================================================
+// Bandeja de reservas pendientes (Responsable y Admin)
 router.get('/pendientes', verificarToken, esAdminOResponsable, listarReservasPendientes);
 
-// =========================================================================
-// VER CÓDIGO QR DE RESERVA APROBADA / HISTORIAL PERSONAL
-// GET /api/reservas/mis-reservas
-// =========================================================================
+// Historial personal y codigo QR de reservas aprobadas
 router.get('/mis-reservas', verificarToken, listarMisReservas);
 
-// =========================================================================
-// ESCANEAR CÓDIGO QR DE RESERVA
-// POST /api/reservas/escanear-qr
-// =========================================================================
+// Escaneo y validacion de codigo QR
 router.post(
   '/escanear-qr',
   verificarToken,
@@ -61,13 +49,9 @@ router.post(
   escanearQr
 );
 
-// =========================================================================
-// APROBAR O RECHAZAR RESERVA (RESPONSABLE Y ADMIN)
-// PUT /api/reservas/:id/gestionar
-// =========================================================================
+// Gestion y aprobacion/rechazo de reservas
 router.put('/:id/gestionar', verificarToken, esAdminOResponsable, gestionarReserva);
 
-// PUT /api/reservas/:id/aprobar
 router.put(
   '/:id/aprobar',
   verificarToken,
@@ -75,7 +59,6 @@ router.put(
   aprobarReserva
 );
 
-// Rechazar una reserva pendiente con motivo
 router.put(
   '/:id/rechazar',
   verificarToken,
@@ -83,10 +66,9 @@ router.put(
   rechazarReserva
 );
 
-// Cancelar una reserva existente (Propietario o Admin)
+// Cancelacion de reservas
 router.put('/:id/cancelar', verificarToken, cancelarReserva);
 
-// Cancelar una reserva por fuerza mayor con motivo obligatorio (Admin o Responsable)
 router.put(
   '/:id/cancelar-fuerza-mayor',
   verificarToken,
@@ -94,22 +76,13 @@ router.put(
   cancelarReservaFuerzaMayor
 );
 
-// =========================================================================
-// OBTENER CÓDIGO QR ESPECÍFICO
-// GET /api/reservas/:id/qr
-// =========================================================================
+// Obtencion de codigo QR especifico
 router.get('/:id/qr', verificarToken, obtenerQrReserva);
 
-// =========================================================================
-// RESERVA INDIVIDUAL DE COMPUTADORA
-// POST /api/laboratorios/:id/reservas
-// =========================================================================
+// Reserva individual de computadora para estudiantes
 router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndividual);
 
-// =========================================================================
-// GESTIÓN Y CONSULTA GENERAL DE RESERVAS DEL CAMPUS
-// GET /api/reservas
-// =========================================================================
+// Consulta general de reservas del campus
 router.get(
   '/',
   verificarToken,

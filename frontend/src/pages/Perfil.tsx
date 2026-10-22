@@ -63,7 +63,6 @@ export default function Perfil() {
   const [rolSeleccionado, setRolSeleccionado] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reservas
   const [misReservas, setMisReservas] = useState<Reserva[]>([]);
 
   const [isLoadingReservas, setIsLoadingReservas] = useState(true);
@@ -97,7 +96,6 @@ export default function Perfil() {
     const rol = localStorage.getItem('userRole') || 'Usuario';
     setUsuario({ rol });
 
-    // Consultar información completa del perfil
     const fetchPerfil = async () => {
       try {
         const data = await usuariosApi.obtenerMiPerfil();
@@ -113,7 +111,6 @@ export default function Perfil() {
       }
     };
 
-    // Consultar estado disciplinario de sanciones
     const fetchSancionEstado = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -130,7 +127,6 @@ export default function Perfil() {
       }
     };
 
-    // Cargar roles disponibles
     const fetchRoles = async () => {
       try {
         const res = await axios.get('http://localhost:3000/api/roles');

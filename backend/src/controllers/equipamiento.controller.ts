@@ -2,11 +2,9 @@ import { Response } from 'express';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
-// =======================================================
-// MÓDULO DE EQUIPAMIENTO (HU-08 / HU-33)
-// =======================================================
-
-// 1. Obtener catálogo de equipamientos (Para llenar el combobox del Frontend)
+/**
+ * Listar catálogo de equipamientos base disponibles.
+ */
 export const listarEquipamientosBase = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const equipamientos = await prisma.equipamiento.findMany({
@@ -14,15 +12,17 @@ export const listarEquipamientosBase = async (req: AuthRequest, res: Response): 
     });
     return res.json(equipamientos);
   } catch (error) {
-    console.error(error);
+    console.error('Error al listar equipamientos:', error);
     return res.status(500).json({ error: 'Error al listar los equipamientos' });
   }
 };
 
-// 2. Vincular un equipamiento a un laboratorio
+/**
+ * Vincular o actualizar la cantidad de un equipamiento asignado a un laboratorio.
+ */
 export const vincularEquipamiento = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
-    const { id } = req.params; // ID del laboratorio
+    const { id } = req.params;
     const { equipamientoId, cantidad } = req.body;
 
     if (!equipamientoId || !cantidad || cantidad < 1) {
@@ -59,12 +59,14 @@ export const vincularEquipamiento = async (req: AuthRequest, res: Response): Pro
       return res.status(201).json({ mensaje: 'Equipamiento vinculado al laboratorio', data: nuevoVinculo });
     }
   } catch (error) {
-    console.error(error);
+    console.error('Error al vincular equipamiento:', error);
     return res.status(500).json({ error: 'Error al vincular el equipamiento' });
   }
 };
 
-// 3. Crear nuevo tipo de equipamiento en el catálogo maestro (HU-33)
+/**
+ * Registrar un nuevo tipo de equipamiento en el catálogo maestro.
+ */
 export const crearEquipamiento = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { nombre, tipo } = req.body;
@@ -91,12 +93,14 @@ export const crearEquipamiento = async (req: AuthRequest, res: Response): Promis
 
     return res.status(201).json({ mensaje: 'Equipamiento registrado exitosamente en el catálogo', data: nuevo });
   } catch (error) {
-    console.error(error);
+    console.error('Error al registrar equipamiento:', error);
     return res.status(500).json({ error: 'Error al registrar el equipamiento' });
   }
 };
 
-// 4. Actualizar cantidad de equipamiento asignado a un laboratorio
+/**
+ * Actualizar la cantidad de unidades de un equipamiento asignado a un laboratorio.
+ */
 export const actualizarCantidadEquipamiento = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { labId, equipId } = req.params;
@@ -135,7 +139,9 @@ export const actualizarCantidadEquipamiento = async (req: AuthRequest, res: Resp
   }
 };
 
-// 5. Desvincular / quitar equipamiento de un laboratorio
+/**
+ * Desvincular un equipamiento de un laboratorio específico.
+ */
 export const desvincularEquipamiento = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { labId, equipId } = req.params;

@@ -129,7 +129,6 @@ export default function TabLaboratorios({
   isLoading,
   onRefresh
 }: TabLaboratoriosProps) {
-  // Modal Crear / Editar
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'crear' | 'editar'>('crear');
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -145,7 +144,6 @@ export default function TabLaboratorios({
     imagenUrl: ''
   });
 
-  // Modal Equipamiento
   const [isEquipModalOpen, setIsEquipModalOpen] = useState(false);
   const [selectedLabId, setSelectedLabId] = useState<number | null>(null);
   const [selectedLabName, setSelectedLabName] = useState('');
@@ -159,11 +157,9 @@ export default function TabLaboratorios({
   const [editingEquipId, setEditingEquipId] = useState<number | null>(null);
   const [editingCantidad, setEditingCantidad] = useState<string>('1');
 
-  // Modal Horarios
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [scheduleForm, setScheduleForm] = useState(defaultSchedule);
 
-  // Estado y gestores para subida de imagen desde dispositivo
   const [modoCargaImagen, setModoCargaImagen] = useState<'archivo' | 'url'>('archivo');
   const [isDragging, setIsDragging] = useState(false);
   const [isProcesandoImagen, setIsProcesandoImagen] = useState(false);
@@ -357,7 +353,6 @@ export default function TabLaboratorios({
       toast.success(`"${nuevoEquipNombre.trim()}" registrado en el catálogo`);
       setNuevoEquipNombre('');
       setMostrarCrearEquip(false);
-      // Recargar catálogo base
       const resBase = await axios.get('http://localhost:3000/api/equipamientos', {
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -11,18 +11,12 @@ import { verificarToken, permitirRoles, esAdmin } from '../middlewares/auth.midd
 
 const router = Router();
 
-// =========================================================================
-// RUTAS DE CONSULTA PERSONAL
-// =========================================================================
-// Consultar si el usuario actual tiene sanción activa y cuánto tiempo le resta
+// Consultar si el usuario actual tiene sancion activa y tiempo restante
 router.get('/mi-estado', verificarToken, consultarMiEstadoSancion);
 
 // Historial personal de sanciones recibidas
 router.get('/mis-sanciones', verificarToken, listarMisSanciones);
 
-// =========================================================================
-// RUTAS DE GESTIÓN ADMINISTRATIVA Y DISCIPLINA
-// =========================================================================
 // Listar todas las sanciones institucionales
 router.get(
   '/',
@@ -31,7 +25,7 @@ router.get(
   listarTodasLasSanciones
 );
 
-// Ejecutar el algoritmo autónomo de inasistencias y aplicación estricta de sanciones de 24h
+// Ejecutar algoritmo de inasistencias y aplicacion de sanciones
 router.post(
   '/procesar-inasistencias',
   verificarToken,
@@ -39,7 +33,7 @@ router.post(
   ejecutarProcesamientoInasistencias
 );
 
-// Perdonar o levantar una sanción manualmente
+// Perdonar o levantar una sancion manualmente
 router.put(
   '/:id/perdonar',
   verificarToken,
@@ -47,7 +41,7 @@ router.put(
   perdonarSancion
 );
 
-// Aplicar sanción disciplinaria manual
+// Aplicar sancion disciplinaria manual
 router.post(
   '/manual',
   verificarToken,
@@ -56,4 +50,3 @@ router.post(
 );
 
 export default router;
-

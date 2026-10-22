@@ -155,13 +155,9 @@ export default function ReporteAsistencias() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Selector de pestaña analítica
   const [tabAnalitica, setTabAnalitica] = useState<'integral' | 'carreras' | 'labs' | 'dias' | 'estados' | 'horarios'>('integral');
-  // Formato de gráfico para carreras: 'pastel' o 'barras'
   const [formatoGraficoCarreras, setFormatoGraficoCarreras] = useState<'pastel' | 'barras'>('pastel');
-  // Formato de gráfico para laboratorios: 'pastel' o 'barras'
   const [formatoGraficoLabs, setFormatoGraficoLabs] = useState<'pastel' | 'barras'>('pastel');
-  // Formato de gráfico para días: 'barras' o 'pastel'
   const [formatoGraficoDias, setFormatoGraficoDias] = useState<'barras' | 'pastel'>('barras');
 
   // Cargar lista de laboratorios y carreras
@@ -554,9 +550,7 @@ export default function ReporteAsistencias() {
             break;
           }
         }
-      } catch {
-        // Ignorar
-      }
+      } catch {}
     }
 
     return { franjas, maximo: max > 0 ? max : 1 };
@@ -617,12 +611,10 @@ export default function ReporteAsistencias() {
   const labTop = reporte?.resumen?.laboratorioMasReservado;
   const diaTop = reporte?.resumen?.diaMasReservado;
 
-  // Escalas máximas para barras
   const maxCarreraReservas = Math.max(...(reporte?.resumen?.porCarrera?.map(c => c.total) || [1]), 1);
   const maxLabReservas = Math.max(...(reporte?.resumen?.porLaboratorio?.map(l => l.total) || [1]), 1);
   const maxDiaReservas = Math.max(...(reporte?.resumen?.porDia?.map(d => d.total) || [1]), 1);
 
-  // Nombre de la carrera activa en filtro
   const nombreCarreraFiltro = carreras.find(c => c.id === Number(carreraId))?.nombre;
 
   return (

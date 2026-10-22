@@ -36,13 +36,11 @@ export default function TabUsuarios({
   const [subTabUsuarios, setSubTabUsuarios] = useState<'directorio' | 'solicitudes'>('directorio');
   const [busquedaUsuario, setBusquedaUsuario] = useState('');
 
-  // Modal de Suspensión de Cuenta con Justificación
   const [isSuspenderModalOpen, setIsSuspenderModalOpen] = useState(false);
   const [usuarioASuspender, setUsuarioASuspender] = useState<Usuario | null>(null);
   const [motivoSuspension, setMotivoSuspension] = useState('');
   const [isSubmittingSuspension, setIsSubmittingSuspension] = useState(false);
 
-  // Modal de Rechazo de Solicitud de Rol con Justificación
   const [isRechazarSolicitudModalOpen, setIsRechazarSolicitudModalOpen] = useState(false);
   const [solicitudARechazar, setSolicitudARechazar] = useState<SolicitudRolItem | null>(null);
   const [motivoRechazoSolicitud, setMotivoRechazoSolicitud] = useState('');

@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
-// [ESTUDIANTE] Solicitar un nuevo rol
+/**
+ * Solicitar elevación de rol académico por parte del usuario.
+ */
 export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const usuarioId = req.user?.id;
@@ -10,7 +12,7 @@ export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any
 
     if (rolSolicitado === 'Admin' || rolSolicitado === 'Administrador') {
       return res.status(403).json({ error: 'Brecha de seguridad detectada: No se puede solicitar permisos de Administrador' });
-    } // Ej: "Docente" o "Auxiliar"
+    }
 
     if (!usuarioId) {
       return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -51,7 +53,9 @@ export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any
   }
 };
 
-// [ADMIN] Ver todas las solicitudes pendientes
+/**
+ * Listar solicitudes de rol con estado pendiente para revisión de administradores.
+ */
 export const listarSolicitudes = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const solicitudes = await prisma.solicitudRol.findMany({
@@ -71,7 +75,9 @@ export const listarSolicitudes = async (req: AuthRequest, res: Response): Promis
   }
 };
 
-// [ADMIN] Aprobar o Rechazar solicitud con justificación obligatoria
+/**
+ * Aprobar o rechazar formalmente una solicitud de rol con justificación.
+ */
 export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { id } = req.params; // ID de la solicitud

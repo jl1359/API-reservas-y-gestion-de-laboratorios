@@ -12,7 +12,10 @@ export const listarLaboratorios = async (
 
     const categoriaTexto = typeof (categoria || carrera) === 'string' ? String(categoria || carrera).trim() : '';
 
-    const filtros: Prisma.LaboratorioWhereInput = {}; if (req.query.incluirTodos !== 'true') { filtros.estadoOperativo = 'Activo'; }
+    const filtros: Prisma.LaboratorioWhereInput = {};
+    if (req.query.incluirTodos !== 'true') {
+      filtros.estadoOperativo = 'Activo';
+    }
 
     if (capacidadRequerida !== undefined && capacidadRequerida !== '') {
       const capacidad = Number(capacidadRequerida);
@@ -96,9 +99,6 @@ export const listarLaboratorios = async (
   }
 };
 
-// =========================================================================
-// CREACIÓN Y GESTIÓN ADMINISTRATIVA DE LABORATORIOS
-// =========================================================================
 
 const manejarErrorPrisma = (error: any, res: Response, mensajeBase: string) => {
   if (error.code === 'P2002') {
