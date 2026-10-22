@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 
-// HU-13: Filtrar laboratorios por capacidad, categoria, software y disponibilidad
+// Filtrar laboratorios por capacidad, categoria, software y disponibilidad
 export const listarLaboratorios = async (
   req: Request,
   res: Response
@@ -97,7 +97,7 @@ export const listarLaboratorios = async (
 };
 
 // =========================================================================
-// INTEGRACIÓN HU-05 (HERLAN): CREACIÓN Y GESTIÓN CRUD DE LABORATORIOS
+// CREACIÓN Y GESTIÓN ADMINISTRATIVA DE LABORATORIOS
 // =========================================================================
 
 const manejarErrorPrisma = (error: any, res: Response, mensajeBase: string) => {

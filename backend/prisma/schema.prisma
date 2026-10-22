@@ -39,6 +39,7 @@ model Usuario {
   nombreCompleto    String    @map("nombre_completo") @db.VarChar(200)
   correo            String    @unique @db.VarChar(150)
   passwordHash      String    @map("password_hash") @db.VarChar(255)
+  ci                String?   @db.VarChar(20)
   telefono          String?   @db.VarChar(20)
   activo            Boolean   @default(true)
   correoVerificado  Boolean   @default(false) @map("correo_verificado")

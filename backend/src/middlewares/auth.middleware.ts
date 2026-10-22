@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { prisma } from '../config/prisma';
 
 export interface AuthRequest extends Request {
   user?: { id: number; rol: string };
 }
 
-export const verificarToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const verificarToken = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -16,7 +17,30 @@ export const verificarToken = (req: AuthRequest, res: Response, next: NextFuncti
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto_de_respaldo') as { id: number; rol: string };
     
-    req.user = decoded;
+    // Consultar el usuario y su rol en tiempo real desde la base de datos
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        activo: true,
+        rol: { select: { nombre: true } }
+      }
+    });
+
+    if (!usuario) {
+      res.status(401).json({ error: 'Usuario no encontrado o sesión no válida' });
+      return;
+    }
+
+    if (!usuario.activo) {
+      res.status(403).json({ error: 'Tu cuenta ha sido desactivada o suspendida' });
+      return;
+    }
+
+    req.user = {
+      id: usuario.id,
+      rol: usuario.rol?.nombre || decoded.rol || 'Estudiante'
+    };
     next();
   } catch (error) {
     res.status(401).json({ error: 'Token inválido o expirado' });

@@ -10,7 +10,7 @@ import {
 export { emitirNotificacionEstadoReserva };
 
 /**
- * HU-31 / HU-20: Obtiene el listado de notificaciones del usuario autenticado,
+ * Obtiene el listado de notificaciones del usuario autenticado,
  * junto con el contador de notificaciones pendientes (no leídas).
  */
 export const listarMisNotificaciones = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -33,7 +33,7 @@ export const listarMisNotificaciones = async (req: AuthRequest, res: Response): 
 };
 
 /**
- * HU-31: Marca una notificación específica como leída.
+ * Marca una notificación específica como leída.
  */
 export const marcarNotificacionLeida = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
@@ -57,7 +57,7 @@ export const marcarNotificacionLeida = async (req: AuthRequest, res: Response): 
 };
 
 /**
- * HU-31: Marca todas las notificaciones pendientes del usuario como leídas.
+ * Marca todas las notificaciones pendientes del usuario como leídas.
  */
 export const marcarTodasComoLeidas = async (req: AuthRequest, res: Response): Promise<any> => {
   try {

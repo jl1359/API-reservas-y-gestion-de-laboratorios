@@ -12,6 +12,7 @@ export interface Usuario {
   id: number;
   nombreCompleto: string;
   correo: string;
+  ci?: string | null;
   telefono?: string | null;
   activo: boolean;
   correoVerificado: boolean;

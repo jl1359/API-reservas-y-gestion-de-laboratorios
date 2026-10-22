@@ -23,7 +23,7 @@ import {
 
 const router = Router();
 
-// Middleware específico para reservas individuales de estudiantes (HU-28)
+// Middleware específico para reservas individuales de estudiantes
 const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): void => {
   if (req.user?.rol !== 'Estudiante') {
     res.status(403).json({ error: 'La reserva individual está disponible únicamente para estudiantes' });
@@ -33,26 +33,25 @@ const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): v
 };
 
 // =========================================================================
-// HU-15: SOLICITUD DE RESERVA DE LABORATORIO (DOCENTE, AUXILIAR, ADMIN)
+// REGISTRO DE RESERVA DE LABORATORIO (DOCENTE, AUXILIAR, ADMIN)
 // POST /api/reservas
-// Interceptada por HU-30 en caso de sanción activa
 // =========================================================================
 router.post('/', verificarToken, crearReserva);
 
 // =========================================================================
-// HU-16: BANDEJA DE RESERVAS PENDIENTES (RESPONSABLE Y ADMIN)
+// BANDEJA DE RESERVAS PENDIENTES (RESPONSABLE Y ADMIN)
 // GET /api/reservas/pendientes
 // =========================================================================
 router.get('/pendientes', verificarToken, esAdminOResponsable, listarReservasPendientes);
 
 // =========================================================================
-// HU-22: VER CÓDIGO QR DE RESERVA APROBADA / HISTORIAL PERSONAL
+// VER CÓDIGO QR DE RESERVA APROBADA / HISTORIAL PERSONAL
 // GET /api/reservas/mis-reservas
 // =========================================================================
 router.get('/mis-reservas', verificarToken, listarMisReservas);
 
 // =========================================================================
-// HU-23: ESCANEAR CÓDIGO QR DE RESERVA
+// ESCANEAR CÓDIGO QR DE RESERVA
 // POST /api/reservas/escanear-qr
 // =========================================================================
 router.post(
@@ -63,7 +62,7 @@ router.post(
 );
 
 // =========================================================================
-// HU-17: APROBAR O RECHAZAR RESERVA (RESPONSABLE Y ADMIN)
+// APROBAR O RECHAZAR RESERVA (RESPONSABLE Y ADMIN)
 // PUT /api/reservas/:id/gestionar
 // =========================================================================
 router.put('/:id/gestionar', verificarToken, esAdminOResponsable, gestionarReserva);
@@ -84,10 +83,10 @@ router.put(
   rechazarReserva
 );
 
-// Cancelar una reserva existente (HU-18: Propietario o Admin)
+// Cancelar una reserva existente (Propietario o Admin)
 router.put('/:id/cancelar', verificarToken, cancelarReserva);
 
-// Cancelar una reserva por fuerza mayor con motivo obligatorio (HU-19: Admin o Responsable)
+// Cancelar una reserva por fuerza mayor con motivo obligatorio (Admin o Responsable)
 router.put(
   '/:id/cancelar-fuerza-mayor',
   verificarToken,
@@ -96,19 +95,19 @@ router.put(
 );
 
 // =========================================================================
-// HU-22: OBTENER CÓDIGO QR ESPECÍFICO
+// OBTENER CÓDIGO QR ESPECÍFICO
 // GET /api/reservas/:id/qr
 // =========================================================================
 router.get('/:id/qr', verificarToken, obtenerQrReserva);
 
 // =========================================================================
-// HU-28: RESERVA INDIVIDUAL DE COMPUTADORA (MARCO)
+// RESERVA INDIVIDUAL DE COMPUTADORA
 // POST /api/laboratorios/:id/reservas
 // =========================================================================
 router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndividual);
 
 // =========================================================================
-// GESTIÓN / CONSULTA GENERAL
+// GESTIÓN Y CONSULTA GENERAL DE RESERVAS DEL CAMPUS
 // GET /api/reservas
 // =========================================================================
 router.get(

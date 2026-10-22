@@ -3,7 +3,7 @@ import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
 // =======================================================
-// MÓDULO DE HORARIOS (HU-07)
+// MÓDULO DE HORARIOS OPERATIVOS
 // =======================================================
 
 export const configurarHorarios = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -49,7 +49,7 @@ export const configurarHorarios = async (req: AuthRequest, res: Response): Promi
 };
 
 // =======================================================
-// MÓDULO DE BÚSQUEDA / CALENDARIO EN TIEMPO REAL (HU-12)
+// MÓDULO DE BÚSQUEDA Y CALENDARIO EN TIEMPO REAL
 // =======================================================
 
 export const verCalendarioLaboratorio = async (req: AuthRequest, res: Response): Promise<any> => {

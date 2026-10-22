@@ -9,7 +9,7 @@ import { verificarToken } from '../middlewares/auth.middleware';
 const router = Router();
 
 // =========================================================================
-// HU-19: NOTIFICACIONES DE CAMBIO DE ESTADO
+// BANDEJA DE NOTIFICACIONES Y ALERTAS
 // =========================================================================
 // Consultar mis notificaciones y el número de no leídas
 router.get('/', verificarToken, listarMisNotificaciones);

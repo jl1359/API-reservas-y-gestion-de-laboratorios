@@ -8,7 +8,7 @@ import { permitirRoles, verificarToken } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// HU-24: Auditoría general de reservas disponible para Administrador y Responsable de Laboratorio
+// Auditoría general de reservas disponible para Administrador y Responsable de Laboratorio
 router.get(
   '/asistencias',
   verificarToken,
@@ -16,7 +16,7 @@ router.get(
   reporteAsistenciasDiarias
 );
 
-// HU-35: Consulta de métricas consolidadas de ocupación para Dashboard e Informes
+// Consulta de métricas consolidadas de ocupación para Dashboard e Informes
 router.get(
   '/metricas',
   verificarToken,
@@ -24,7 +24,7 @@ router.get(
   obtenerMetricasAcademicas
 );
 
-// HU-35: Exportación directa en CSV compatible con Excel de métricas académicas de ocupación
+// Exportación directa en CSV compatible con Excel de métricas académicas de ocupación
 router.get(
   '/exportar-csv',
   verificarToken,

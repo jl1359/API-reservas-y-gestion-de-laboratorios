@@ -22,7 +22,7 @@ export const usuariosApi = {
     return res.data.data;
   },
 
-  actualizarPerfil: async (datos: { nombreCompleto?: string; telefono?: string | null }): Promise<Usuario> => {
+  actualizarPerfil: async (datos: { nombreCompleto?: string; ci?: string | null; telefono?: string | null }): Promise<Usuario> => {
     const res = await apiClient.put('/api/usuarios/perfil', datos);
     return res.data.data;
   },

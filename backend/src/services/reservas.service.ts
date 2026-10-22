@@ -157,15 +157,23 @@ export const crearReservaIndividualService = async (
 };
 
 /**
- * HU-13 y HU-14: Reserva de aula completa y serie semestral recurrente
+ * Reserva de aula completa y serie semestral recurrente
  */
 export const crearReservaService = async (
   data: CrearReservaInput,
   usuarioId: number,
   usuarioRol?: string
 ) => {
+  // Resolver el rol en tiempo real directamente desde la base de datos
+  const usuarioDb = await prisma.usuario.findUnique({
+    where: { id: usuarioId },
+    include: { rol: true }
+  });
+
+  const rolEfectivo = usuarioDb?.rol?.nombre || usuarioRol || '';
+
   const rolesPermitidos = ['Docente', 'Auxiliar de Docencia', 'Admin', 'Responsable de Laboratorio'];
-  if (!rolesPermitidos.includes(usuarioRol || '')) {
+  if (!rolesPermitidos.includes(rolEfectivo)) {
     throw new ReservaServiceError(403, 'Solo el personal docente, auxiliar o administrativo puede solicitar reservas de laboratorio');
   }
 
@@ -206,7 +214,7 @@ export const crearReservaService = async (
     throw new ReservaServiceError(400, `La cantidad de alumnos (${data.cantidadAlumnos}) supera la capacidad máxima (${laboratorio.capacidad})`);
   }
 
-  // Generación de bloques para reservas puntuales o semestrales (HU-14)
+  // Generación de bloques para reservas puntuales o semestrales recurrentes
   const bloquesReserva: { inicio: Date; fin: Date }[] = [];
   if (data.recurrente) {
     if (!data.fechaFinSemestre) {

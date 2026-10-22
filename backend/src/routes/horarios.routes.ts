@@ -4,10 +4,10 @@ import { verificarToken, esAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// HU-12: Ver calendario de un laboratorio (Protegida para que solo usuarios logueados lo vean, o pública según decidan)
+// Ver calendario y disponibilidad de un laboratorio
 router.get('/:id/calendario', verCalendarioLaboratorio);
 
-// HU-06: Configurar horarios (Solo Admin)
+// Configurar horarios operativos (Solo Admin)
 router.post('/:id/horarios', verificarToken, esAdmin, configurarHorarios);
 
 export default router;

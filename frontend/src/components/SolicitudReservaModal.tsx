@@ -125,13 +125,13 @@ export default function SolicitudReservaModal({
       );
 
       if (res.data.success) {
-        toast.success(res.data.mensaje || 'Solicitud de reserva registrada correctamente');
+        toast.success(res.data.mensaje || 'Reserva registrada y confirmada correctamente');
         onReservaExitosa();
         onClose();
       }
     } catch (error: any) {
       const code = error.response?.data?.code || error.response?.data?.codigo;
-      const msg = error.response?.data?.error || 'Error al procesar la solicitud de reserva';
+      const msg = error.response?.data?.error || 'Error al procesar la reserva';
       if (code === 'RESERVA_SOLAPADA') {
         toast.error(`Colisión de Horario: ${msg}`, { duration: 5000 });
       } else if (code === 'FERIADO_BLOQUEADO') {
@@ -148,18 +148,18 @@ export default function SolicitudReservaModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative overflow-hidden transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 relative overflow-hidden flex flex-col max-h-[92vh] my-auto transition-all">
         
         {/* Cabecera del Modal */}
-        <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-slate-100 dark:border-slate-700 shrink-0">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 bg-blue-50 dark:bg-blue-900/40 text-tech-blue dark:text-blue-400 rounded-xl">
               <Calendar className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-xl font-poppins font-bold text-slate-900 dark:text-white">
-                Solicitar Reserva de Laboratorio
+                Reservar Laboratorio
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {laboratorio.nombre} • Capacidad máx: {laboratorio.capacidad} personas
@@ -175,7 +175,8 @@ export default function SolicitudReservaModal({
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="p-6 overflow-y-auto flex-1 space-y-4">
           
           {/* Materia / Asignatura */}
           <div>
@@ -320,22 +321,23 @@ export default function SolicitudReservaModal({
                   className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white transition"
                 />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  ℹ️ Se reservará este mismo horario cada semana. La creación es <strong>atómica</strong>: si alguna semana choca con otra clase o feriado, se rechazará la serie completa.
+                  Se reservará este mismo horario cada semana. La creación es <strong>atómica</strong>: si alguna semana choca con otra clase o feriado, se rechazará la serie completa.
                 </p>
               </div>
             )}
           </div>
 
           {/* Aviso informativo de aprobación */}
-          <div className="flex items-start p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-amber-800 dark:text-amber-300 text-xs">
+          <div className="flex items-start p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs">
             <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
             <span>
-              La solicitud entrará en estado <strong>Pendiente</strong> y bloqueará el horario. El responsable del laboratorio la revisará para su confirmación oficial.
+              <strong>Aprobación Inmediata:</strong> La reserva quedará confirmada al instante y tu código QR de acceso estará disponible inmediatamente en tu perfil.
             </span>
           </div>
 
           {/* Botones de acción */}
-          <div className="flex justify-end space-x-3 pt-3">
+          </div>
+          <div className="flex justify-end space-x-3 p-4 px-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/80 rounded-b-3xl shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -358,7 +360,7 @@ export default function SolicitudReservaModal({
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 mr-1.5" />
-                  {feriadoSeleccionado ? 'Día Inhabilitado' : 'Enviar Solicitud'}
+                  {feriadoSeleccionado ? 'Día Inhabilitado' : 'Confirmar Reserva'}
                 </>
               )}
             </button>

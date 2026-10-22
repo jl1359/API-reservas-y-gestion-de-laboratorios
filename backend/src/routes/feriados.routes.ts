@@ -9,7 +9,7 @@ import { verificarToken, esAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// HU-29: Rutas de gestión de feriados y bloqueos
+// Rutas de gestión de feriados y bloqueos institucionales
 
 // 1. Listado general de feriados (abierto para consulta de usuarios, calendarios y admin)
 router.get('/', listarFeriados);

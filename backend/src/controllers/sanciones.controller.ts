@@ -73,7 +73,7 @@ export const listarMisSanciones = async (req: AuthRequest, res: Response): Promi
 };
 
 /**
- * [ADMIN/RESPONSABLE] Lista todas las sanciones registradas en el sistema (HU-33).
+ * [ADMIN/RESPONSABLE] Lista todas las sanciones registradas en el sistema.
  */
 export const listarTodasLasSanciones = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
@@ -92,7 +92,7 @@ export const listarTodasLasSanciones = async (req: AuthRequest, res: Response): 
 };
 
 /**
- * [ADMIN/CRON] Dispara el proceso de barrido de inasistencias de la HU-30.
+ * [ADMIN/CRON] Dispara el proceso de barrido de inasistencias.
  * Detecta reservas ausentes sin registro de QR y aplica las 24 horas de suspensión.
  */
 export const ejecutarProcesamientoInasistencias = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -114,7 +114,7 @@ export const ejecutarProcesamientoInasistencias = async (req: AuthRequest, res: 
 };
 
 /**
- * [ADMIN] Levantar o perdonar una sanción activa manualmente (HU-33).
+ * [ADMIN] Levantar o perdonar una sanción activa manualmente.
  */
 export const perdonarSancion = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
@@ -147,7 +147,7 @@ export const perdonarSancion = async (req: AuthRequest, res: Response): Promise<
 };
 
 /**
- * [ADMIN] Aplicar sanción disciplinaria manual (HU-33).
+ * [ADMIN] Aplicar sanción disciplinaria manual.
  */
 export const aplicarSancionManual = async (req: AuthRequest, res: Response): Promise<any> => {
   try {

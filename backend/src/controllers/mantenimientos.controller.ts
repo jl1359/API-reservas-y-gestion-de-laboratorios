@@ -8,7 +8,7 @@ import {
 } from '../services/laboratorios.service';
 
 /**
- * HU-10: Cambiar estado operativo rápido de un laboratorio
+ * Cambiar estado operativo rápido de un laboratorio
  * PATCH /api/laboratorios/:id/estado-operativo
  */
 export const cambiarEstadoOperativo = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -42,7 +42,7 @@ export const cambiarEstadoOperativo = async (req: AuthRequest, res: Response): P
 };
 
 /**
- * HU-11: Registrar reporte de mantenimiento y bloquear calendario
+ * Registrar reporte de mantenimiento y bloquear calendario
  * POST /api/mantenimientos
  */
 export const registrarMantenimiento = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -75,7 +75,7 @@ export const registrarMantenimiento = async (req: AuthRequest, res: Response): P
 };
 
 /**
- * HU-11: Listar mantenimientos programados
+ * Listar mantenimientos programados
  * GET /api/mantenimientos
  */
 export const listarMantenimientos = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -100,7 +100,7 @@ export const listarMantenimientos = async (req: AuthRequest, res: Response): Pro
 };
 
 /**
- * HU-11: Eliminar o liberar un periodo de mantenimiento
+ * Eliminar o liberar un periodo de mantenimiento
  * DELETE /api/mantenimientos/:id
  */
 export const eliminarMantenimiento = async (req: AuthRequest, res: Response): Promise<any> => {
