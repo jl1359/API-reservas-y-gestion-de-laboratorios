@@ -172,7 +172,7 @@ export const crearReservaService = async (
 
   const rolEfectivo = usuarioDb?.rol?.nombre || usuarioRol || '';
 
-  const rolesPermitidos = ['Docente', 'Auxiliar de Docencia', 'Admin', 'Responsable de Laboratorio'];
+  const rolesPermitidos = ['Docente', 'Auxiliar de Docencia', 'Admin', 'Administrador', 'Responsable de Laboratorio'];
   if (!rolesPermitidos.includes(rolEfectivo)) {
     throw new ReservaServiceError(403, 'Solo el personal docente, auxiliar o administrativo puede solicitar reservas de laboratorio');
   }
@@ -501,12 +501,12 @@ export const gestionarReservaService = async (id: number, accion: 'Aprobar' | 'R
   return rechazarReservaService(id, motivoRechazo);
 };
 
-export const cancelarReservaService = async (id: number, usuarioId?: number, rol?: string) => {
+export const cancelarReservaService = async (id: number, usuarioId?: number, rol?: string, motivo?: string) => {
   const reserva = await prisma.reserva.findUnique({ where: { id } });
   if (!reserva) throw new ReservaServiceError(404, 'Reserva no encontrada');
 
   const esPropietario = reserva.usuarioId === usuarioId;
-  const esAdmin = rol === 'Admin' || rol === 'Responsable de Laboratorio';
+  const esAdmin = rol === 'Admin' || rol === 'Administrador' || rol === 'Responsable de Laboratorio';
 
   if (!esPropietario && !esAdmin) {
     throw new ReservaServiceError(403, 'No tienes permiso para cancelar esta reserva');
@@ -516,11 +516,25 @@ export const cancelarReservaService = async (id: number, usuarioId?: number, rol
     throw new ReservaServiceError(400, `No se puede cancelar una reserva que ya está en estado '${reserva.estado}'`);
   }
 
+  const motivoLimpio = motivo && typeof motivo === 'string' && motivo.trim() !== ''
+    ? motivo.trim()
+    : 'Cancelación voluntaria por el titular de la reserva';
+
   const reservaActualizada = await prisma.reserva.update({
     where: { id },
-    data: { estado: 'Cancelada' },
+    data: { 
+      estado: 'Cancelada',
+      motivo: `Cancelada: ${motivoLimpio}`
+    },
     include: { laboratorio: { select: { nombre: true } } }
   });
+
+  await prisma.auditoria.create({
+    data: {
+      usuarioId: usuarioId || null,
+      accion: `Cancelación Voluntaria: Reserva #${id} (${reservaActualizada.laboratorio.nombre}). Motivo: ${motivoLimpio}`
+    }
+  }).catch(() => null);
 
   if (reservaActualizada.usuarioId) {
     emitirNotificacionEstadoReserva(
@@ -594,7 +608,7 @@ export const obtenerQrReservaService = async (id: number, usuarioId?: number, us
 
   if (!reserva) throw new ReservaServiceError(404, 'Reserva no encontrada');
 
-  const rolesAutorizados = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'];
+  const rolesAutorizados = ['Admin', 'Administrador', 'Responsable de Laboratorio', 'Auxiliar de Docencia'];
   const esPropietario = reserva.usuarioId === usuarioId;
   const esPersonal = userRol && rolesAutorizados.includes(userRol);
 

@@ -15,7 +15,7 @@ export const cambiarEstadoOperativo = async (req: AuthRequest, res: Response): P
   try {
     const laboratorioId = Number(req.params.id);
     const operadorId = req.user?.id;
-    const { estadoOperativo } = req.body;
+    const { estadoOperativo, motivo } = req.body;
 
     if (!laboratorioId || isNaN(laboratorioId)) {
       return res.status(400).json({ success: false, error: 'ID de laboratorio inválido' });
@@ -24,7 +24,8 @@ export const cambiarEstadoOperativo = async (req: AuthRequest, res: Response): P
     const labActualizado = await cambiarEstadoOperativoService(
       laboratorioId,
       estadoOperativo,
-      operadorId
+      operadorId,
+      motivo
     );
 
     return res.status(200).json({

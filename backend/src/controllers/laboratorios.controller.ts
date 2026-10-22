@@ -127,7 +127,7 @@ const manejarErrorPrisma = (error: any, res: Response, mensajeBase: string) => {
 
 export const crearLaboratorio = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { nombre, capacidad, ubicacion, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora } = req.body;
+    const { nombre, capacidad, ubicacion, latitud, longitud, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora, horarios } = req.body;
 
     if (!nombre || typeof nombre !== 'string' || nombre.trim() === '') {
       return res.status(400).json({ success: false, error: 'El nombre del laboratorio es obligatorio', message: 'El nombre del laboratorio es obligatorio' });
@@ -137,11 +137,13 @@ export const crearLaboratorio = async (req: Request, res: Response): Promise<any
       return res.status(400).json({ success: false, error: 'La capacidad debe ser un numero positivo mayor a cero', message: 'La capacidad debe ser un numero positivo mayor a cero' });
     }
 
-    const nuevoLab = await prisma.laboratorio.create({
+        const nuevoLab = await prisma.laboratorio.create({
       data: {
         nombre: nombre.trim(),
         capacidad: Number(capacidad),
         ubicacion: ubicacion ? ubicacion.trim() : null,
+        latitud: latitud !== undefined && latitud !== null && latitud !== '' ? Number(latitud) : null,
+        longitud: longitud !== undefined && longitud !== null && longitud !== '' ? Number(longitud) : null,
         estadoOperativo: estadoOperativo || 'Activo',
         carreraId: carreraId ? Number(carreraId) : null,
         imagenUrl: imagenUrl ? imagenUrl.trim() : null,
@@ -151,6 +153,31 @@ export const crearLaboratorio = async (req: Request, res: Response): Promise<any
         carrera: true
       }
     });
+
+    // Auto-generación de horarios operativos al crear el laboratorio
+    if (Array.isArray(horarios) && horarios.length > 0) {
+      const dataAInsertar = horarios
+        .filter((h: any) => h.activo !== false)
+        .map((h: any) => ({
+          laboratorioId: nuevoLab.id,
+          dia: h.dia,
+          horaApertura: new Date(`1970-01-01T${h.horaApertura || '08:00'}:00Z`),
+          horaCierre: new Date(`1970-01-01T${h.horaCierre || '18:00'}:00Z`)
+        }));
+      if (dataAInsertar.length > 0) {
+        await prisma.horarioLaboratorio.createMany({ data: dataAInsertar });
+      }
+    } else {
+      // Horario institucional por defecto (Lunes a Viernes 08:00-18:00)
+      const diasHabiles = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+      const dataAInsertar = diasHabiles.map((dia) => ({
+        laboratorioId: nuevoLab.id,
+        dia,
+        horaApertura: new Date('1970-01-01T08:00:00Z'),
+        horaCierre: new Date('1970-01-01T18:00:00Z')
+      }));
+      await prisma.horarioLaboratorio.createMany({ data: dataAInsertar });
+    }
     return res.status(201).json({ success: true, message: 'Laboratorio creado exitosamente', data: nuevoLab });
   } catch (error: any) {
     return manejarErrorPrisma(error, res, 'Error al crear el laboratorio');
@@ -179,7 +206,7 @@ export const actualizarLaboratorio = async (req: Request, res: Response): Promis
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'ID invalido' });
     
-    const { nombre, capacidad, ubicacion, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora } = req.body;
+    const { nombre, capacidad, ubicacion, latitud, longitud, estadoOperativo, carreraId, imagenUrl, reservaPorComputadora } = req.body;
 
     if (nombre !== undefined && (typeof nombre !== 'string' || nombre.trim() === '')) {
       return res.status(400).json({ success: false, error: 'El nombre del laboratorio no puede estar vacío', message: 'El nombre del laboratorio no puede estar vacío' });
@@ -198,6 +225,8 @@ export const actualizarLaboratorio = async (req: Request, res: Response): Promis
         ...(nombre !== undefined && { nombre: nombre.trim() }),
         ...(capacidad !== undefined && { capacidad: Number(capacidad) }),
         ...(ubicacion !== undefined && { ubicacion: ubicacion ? ubicacion.trim() : null }),
+        ...(latitud !== undefined && { latitud: latitud !== null && latitud !== '' ? Number(latitud) : null }),
+        ...(longitud !== undefined && { longitud: longitud !== null && longitud !== '' ? Number(longitud) : null }),
         ...(estadoOperativo && { estadoOperativo }),
         ...(carreraId !== undefined && { carreraId: carreraId ? Number(carreraId) : null }),
         ...(imagenUrl !== undefined && { imagenUrl: imagenUrl ? imagenUrl.trim() : null }),

@@ -8,10 +8,12 @@ import {
   AlertTriangle,
   X,
   Search,
-  Monitor
+  Monitor,
+  FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { reservasApi } from '../../api/reservas.api';
+import { imprimirBoletaOficial } from '../../utils/boletaPdf';
 
 export interface ReservaItem {
   id: number;
@@ -365,14 +367,24 @@ export default function TabReservas({
                           </>
                         )}
                         {res.estado === 'Aprobada' && (
-                          <button
-                            onClick={() => handleAbrirFuerzaMayor(res)}
+                          <>
+                            <button
+                              onClick={() => imprimirBoletaOficial(res as any)}
+                              title="Imprimir Boleta Oficial de Acreditación PDF"
+                              className="inline-flex items-center px-2 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors rounded-lg border border-slate-300 dark:border-slate-600 mr-1.5"
+                            >
+                              <FileText className="w-3.5 h-3.5 mr-1" />
+                              Boleta
+                            </button>
+                            <button
+                              onClick={() => handleAbrirFuerzaMayor(res)}
                             title="Cancelar por Fuerza Mayor"
                             className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50/50"
                           >
                             <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                             Fuerza Mayor
                           </button>
+                          </>
                         )}
                       </td>
                     </tr>

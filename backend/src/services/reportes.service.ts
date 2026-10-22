@@ -4,6 +4,7 @@ export interface MetricasLaboratorio {
   laboratorioId: number;
   nombre: string;
   ubicacion: string;
+  carreraNombre?: string | null;
   capacidad: number;
   totalReservas: number;
   reservasAsistidas: number;
@@ -51,7 +52,13 @@ export const obtenerMetricasOcupacionAcademicas = async (
   // Traer laboratorios relevantes
   const laboratoriosDb = await prisma.laboratorio.findMany({
     where: laboratorioId ? { id: laboratorioId } : {},
-    select: { id: true, nombre: true, ubicacion: true, capacidad: true }
+    select: { 
+      id: true, 
+      nombre: true, 
+      ubicacion: true, 
+      capacidad: true,
+      carrera: { select: { nombre: true } }
+    }
   });
 
   // Traer reservas correspondientes
@@ -117,6 +124,7 @@ export const obtenerMetricasOcupacionAcademicas = async (
       laboratorioId: lab.id,
       nombre: lab.nombre,
       ubicacion: lab.ubicacion || 'Campus Central',
+      carreraNombre: lab.carrera?.nombre || 'General / Sin Asignar',
       capacidad: lab.capacidad,
       totalReservas,
       reservasAsistidas: asistidas,

@@ -25,7 +25,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  if (role !== 'Admin') {
+  if (role !== 'Admin' && role !== 'Administrador') {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -38,7 +38,7 @@ const StaffRoute = ({ children }: { children: React.ReactNode }) => {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  const rolesAutorizados = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'];
+  const rolesAutorizados = ['Admin', 'Administrador', 'Responsable de Laboratorio', 'Auxiliar de Docencia'];
   if (!role || !rolesAutorizados.includes(role)) {
     return <Navigate to="/" replace />;
   }
@@ -52,7 +52,7 @@ const ReportesRoute = ({ children }: { children: React.ReactNode }) => {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  const rolesAutorizados = ['Admin', 'Responsable de Laboratorio'];
+  const rolesAutorizados = ['Admin', 'Administrador', 'Responsable de Laboratorio'];
   if (!role || !rolesAutorizados.includes(role)) {
     return <Navigate to="/" replace />;
   }
@@ -77,10 +77,14 @@ function App() {
 
         {/* Ruta para reporte diario de asistencias */}
         <Route path="/reportes" element={<ReportesRoute><ReporteAsistencias /></ReportesRoute>} />
+        <Route path="/reportes/asistencias" element={<ReportesRoute><ReporteAsistencias /></ReportesRoute>} />
+        <Route path="/reportes/asistencia" element={<ReportesRoute><ReporteAsistencias /></ReportesRoute>} />
         <Route path="/reporte-asistencias" element={<ReportesRoute><ReporteAsistencias /></ReportesRoute>} />
 
         {/* Ruta protegida estrictamente para Administradores */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        {/* Ruta por defecto para URLs no encontradas */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

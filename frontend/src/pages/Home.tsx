@@ -38,6 +38,11 @@ export default function Home() {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchLaboratorios();
+  };
+
   useEffect(() => {
     fetchLaboratorios();
   }, []);
@@ -60,7 +65,7 @@ export default function Home() {
 
       {/* Floating Search Bar */}
       <div className="max-w-6xl mx-auto px-6 -mt-8 relative z-10">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-600 p-2 transition-colors duration-200">
+        <form onSubmit={handleSearch} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-600 p-2 transition-colors duration-200">
           <div className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-700">
             
             {/* Carrera o Nombre */}
@@ -73,6 +78,7 @@ export default function Home() {
                 placeholder="Ej. Sistemas..." 
                 value={filtroCarrera} 
                 onChange={e => setFiltroCarrera(e.target.value)} 
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(e); }}
                 className="w-full bg-transparent font-semibold text-slate-900 dark:text-white outline-none placeholder-slate-300 dark:placeholder-slate-600" 
               />
             </div>
@@ -88,6 +94,7 @@ export default function Home() {
                 placeholder="Cualquier tamaño..." 
                 value={filtroCapacidad} 
                 onChange={e => setFiltroCapacidad(e.target.value)} 
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(e); }}
                 className="w-full bg-transparent font-semibold text-slate-900 dark:text-white outline-none placeholder-slate-300 dark:placeholder-slate-600" 
               />
             </div>
@@ -95,7 +102,7 @@ export default function Home() {
             {/* Search Button */}
             <div className="px-3 py-2 w-full md:w-auto">
               <button 
-                onClick={fetchLaboratorios} 
+                type="submit" 
                 className="w-full bg-tech-blue hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-xl shadow-md transition-all flex items-center justify-center space-x-2"
               >
                 <Search className="w-5 h-5" />
@@ -104,7 +111,7 @@ export default function Home() {
             </div>
 
           </div>
-        </div>
+        </form>
       </div>
 
       {/* Catálogo de Laboratorios */}
@@ -130,7 +137,11 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {laboratorios.map((lab) => (
-              <div key={lab.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col">
+              <Link 
+                key={lab.id} 
+                to={"/laboratorio/" + lab.id}
+                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col cursor-pointer"
+              >
                 <div className="h-48 bg-slate-200 dark:bg-slate-700 relative overflow-hidden">
                   {lab.imagenUrl ? (
                     <img src={lab.imagenUrl} alt={lab.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -156,15 +167,15 @@ export default function Home() {
                     <span className="truncate">{lab.ubicacion || 'Ubicación no especificada'}</span>
                   </div>
                   <div className="mt-auto">
-                    <div className="inline-block bg-slate-100 dark:bg-slate-700/50 px-3 py-1 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-300 mb-6">
+                    <div className="inline-block bg-slate-100 dark:bg-slate-700/50 px-3 py-1 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-300 mb-5">
                       Modalidad: {lab.reservaPorComputadora ? 'Por Computadora' : 'Laboratorio Completo'}
                     </div>
-                    <button className="w-full bg-slate-50 hover:bg-tech-blue dark:bg-slate-700 dark:hover:bg-tech-blue text-slate-700 hover:text-white dark:text-white font-semibold py-2.5 rounded-xl border border-slate-200 hover:border-tech-blue dark:border-slate-600 dark:hover:border-tech-blue transition-colors">
-                      <Link to={"/laboratorio/" + lab.id} className="block w-full h-full">Ver Disponibilidad</Link>
-                    </button>
+                    <div className="w-full bg-slate-50 group-hover:bg-tech-blue dark:bg-slate-700 dark:group-hover:bg-tech-blue text-slate-700 group-hover:text-white dark:text-white font-semibold py-2.5 rounded-xl border border-slate-200 group-hover:border-tech-blue dark:border-slate-600 dark:group-hover:border-tech-blue transition-colors text-center text-sm shadow-2xs">
+                      Ver Disponibilidad y Reservar
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

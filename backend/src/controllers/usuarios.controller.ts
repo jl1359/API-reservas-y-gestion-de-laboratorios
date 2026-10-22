@@ -82,7 +82,7 @@ export const cambiarEstadoUsuario = async (req: AuthRequest, res: Response): Pro
   try {
     const adminId = req.user?.id;
     const usuarioId = Number(req.params.id);
-    const { activo } = req.body;
+    const { activo, motivo } = req.body;
 
     if (!adminId) {
       return res.status(401).json({ success: false, error: 'No autorizado' });
@@ -92,7 +92,7 @@ export const cambiarEstadoUsuario = async (req: AuthRequest, res: Response): Pro
       return res.status(400).json({ success: false, error: 'ID de usuario inválido' });
     }
 
-    const usuarioActualizado = await cambiarEstadoUsuarioService(adminId, usuarioId, Boolean(activo));
+    const usuarioActualizado = await cambiarEstadoUsuarioService(adminId, usuarioId, Boolean(activo), motivo);
 
     return res.status(200).json({
       success: true,
@@ -148,8 +148,8 @@ export const actualizarPerfil = async (req: AuthRequest, res: Response): Promise
       return res.status(400).json({ success: false, error: errorMsg });
     }
 
-    const { nombreCompleto, ci, telefono } = validacion.data;
-    const perfilActualizado = await actualizarPerfilService(usuarioId, { nombreCompleto, ci, telefono });
+    const { nombreCompleto, ci, telefono, carreraId } = validacion.data;
+    const perfilActualizado = await actualizarPerfilService(usuarioId, { nombreCompleto, ci, telefono, carreraId });
 
     return res.status(200).json({
       success: true,

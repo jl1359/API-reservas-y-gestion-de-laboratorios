@@ -3,7 +3,8 @@ import { prisma } from '../config/prisma';
 export const cambiarEstadoOperativoService = async (
   laboratorioId: number,
   estadoOperativo: 'Activo' | 'Mantenimiento' | 'Inactivo',
-  operadorId?: number
+  operadorId?: number,
+  motivo?: string
 ) => {
   const lab = await prisma.laboratorio.findUnique({
     where: { id: laboratorioId }
@@ -24,10 +25,11 @@ export const cambiarEstadoOperativoService = async (
   });
 
   if (operadorId) {
+    const motivoTexto = motivo && typeof motivo === 'string' && motivo.trim() !== '' ? ` Causa: ${motivo.trim()}` : '';
     await prisma.auditoria.create({
       data: {
         usuarioId: operadorId,
-        accion: `Cambio de Estado Operativo: Laboratorio '${lab.nombre}' cambiado de [${estadoAnterior}] a [${estadoOperativo}].`
+        accion: `Cambio de Estado Operativo: Laboratorio '${lab.nombre}' cambiado de [${estadoAnterior}] a [${estadoOperativo}].${motivoTexto}`
       }
     }).catch(() => null);
   }

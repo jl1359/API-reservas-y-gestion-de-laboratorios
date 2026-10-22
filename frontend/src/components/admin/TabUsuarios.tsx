@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Search, Phone, CheckCircle, XCircle, Users, ShieldCheck } from 'lucide-react';
+import { Search, Phone, CheckCircle, XCircle, Users, ShieldCheck, X, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usuariosApi } from '../../api/usuarios.api';
 import type { Usuario, Rol } from '../../types';
@@ -36,6 +36,18 @@ export default function TabUsuarios({
   const [subTabUsuarios, setSubTabUsuarios] = useState<'directorio' | 'solicitudes'>('directorio');
   const [busquedaUsuario, setBusquedaUsuario] = useState('');
 
+  // Modal de Suspensión de Cuenta con Justificación
+  const [isSuspenderModalOpen, setIsSuspenderModalOpen] = useState(false);
+  const [usuarioASuspender, setUsuarioASuspender] = useState<Usuario | null>(null);
+  const [motivoSuspension, setMotivoSuspension] = useState('');
+  const [isSubmittingSuspension, setIsSubmittingSuspension] = useState(false);
+
+  // Modal de Rechazo de Solicitud de Rol con Justificación
+  const [isRechazarSolicitudModalOpen, setIsRechazarSolicitudModalOpen] = useState(false);
+  const [solicitudARechazar, setSolicitudARechazar] = useState<SolicitudRolItem | null>(null);
+  const [motivoRechazoSolicitud, setMotivoRechazoSolicitud] = useState('');
+  const [isSubmittingRechazoSolicitud, setIsSubmittingRechazoSolicitud] = useState(false);
+
   const usuariosFiltrados = usuariosList.filter((u) => {
     const q = busquedaUsuario.toLowerCase();
     const nom = u.nombreCompleto?.toLowerCase() || '';
@@ -58,31 +70,87 @@ export default function TabUsuarios({
     }
   };
 
-  const handleCambiarEstadoUsuario = async (usuarioId: number, activoActual: boolean, nombre: string) => {
-    const nuevoEstado = !activoActual;
-    const accion = nuevoEstado ? 'habilitar' : 'suspender';
-    if (!window.confirm(`¿Confirmas ${accion} el acceso de ${nombre}?`)) return;
+  const handleAbrirSuspension = (usuario: Usuario) => {
+    setUsuarioASuspender(usuario);
+    setMotivoSuspension('');
+    setIsSuspenderModalOpen(true);
+  };
+
+  const handleConfirmarSuspension = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usuarioASuspender) return;
+    if (motivoSuspension.trim().length < 5) {
+      return toast.error('Ingresa una justificación formal de al menos 5 caracteres');
+    }
+    setIsSubmittingSuspension(true);
     try {
-      await usuariosApi.cambiarEstado(usuarioId, nuevoEstado);
-      toast.success(`Cuenta de ${nombre} ${nuevoEstado ? 'habilitada' : 'suspendida'}`);
+      await usuariosApi.cambiarEstado(usuarioASuspender.id, false, motivoSuspension.trim());
+      toast.success(`Cuenta de ${usuarioASuspender.nombreCompleto} suspendida y notificada exitosamente`);
+      setIsSuspenderModalOpen(false);
+      setUsuarioASuspender(null);
+      setMotivoSuspension('');
       onRefresh();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Error al modificar estado');
+      toast.error(error.response?.data?.error || 'Error al suspender cuenta');
+    } finally {
+      setIsSubmittingSuspension(false);
     }
   };
 
-  const handleGestionarSolicitud = async (id: number, accion: 'Aprobar' | 'Rechazar') => {
-    if (!window.confirm(`¿Estás seguro de ${accion.toLowerCase()} esta solicitud?`)) return;
+  const handleHabilitarCuenta = async (usuario: Usuario) => {
+    if (!window.confirm(`¿Confirmas reactivar y habilitar nuevamente el acceso de ${usuario.nombreCompleto}?`)) return;
+    try {
+      await usuariosApi.cambiarEstado(usuario.id, true);
+      toast.success(`Cuenta de ${usuario.nombreCompleto} habilitada nuevamente`);
+      onRefresh();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al habilitar cuenta');
+    }
+  };
+
+  const handleAprobarSolicitud = async (id: number, nombre: string, rol: string) => {
+    if (!window.confirm(`¿Confirmas aprobar la promoción de rol a "${rol}" para ${nombre}?`)) return;
     try {
       await axios.put(
         `http://localhost:3000/api/roles/manage/${id}`,
-        { accion },
+        { accion: 'Aprobar' },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      toast.success(`Solicitud ${accion.toLowerCase()}da correctamente`);
+      toast.success(`Solicitud aprobada y rol "${rol}" asignado a ${nombre}`);
       onRefresh();
     } catch (error: any) {
-      toast.error('Error al gestionar solicitud');
+      toast.error(error.response?.data?.error || 'Error al aprobar solicitud');
+    }
+  };
+
+  const handleAbrirRechazarSolicitud = (solicitud: SolicitudRolItem) => {
+    setSolicitudARechazar(solicitud);
+    setMotivoRechazoSolicitud('');
+    setIsRechazarSolicitudModalOpen(true);
+  };
+
+  const handleConfirmarRechazoSolicitud = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!solicitudARechazar) return;
+    if (motivoRechazoSolicitud.trim().length < 5) {
+      return toast.error('Ingresa una justificación formal de al menos 5 caracteres');
+    }
+    setIsSubmittingRechazoSolicitud(true);
+    try {
+      await axios.put(
+        `http://localhost:3000/api/roles/manage/${solicitudARechazar.id}`,
+        { accion: 'Rechazar', motivoRechazo: motivoRechazoSolicitud.trim() },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      toast.success('Solicitud rechazada con registro formal de motivo');
+      setIsRechazarSolicitudModalOpen(false);
+      setSolicitudARechazar(null);
+      setMotivoRechazoSolicitud('');
+      onRefresh();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al rechazar solicitud');
+    } finally {
+      setIsSubmittingRechazoSolicitud(false);
     }
   };
 
@@ -216,7 +284,13 @@ export default function TabUsuarios({
                             </span>
                           ) : (
                             <button
-                              onClick={() => handleCambiarEstadoUsuario(u.id, u.activo !== false, u.nombreCompleto)}
+                              onClick={() => {
+                                if (u.activo !== false) {
+                                  handleAbrirSuspension(u);
+                                } else {
+                                  handleHabilitarCuenta(u);
+                                }
+                              }}
                               className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-colors shadow-sm ${
                                 u.activo !== false
                                   ? 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30'
@@ -285,14 +359,14 @@ export default function TabUsuarios({
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
                         <button
-                          onClick={() => handleGestionarSolicitud(sol.id, 'Aprobar')}
+                          onClick={() => handleAprobarSolicitud(sol.id, sol.usuario.nombreCompleto, sol.rolSolicitado)}
                           title="Aprobar"
                           className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
                         >
                           <CheckCircle className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => handleGestionarSolicitud(sol.id, 'Rechazar')}
+                          onClick={() => handleAbrirRechazarSolicitud(sol)}
                           title="Rechazar"
                           className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
                         >
@@ -304,6 +378,139 @@ export default function TabUsuarios({
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+      {/* Modal Suspender Cuenta con Justificación Obligatoria */}
+      {isSuspenderModalOpen && usuarioASuspender && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto my-auto">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-2 text-rose-500" />
+                Suspender Cuenta de Usuario
+              </h2>
+              <button
+                onClick={() => setIsSuspenderModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmarSuspension} className="mt-4 space-y-4">
+              <div className="bg-rose-50 dark:bg-rose-950/30 p-3.5 rounded-2xl text-xs space-y-1 border border-rose-200 dark:border-rose-900/50">
+                <p className="font-bold text-rose-900 dark:text-rose-200">
+                  {usuarioASuspender.nombreCompleto}
+                </p>
+                <p className="text-rose-700 dark:text-rose-300">
+                  {usuarioASuspender.correo}
+                </p>
+                <p className="text-slate-500 text-[11px] pt-1">
+                  Rol actual: {typeof usuarioASuspender.rol === 'object' ? usuarioASuspender.rol?.nombre : usuarioASuspender.rol || 'Estudiante'}
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Por política y normativa disciplinaria institucional de la FCyT, es obligatorio fundamentar el motivo de la suspensión. El usuario recibirá una notificación formal y la causa quedará asentada en la bitácora de auditoría.
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Motivo o Causal de Suspensión <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={motivoSuspension}
+                  onChange={(e) => setMotivoSuspension(e.target.value)}
+                  placeholder="Ej. Incumplimiento reiterado de normas del laboratorio, uso indebido de equipamiento, conducta impropia..."
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSuspenderModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingSuspension}
+                  className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50"
+                >
+                  {isSubmittingSuspension ? 'Procesando...' : 'Confirmar Suspensión'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Rechazar Solicitud de Rol con Justificación */}
+      {isRechazarSolicitudModalOpen && solicitudARechazar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto my-auto">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <XCircle className="w-5 h-5 mr-2 text-rose-500" />
+                Rechazar Solicitud de Rol
+              </h2>
+              <button
+                onClick={() => setIsRechazarSolicitudModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmarRechazoSolicitud} className="mt-4 space-y-4">
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl text-xs space-y-1 border border-slate-200 dark:border-slate-700">
+                <p className="font-bold text-slate-800 dark:text-slate-200">
+                  {solicitudARechazar.usuario.nombreCompleto} ({solicitudARechazar.usuario.correo})
+                </p>
+                <p className="text-tech-blue dark:text-blue-400 font-semibold">
+                  Rol solicitado: {solicitudARechazar.rolSolicitado}
+                </p>
+                <p className="text-slate-500 italic text-[11px]">
+                  Justificación del postulante: "{solicitudARechazar.motivo}"
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Motivo Académico de Rechazo <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={motivoRechazoSolicitud}
+                  onChange={(e) => setMotivoRechazoSolicitud(e.target.value)}
+                  placeholder="Ej. Carga horaria no coincide con el periodo académico, documentación incompleta..."
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRechazarSolicitudModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingRechazoSolicitud}
+                  className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50"
+                >
+                  {isSubmittingRechazoSolicitud ? 'Rechazando...' : 'Confirmar Rechazo'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

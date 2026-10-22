@@ -9,21 +9,36 @@ import {
 
 
 /**
- * Auditoría diaria de reservas programadas y asistencia registrada.
- * El día se interpreta en horario de Bolivia (UTC-04:00).
+ * Auditoría diaria o por rango de fechas de reservas programadas y asistencia registrada.
+ * Las fechas se interpretan en horario de Bolivia (UTC-04:00).
  */
 export const reporteAsistenciasDiarias = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { fecha, laboratorioId } = req.query;
+  const { fecha, fechaInicio, fechaFin, laboratorioId, carreraId } = req.query;
 
-  if (typeof fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-    res.status(400).json({ error: 'Indica fecha en formato AAAA-MM-DD' });
+  const fechaDesde = (fechaInicio || fecha) as string;
+  if (typeof fechaDesde !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fechaDesde)) {
+    res.status(400).json({ error: 'Indica fecha o fechaInicio en formato AAAA-MM-DD' });
     return;
   }
 
-  const fechaUtc = new Date(`${fecha}T00:00:00.000Z`);
-  if (Number.isNaN(fechaUtc.getTime()) || fechaUtc.toISOString().slice(0, 10) !== fecha) {
-    res.status(400).json({ error: 'La fecha indicada no existe' });
+  const fechaUtcDesde = new Date(`${fechaDesde}T00:00:00.000Z`);
+  if (Number.isNaN(fechaUtcDesde.getTime()) || fechaUtcDesde.toISOString().slice(0, 10) !== fechaDesde) {
+    res.status(400).json({ error: 'La fecha de inicio indicada no existe' });
     return;
+  }
+
+  let fechaHasta = fechaDesde;
+  if (fechaFin !== undefined && fechaFin !== '') {
+    if (typeof fechaFin !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fechaFin)) {
+      res.status(400).json({ error: 'fechaFin debe tener formato AAAA-MM-DD' });
+      return;
+    }
+    const fechaUtcHasta = new Date(`${fechaFin}T00:00:00.000Z`);
+    if (Number.isNaN(fechaUtcHasta.getTime()) || fechaUtcHasta.toISOString().slice(0, 10) !== fechaFin) {
+      res.status(400).json({ error: 'La fecha fin indicada no existe' });
+      return;
+    }
+    fechaHasta = fechaFin;
   }
 
   let idLaboratorio: number | undefined;
@@ -39,11 +54,26 @@ export const reporteAsistenciasDiarias = async (req: AuthRequest, res: Response)
     }
   }
 
-  const inicio = new Date(`${fecha}T00:00:00-04:00`);
-  const fin = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
+  const inicio = new Date(`${fechaDesde}T00:00:00-04:00`);
+  const finDiaHasta = new Date(`${fechaHasta}T00:00:00-04:00`);
+  const fin = new Date(finDiaHasta.getTime() + 24 * 60 * 60 * 1000);
+
+  if (inicio.getTime() >= fin.getTime()) {
+    res.status(400).json({ error: 'La fecha de inicio no puede ser posterior a la fecha final' });
+    return;
+  }
+
+  let idCarrera: number | undefined;
+  if (carreraId !== undefined && carreraId !== '') {
+    if (typeof carreraId === 'string' && /^[1-9]\d*$/.test(carreraId)) {
+      idCarrera = Number(carreraId);
+    }
+  }
+
   const where: Prisma.ReservaWhereInput = {
     fechaInicio: { gte: inicio, lt: fin },
     ...(idLaboratorio !== undefined && { laboratorioId: idLaboratorio }),
+    ...(idCarrera !== undefined && { laboratorio: { carreraId: idCarrera } }),
   };
 
   try {
@@ -56,27 +86,119 @@ export const reporteAsistenciasDiarias = async (req: AuthRequest, res: Response)
         estado: true,
         horaAsistencia: true,
         numeroComputadora: true,
-        usuario: { select: { id: true, nombreCompleto: true, correo: true } },
-        laboratorio: { select: { id: true, nombre: true, ubicacion: true } },
+        usuario: { 
+          select: { 
+            id: true, 
+            nombreCompleto: true, 
+            correo: true,
+            carrera: { select: { id: true, nombre: true } }
+          } 
+        },
+        laboratorio: { 
+          select: { 
+            id: true, 
+            nombre: true, 
+            ubicacion: true,
+            carreraId: true,
+            carrera: { select: { id: true, nombre: true } }
+          } 
+        },
       },
       orderBy: [{ fechaInicio: 'asc' }, { id: 'asc' }],
     });
 
+    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const porEstado = new Map<string, number>();
+    const porCarrera = new Map<string, { id: number | null; nombre: string; total: number; porcentaje: number }>();
+    const porLaboratorio = new Map<number, { id: number; nombre: string; total: number; porcentaje: number }>();
+    const porDia = new Map<string, { fecha: string; diaSemana: string; total: number; porcentaje: number }>();
+
     for (const reserva of reservas) {
+      // Conteo por estado
       porEstado.set(reserva.estado, (porEstado.get(reserva.estado) ?? 0) + 1);
+
+      // Conteo por Carrera (asociada al laboratorio)
+      const cId = reserva.laboratorio?.carrera?.id ?? 0;
+      const cNombre = reserva.laboratorio?.carrera?.nombre ?? 'General / Sin Carrera Asignada';
+      const keyCarrera = cId === 0 ? 'sin_carrera' : `carrera_${cId}`;
+      if (!porCarrera.has(keyCarrera)) {
+        porCarrera.set(keyCarrera, {
+          id: cId === 0 ? null : cId,
+          nombre: cNombre,
+          total: 0,
+          porcentaje: 0
+        });
+      }
+      porCarrera.get(keyCarrera)!.total += 1;
+
+      // Conteo por laboratorio
+      if (reserva.laboratorio) {
+        const labId = reserva.laboratorio.id;
+        const labNombre = reserva.laboratorio.nombre;
+        if (!porLaboratorio.has(labId)) {
+          porLaboratorio.set(labId, { id: labId, nombre: labNombre, total: 0, porcentaje: 0 });
+        }
+        porLaboratorio.get(labId)!.total += 1;
+      }
+
+      // Conteo por día en hora de Bolivia (UTC-04:00)
+      const offsetBoliviaMs = 4 * 60 * 60 * 1000;
+      const dBolivia = new Date(reserva.fechaInicio.getTime() - offsetBoliviaMs);
+      const strFecha = dBolivia.toISOString().slice(0, 10);
+      const diaSem = diasSemana[dBolivia.getUTCDay()];
+      if (!porDia.has(strFecha)) {
+        porDia.set(strFecha, { fecha: strFecha, diaSemana: diaSem, total: 0, porcentaje: 0 });
+      }
+      porDia.get(strFecha)!.total += 1;
     }
 
+    const totalReservas = reservas.length;
+
+    // Métricas por carrera
+    const listaPorCarrera = Array.from(porCarrera.values()).map(item => ({
+      ...item,
+      porcentaje: totalReservas > 0 ? Math.round((item.total / totalReservas) * 100) : 0
+    })).sort((a, b) => b.total - a.total);
+
+    const carreraMasDemandada = listaPorCarrera.length > 0 ? listaPorCarrera[0] : null;
+
+    // Métricas por laboratorio
+    const listaPorLaboratorio = Array.from(porLaboratorio.values()).map(item => ({
+      ...item,
+      porcentaje: totalReservas > 0 ? Math.round((item.total / totalReservas) * 100) : 0
+    })).sort((a, b) => b.total - a.total);
+
+    const laboratorioMasReservado = listaPorLaboratorio.length > 0 ? listaPorLaboratorio[0] : null;
+
+    // Métricas por día cronológico
+    const listaPorDia = Array.from(porDia.values()).map(item => ({
+      ...item,
+      porcentaje: totalReservas > 0 ? Math.round((item.total / totalReservas) * 100) : 0
+    })).sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+    // Día con mayor demanda absoluta
+    const diaMasReservado = listaPorDia.length > 0 
+      ? [...listaPorDia].sort((a, b) => b.total - a.total)[0] 
+      : null;
+
     res.status(200).json({
-      fecha,
+      fecha: fechaDesde,
+      fechaFin: fechaHasta !== fechaDesde ? fechaHasta : null,
+      esRango: fechaHasta !== fechaDesde,
       zonaHoraria: 'America/La_Paz',
       criterio: 'fechaInicio de la reserva',
       laboratorioId: idLaboratorio ?? null,
       resumen: {
-        totalReservas: reservas.length,
+        totalReservas,
         asistenciasRegistradas: reservas.filter((r) => r.horaAsistencia !== null).length,
         inasistenciasRegistradas: reservas.filter((r) => r.estado === 'Ausente').length,
         porEstado: Object.fromEntries(porEstado),
+        porCarrera: listaPorCarrera,
+        carreraMasDemandada,
+        porLaboratorio: listaPorLaboratorio,
+        laboratorioMasReservado,
+        porDia: listaPorDia,
+        diaMasReservado,
       },
       reservas,
     });

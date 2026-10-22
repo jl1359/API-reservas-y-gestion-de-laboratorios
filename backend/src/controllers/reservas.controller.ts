@@ -294,7 +294,8 @@ export const listarTodasLasReservas = async (req: AuthRequest, res: Response): P
 export const cancelarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const id = Number(req.params.id);
-    const reserva = await cancelarReservaService(id, req.user?.id, req.user?.rol);
+    const { motivo } = req.body;
+    const reserva = await cancelarReservaService(id, req.user?.id, req.user?.rol, motivo);
     return res.status(200).json({
       success: true,
       mensaje: 'Reserva cancelada correctamente',

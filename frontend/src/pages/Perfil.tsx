@@ -15,7 +15,11 @@ import {
   Phone,
   Mail,
   Save,
-  XCircle
+  XCircle,
+  FileText,
+  CalendarPlus,
+  ExternalLink,
+  X
 } from 'lucide-react';
 
 import Navbar from '../components/Navbar';
@@ -25,6 +29,8 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { usuariosApi } from '../api/usuarios.api';
 import { reservasApi } from '../api/reservas.api';
+import { generarEnlaceGoogleCalendar, descargarArchivoIcs } from '../utils/calendar';
+import { imprimirBoletaOficial } from '../utils/boletaPdf';
 
 interface Reserva {
   id: number;
@@ -48,6 +54,9 @@ export default function Perfil() {
   const [usuario, setUsuario] = useState<any>(null);
   const [perfilNombre, setPerfilNombre] = useState('');
   const [perfilTelefono, setPerfilTelefono] = useState('');
+  const [perfilCi, setPerfilCi] = useState('');
+  const [perfilCarreraId, setPerfilCarreraId] = useState('');
+  const [carreras, setCarreras] = useState<any[]>([]);
   const [isGuardandoPerfil, setIsGuardandoPerfil] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [roles, setRoles] = useState<any[]>([]);
@@ -61,6 +70,10 @@ export default function Perfil() {
   const [reservaSeleccionada, setReservaSeleccionada] = useState<Reserva | null>(null);
   const [isModalQrOpen, setIsModalQrOpen] = useState(false);
   const [sancionActiva, setSancionActiva] = useState<any>(null);
+  const [isCancelarModalOpen, setIsCancelarModalOpen] = useState(false);
+  const [reservaACancelar, setReservaACancelar] = useState<Reserva | null>(null);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [isSubmittingCancelacion, setIsSubmittingCancelacion] = useState(false);
 
   const navigate = useNavigate();
 
@@ -92,6 +105,8 @@ export default function Perfil() {
           setUsuario(data);
           setPerfilNombre(data.nombreCompleto || '');
           setPerfilTelefono(data.telefono || '');
+          setPerfilCi(data.ci || '');
+          setPerfilCarreraId(data.carreraId ? String(data.carreraId) : (data.carrera?.id ? String(data.carrera.id) : ''));
         }
       } catch (err) {
         console.error('Error al cargar perfil:', err);
@@ -129,6 +144,16 @@ export default function Perfil() {
       }
     };
 
+    const fetchCarreras = async () => {
+      try {
+        const res = await axios.get('http://localhost:3000/api/carreras');
+        setCarreras(res.data || []);
+      } catch (err) {
+        console.error('Error al cargar carreras', err);
+      }
+    };
+
+    fetchCarreras();
     fetchPerfil();
     fetchSancionEstado();
     fetchRoles();
@@ -170,11 +195,13 @@ export default function Perfil() {
     setIsGuardandoPerfil(true);
     try {
       const actualizado = await usuariosApi.actualizarPerfil({
-        nombreCompleto: perfilNombre,
-        telefono: perfilTelefono || null
+        nombreCompleto: perfilNombre.trim(),
+        telefono: perfilTelefono?.trim() || null,
+        ci: perfilCi?.trim() || null,
+        carreraId: perfilCarreraId ? Number(perfilCarreraId) : null
       });
       setUsuario(actualizado);
-      toast.success('Información de perfil complementaria actualizada');
+      toast.success('Información de perfil actualizada exitosamente');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al actualizar perfil');
     } finally {
@@ -182,14 +209,30 @@ export default function Perfil() {
     }
   };
 
-  const cancelarReservaUsuario = async (reservaId: number, nombreLab: string) => {
-    if (!window.confirm(`¿Estás seguro de cancelar tu reserva para el ${nombreLab}?`)) return;
+    const handleAbrirCancelar = (reserva: Reserva) => {
+    setReservaACancelar(reserva);
+    setMotivoCancelacion('');
+    setIsCancelarModalOpen(true);
+  };
+
+  const handleConfirmarCancelacion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reservaACancelar) return;
+    if (motivoCancelacion.trim().length < 5) {
+      return toast.error('Ingresa una justificación formal de al menos 5 caracteres');
+    }
+    setIsSubmittingCancelacion(true);
     try {
-      await reservasApi.cancelarReservaPropia(reservaId);
-      toast.success('Reserva cancelada exitosamente');
+      await reservasApi.cancelarReservaPropia(reservaACancelar.id, motivoCancelacion.trim());
+      toast.success('Reserva cancelada exitosamente y horario liberado');
+      setIsCancelarModalOpen(false);
+      setReservaACancelar(null);
+      setMotivoCancelacion('');
       fetchMisReservas();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al cancelar la reserva');
+    } finally {
+      setIsSubmittingCancelacion(false);
     }
   };
 
@@ -215,22 +258,42 @@ export default function Perfil() {
 
       <div className="max-w-5xl mx-auto px-6 py-10">
         
-        {/* Cabecera del Perfil */}
+        {/* Cabecera del Perfil con Datos Reales del Usuario */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 mb-8">
-          <div className="w-20 h-20 bg-tech-blue/10 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <User className="w-10 h-10 text-tech-blue dark:text-blue-400" />
+          <div className="w-20 h-20 bg-tech-blue/10 dark:bg-blue-900/30 text-tech-blue dark:text-blue-400 rounded-2xl flex items-center justify-center flex-shrink-0 font-poppins font-bold text-2xl">
+            {usuario?.nombreCompleto ? usuario.nombreCompleto.charAt(0).toUpperCase() : <User className="w-10 h-10" />}
           </div>
           <div className="text-center sm:text-left flex-1">
             <h1 className="text-2xl sm:text-3xl font-poppins font-bold text-slate-900 dark:text-white">
-              Panel de Usuario
+              {usuario?.nombreCompleto || 'Usuario FCyT'}
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Administra tus reservas activas, códigos de acceso y credenciales de usuario.
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1">
+              {usuario?.correo && (
+                <span className="flex items-center">
+                  <Mail className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                  {usuario.correo}
+                </span>
+              )}
+              {usuario?.telefono && (
+                <span className="flex items-center">
+                  <Phone className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                  {usuario.telefono}
+                </span>
+              )}
             </p>
             <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
-              <span className="inline-block bg-umss-blue text-white px-3 py-1 rounded-full text-xs font-bold">
+              <span className="inline-flex items-center bg-umss-blue text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                <Shield className="w-3 h-3 mr-1" />
                 Rol: {nombreRol}
               </span>
+              <span className="inline-flex items-center bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1 rounded-full text-xs font-semibold border border-slate-200 dark:border-slate-600">
+                Carrera: {usuario?.carrera?.nombre || 'Facultad de Ciencias y Tecnología'}
+              </span>
+              {usuario?.ci && (
+                <span className="inline-flex items-center bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1 rounded-full text-xs font-semibold border border-slate-200 dark:border-slate-600">
+                  CI: {usuario.ci}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -382,28 +445,67 @@ export default function Perfil() {
                         )}
                       </div>
 
-                      {/* Botones de Acción (QR y Cancelación) */}
+                      {/* Botones de Acción (QR, Boleta PDF, Calendarios y Cancelación) */}
                       <div className="flex-shrink-0 flex flex-wrap items-center justify-end gap-2">
                         {esAprobada && (
-                          <button
-                            onClick={() => abrirQr(reserva)}
-                            className="flex items-center justify-center space-x-1.5 bg-tech-blue hover:bg-blue-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-md shadow-blue-500/20 transition-all text-xs"
-                          >
-                            <QrCode className="w-4 h-4" />
-                            <span>Ver Código QR</span>
-                          </button>
+                          <>
+                            <button
+                              onClick={() => abrirQr(reserva)}
+                              className="flex items-center justify-center space-x-1.5 bg-tech-blue hover:bg-blue-600 text-white font-bold py-2 px-3 rounded-xl shadow-sm transition-all text-xs"
+                              title="Ver pase QR de ingreso"
+                            >
+                              <QrCode className="w-4 h-4" />
+                              <span>QR</span>
+                            </button>
+
+                            <button
+                              onClick={() => imprimirBoletaOficial({
+                                ...reserva,
+                                usuario: {
+                                  nombreCompleto: usuario?.nombreCompleto || usuario?.nombre || 'Usuario UMSS',
+                                  correo: usuario?.correo || '',
+                                  ci: usuario?.ci || null
+                                }
+                              })}
+                              className="flex items-center justify-center space-x-1.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-2 px-3 rounded-xl transition-all text-xs"
+                              title="Imprimir o descargar boleta oficial en PDF"
+                            >
+                              <FileText className="w-4 h-4" />
+                              <span>Boleta PDF</span>
+                            </button>
+
+                            <button
+                              onClick={() => window.open(generarEnlaceGoogleCalendar(reserva), '_blank')}
+                              className="flex items-center justify-center space-x-1.5 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2 px-2.5 rounded-xl transition-all text-xs"
+                              title="Agregar a Google Calendar"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>Google Cal</span>
+                            </button>
+
+                            <button
+                              onClick={() => descargarArchivoIcs(reserva)}
+                              className="flex items-center justify-center space-x-1.5 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2 px-2.5 rounded-xl transition-all text-xs"
+                              title="Descargar archivo iCalendar (.ics) para Outlook, iPhone o Apple Calendar"
+                            >
+                              <CalendarPlus className="w-3.5 h-3.5" />
+                              <span>Outlook / iCal</span>
+                            </button>
+                          </>
                         )}
+
                         {reserva.estado === 'Pendiente' && (
                           <div className="flex items-center text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-800">
                             <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
                             <span>Pendiente de aprobación</span>
                           </div>
                         )}
+
                         {(reserva.estado === 'Pendiente' || reserva.estado === 'Aprobada') && (
                           <button
-                            onClick={() => cancelarReservaUsuario(reserva.id, reserva.laboratorio.nombre)}
-                            className="flex items-center justify-center space-x-1.5 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold py-2.5 px-3.5 rounded-xl transition-all text-xs"
-                            title="Cancelar esta reserva"
+                            onClick={() => handleAbrirCancelar(reserva)}
+                            className="flex items-center justify-center space-x-1.5 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold py-2 px-3 rounded-xl transition-all text-xs"
+                            title="Cancelar esta reserva con justificación formal"
                           >
                             <XCircle className="w-4 h-4" />
                             <span>Cancelar</span>
@@ -457,9 +559,21 @@ export default function Perfil() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1 flex items-center">
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                      Cédula de Identidad (CI)
+                    </label>
+                    <input
+                      type="text"
+                      value={perfilCi}
+                      onChange={(e) => setPerfilCi(e.target.value)}
+                      placeholder="Ej. 8472912 CB"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-tech-blue"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5 flex items-center">
                       <Mail className="w-3.5 h-3.5 mr-1 text-slate-400" /> Correo Institucional
                     </label>
                     <p className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
@@ -467,12 +581,21 @@ export default function Perfil() {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">
-                      Carrera Asignada
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                      Carrera Académica
                     </label>
-                    <p className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
-                      {usuario?.carrera?.nombre || 'Informática'}
-                    </p>
+                    <select
+                      value={perfilCarreraId}
+                      onChange={(e) => setPerfilCarreraId(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-tech-blue"
+                    >
+                      <option value="">Facultad de Ciencias y Tecnología</option>
+                      {carreras.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -617,6 +740,72 @@ export default function Perfil() {
         )}
 
       </div>
+
+            {/* Modal de Cancelación con Justificación Obligatoria */}
+      {isCancelarModalOpen && reservaACancelar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto my-auto">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <XCircle className="w-5 h-5 mr-2 text-rose-500" />
+                Cancelar Reserva
+              </h2>
+              <button
+                onClick={() => setIsCancelarModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmarCancelacion} className="mt-4 space-y-4">
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl text-xs space-y-1 border border-slate-200 dark:border-slate-700">
+                <p className="font-bold text-slate-800 dark:text-slate-200">
+                  {reservaACancelar.laboratorio.nombre}
+                </p>
+                <p className="text-slate-500">
+                  {new Date(reservaACancelar.fechaInicio).toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long' })}
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Por normativa académica de la FCyT, es obligatorio registrar la justificación de la cancelación para liberar el laboratorio a otros postulantes.
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Motivo de Cancelación <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={motivoCancelacion}
+                  onChange={(e) => setMotivoCancelacion(e.target.value)}
+                  placeholder="Ej. Cruce imprevisto de horario académico, reprogramación de práctica, etc."
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCancelarModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl"
+                >
+                  Volver
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingCancelacion}
+                  className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50"
+                >
+                  {isSubmittingCancelacion ? 'Cancelando...' : 'Confirmar Cancelación'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal QR Oficial de la Reserva */}
       <ModalQrReserva
