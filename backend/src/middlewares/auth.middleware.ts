@@ -48,7 +48,8 @@ export const verificarToken = async (req: AuthRequest, res: Response, next: Next
 };
 
 export const esAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  if (req.user?.rol !== 'Admin') {
+  const rol = req.user?.rol;
+  if (rol !== 'Admin' && rol !== 'Administrador') {
     res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de Administrador' });
     return;
   }
@@ -56,8 +57,11 @@ export const esAdmin = (req: AuthRequest, res: Response, next: NextFunction): vo
 };
 
 export const permitirRoles = (...rolesPermitidos: string[]) => {
+  const rolesNormalizados = rolesPermitidos.flatMap(r => 
+    r === 'Admin' || r === 'Administrador' ? ['Admin', 'Administrador'] : [r]
+  );
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user || !rolesPermitidos.includes(req.user.rol)) {
+    if (!req.user || !rolesNormalizados.includes(req.user.rol)) {
       res.status(403).json({
         error: `Acceso denegado: Se requiere uno de los siguientes roles autorizados: ${rolesPermitidos.join(', ')}`
       });
@@ -68,10 +72,10 @@ export const permitirRoles = (...rolesPermitidos: string[]) => {
 };
 
 export const esAdminOResponsable = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  if (req.user?.rol !== 'Admin' && req.user?.rol !== 'Responsable de Laboratorio') {
+  const rol = req.user?.rol;
+  if (rol !== 'Admin' && rol !== 'Administrador' && rol !== 'Responsable de Laboratorio') {
     res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de Administrador o Responsable de Laboratorio' });
     return;
   }
   next();
 };
-

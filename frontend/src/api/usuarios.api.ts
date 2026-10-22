@@ -12,8 +12,8 @@ export const usuariosApi = {
     return res.data.data;
   },
 
-  cambiarEstado: async (usuarioId: number, activo: boolean): Promise<Usuario> => {
-    const res = await apiClient.patch(`/api/usuarios/${usuarioId}/estado`, { activo });
+  cambiarEstado: async (usuarioId: number, activo: boolean, motivo?: string): Promise<Usuario> => {
+    const res = await apiClient.patch(`/api/usuarios/${usuarioId}/estado`, { activo, motivo });
     return res.data.data;
   },
 
@@ -22,7 +22,7 @@ export const usuariosApi = {
     return res.data.data;
   },
 
-  actualizarPerfil: async (datos: { nombreCompleto?: string; ci?: string | null; telefono?: string | null }): Promise<Usuario> => {
+  actualizarPerfil: async (datos: { nombreCompleto?: string; ci?: string | null; telefono?: string | null; carreraId?: number | null }): Promise<Usuario> => {
     const res = await apiClient.put('/api/usuarios/perfil', datos);
     return res.data.data;
   },

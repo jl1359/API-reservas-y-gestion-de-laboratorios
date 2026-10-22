@@ -27,6 +27,8 @@ export interface Laboratorio {
   nombre: string;
   capacidad: number;
   ubicacion?: string | null;
+  latitud?: number | null;
+  longitud?: number | null;
   descripcion?: string | null;
   estadoOperativo: 'Activo' | 'Mantenimiento' | 'Inactivo';
   reservaPorComputadora: boolean;
@@ -122,6 +124,7 @@ export interface MetricasLaboratorio {
   laboratorioId: number;
   nombre: string;
   ubicacion: string;
+  carreraNombre?: string | null;
   capacidad: number;
   totalReservas: number;
   reservasAsistidas: number;

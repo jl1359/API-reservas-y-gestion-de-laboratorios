@@ -2,10 +2,9 @@ import { Response } from 'express';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
-// =======================================================
-// MÓDULO DE HORARIOS OPERATIVOS
-// =======================================================
-
+/**
+ * Configurar los horarios operativos de un laboratorio.
+ */
 export const configurarHorarios = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
@@ -48,10 +47,9 @@ export const configurarHorarios = async (req: AuthRequest, res: Response): Promi
   }
 };
 
-// =======================================================
-// MÓDULO DE BÚSQUEDA Y CALENDARIO EN TIEMPO REAL
-// =======================================================
-
+/**
+ * Obtener calendario, feriados, mantenimientos y reservas en tiempo real de un laboratorio.
+ */
 export const verCalendarioLaboratorio = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { id } = req.params;

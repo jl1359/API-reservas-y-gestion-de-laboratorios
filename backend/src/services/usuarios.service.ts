@@ -70,7 +70,7 @@ export const cambiarRolUsuarioService = async (
     throw new Error('Usuario no encontrado');
   }
 
-  if (usuario.rol.nombre === 'Admin') {
+  if (usuario.rol.nombre === 'Admin' || usuario.rol.nombre === 'Administrador') {
     throw new Error('No está permitido modificar el rol de una cuenta de Administrador institucional');
   }
 
@@ -120,7 +120,8 @@ export const cambiarRolUsuarioService = async (
 export const cambiarEstadoUsuarioService = async (
   adminId: number,
   usuarioId: number,
-  activo: boolean
+  activo: boolean,
+  motivo?: string
 ) => {
   if (adminId === usuarioId) {
     throw new Error('No puedes suspender tu propia cuenta de administrador');
@@ -135,7 +136,7 @@ export const cambiarEstadoUsuarioService = async (
     throw new Error('Usuario no encontrado');
   }
 
-  if (usuario.rol.nombre === 'Admin') {
+  if (usuario.rol.nombre === 'Admin' || usuario.rol.nombre === 'Administrador') {
     throw new Error('No está permitido suspender una cuenta de Administrador institucional');
   }
 
@@ -149,19 +150,29 @@ export const cambiarEstadoUsuarioService = async (
   });
 
   const estadoStr = activo ? 'Habilitada' : 'Suspendida';
+  const motivoTexto = motivo && typeof motivo === 'string' && motivo.trim() !== '' ? ` Motivo: ${motivo.trim()}` : '';
   await prisma.auditoria.create({
     data: {
       usuarioId: adminId,
-      accion: `Gestión de Cuentas: Cuenta de '${usuario.nombreCompleto}' (${usuario.correo}) marcada como [${estadoStr}].`
+      accion: `Gestión de Cuentas: Cuenta de '${usuario.nombreCompleto}' (${usuario.correo}) marcada como [${estadoStr}].${motivoTexto}`
     }
   }).catch(() => null);
+
+  if (!activo) {
+    await prisma.notificacion.create({
+      data: {
+        usuarioId,
+        mensaje: `Aviso Institucional: Tu cuenta ha sido suspendida temporalmente por la administración.${motivoTexto}`
+      }
+    }).catch(() => null);
+  }
 
   return actualizado;
 };
 
 export const actualizarPerfilService = async (
   usuarioId: number,
-  datos: { nombreCompleto?: string; ci?: string | null; telefono?: string | null }
+  datos: { nombreCompleto?: string; ci?: string | null; telefono?: string | null; carreraId?: number | null }
 ) => {
   const usuario = await prisma.usuario.findUnique({
     where: { id: usuarioId },
@@ -181,6 +192,9 @@ export const actualizarPerfilService = async (
   }
   if (datos.telefono !== undefined) {
     dataToUpdate.telefono = datos.telefono ? datos.telefono.trim() : null;
+  }
+  if (datos.carreraId !== undefined) {
+    dataToUpdate.carreraId = datos.carreraId ? Number(datos.carreraId) : null;
   }
 
   return prisma.usuario.update({

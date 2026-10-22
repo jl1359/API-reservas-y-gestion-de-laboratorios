@@ -9,8 +9,8 @@ export default function Navbar() {
   const navigate = useNavigate();
   const isAuthenticated = !!localStorage.getItem('token');
   const [userRole, setUserRole] = useState<string>(() => localStorage.getItem('userRole') || '');
-  const puedeEscanear = ['Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole);
-  const puedeVerReportes = ['Admin', 'Responsable de Laboratorio'].includes(userRole);
+  const puedeEscanear = ['Admin', 'Administrador', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole);
+  const puedeVerReportes = ['Admin', 'Administrador', 'Responsable de Laboratorio'].includes(userRole);
   
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -176,9 +176,9 @@ export default function Navbar() {
               </Link>
             )}
 
-            {userRole === 'Admin' && (
+            {(userRole === 'Admin' || userRole === 'Administrador') && (
               <Link to="/admin" className="text-tech-blue dark:text-blue-400 font-bold flex items-center">
-                <Shield className="w-4 h-4 mr-1" /> Panel Admin
+                <Shield className="w-4 h-4 mr-1" /> Panel Administrador
               </Link>
             )}
           </div>
@@ -315,9 +315,9 @@ export default function Navbar() {
               <span>Reportes de Asistencias</span>
             </Link>
           )}
-          {userRole === 'Admin' && (
+          {(userRole === 'Admin' || userRole === 'Administrador') && (
             <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl">
-              Panel Admin
+              Panel Administrador
             </Link>
           )}
           <button onClick={handleLogout} className="w-full text-left mt-4 px-4 py-3 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold">

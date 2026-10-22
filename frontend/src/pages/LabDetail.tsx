@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   CalendarDays,
   ListFilter,
-  Wrench
+  Wrench,
+  Navigation
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import ReservaComputadoraModal from '../components/ReservaComputadoraModal';
@@ -60,6 +61,8 @@ interface Laboratorio {
   nombre: string;
   capacidad: number;
   ubicacion: string | null;
+  latitud?: number | null;
+  longitud?: number | null;
   imagenUrl: string | null;
   reservaPorComputadora: boolean;
   equipos: LabEquipo[];
@@ -455,6 +458,60 @@ export default function LabDetail() {
                 </ul>
               ) : (
                 <p className="text-slate-500 dark:text-slate-400 text-xs">No hay equipos registrados para este laboratorio.</p>
+              )}
+            </div>
+
+            
+            {/* Ubicación y Mapa Interactivo del Campus FCyT (HU-31) */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                  <MapPin className="w-5 h-5 mr-2 text-rose-500" />
+                  Ubicación en el Campus
+                </h2>
+                {lab.latitud && lab.longitud && (
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
+                    {Number(lab.latitud).toFixed(4)}, {Number(lab.longitud).toFixed(4)}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {lab.ubicacion || 'Campus Central de la Facultad de Ciencias y Tecnología (FCyT) - UMSS'}
+              </p>
+
+              {lab.latitud && lab.longitud ? (
+                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner relative h-48 bg-slate-100 dark:bg-slate-900">
+                  <iframe
+                    title="Mapa de Ubicación Campus FCyT"
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    scrolling="no"
+                    marginHeight={0}
+                    marginWidth={0}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(lab.longitud) - 0.003}%2C${Number(lab.latitud) - 0.002}%2C${Number(lab.longitud) + 0.003}%2C${Number(lab.latitud) + 0.002}&layer=mapnik&marker=${lab.latitud}%2C${lab.longitud}`}
+                    className="w-full h-full"
+                  />
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-center text-xs text-slate-400">
+                  Coordenadas geográficas no configuradas para este espacio.
+                </div>
+              )}
+
+              {lab.latitud && lab.longitud && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `https://www.google.com/maps/dir/?api=1&destination=${lab.latitud},${lab.longitud}&travelmode=walking`;
+                    window.open(url, '_blank');
+                  }}
+                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2 text-xs transition-all hover:scale-[1.01]"
+                >
+                  <Navigation className="w-4 h-4" />
+                  <span>Cómo llegar (Navegación a pie)</span>
+                </button>
               )}
             </div>
 

@@ -8,9 +8,6 @@ import { verificarToken } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// =========================================================================
-// BANDEJA DE NOTIFICACIONES Y ALERTAS
-// =========================================================================
 // Consultar mis notificaciones y el número de no leídas
 router.get('/', verificarToken, listarMisNotificaciones);
 

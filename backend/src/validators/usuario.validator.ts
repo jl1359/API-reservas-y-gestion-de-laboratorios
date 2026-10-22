@@ -6,7 +6,8 @@ export const cambiarRolSchema = z.object({
 });
 
 export const cambiarEstadoUsuarioSchema = z.object({
-  activo: z.boolean()
+  activo: z.boolean(),
+  motivo: z.string().optional()
 });
 
 export const registroSchema = z.object({
@@ -21,5 +22,6 @@ export const registroSchema = z.object({
 export const actualizarPerfilSchema = z.object({
   nombreCompleto: z.string().min(3, 'El nombre debe tener al menos 3 caracteres').optional(),
   ci: z.string().min(5, 'El CI debe tener al menos 5 caracteres').max(20, 'El CI no debe exceder 20 caracteres').optional().nullable(),
-  telefono: z.string().regex(/^[0-9+ -]{7,20}$/, 'Formato de teléfono inválido').optional().nullable()
+  telefono: z.string().regex(/^[0-9+ -]{7,20}$/, 'Formato de teléfono inválido').optional().nullable(),
+  carreraId: z.coerce.number().optional().nullable()
 });

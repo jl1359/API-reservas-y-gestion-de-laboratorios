@@ -9,7 +9,9 @@ import {
   Box,
   X,
   UploadCloud,
-  CheckCircle2
+  CheckCircle2,
+  MapPin,
+  Check
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { laboratoriosApi } from '../../api/laboratorios.api';
@@ -24,6 +26,8 @@ export interface LaboratorioAdminItem {
   nombre: string;
   capacidad: number;
   ubicacion: string | null;
+  latitud?: number | null;
+  longitud?: number | null;
   estadoOperativo: string;
   reservaPorComputadora: boolean;
   carreraId: number | null;
@@ -110,13 +114,21 @@ const comprimirYConvertirABase64 = (file: File): Promise<string> => {
   });
 };
 
+
+const FCYT_BUILDINGS = [
+  { nombre: 'Edificio Central / Sistemas', lat: -17.393845, lng: -66.146210 },
+  { nombre: 'Bloque de Informática', lat: -17.394010, lng: -66.146420 },
+  { nombre: 'Edificio MEMI', lat: -17.393750, lng: -66.146150 },
+  { nombre: 'Bloque de Química y Alimentos', lat: -17.394230, lng: -66.145810 },
+  { nombre: 'Bloque de Física y Nuevas Aulas', lat: -17.393520, lng: -66.146820 }
+];
+
 export default function TabLaboratorios({
   laboratorios,
   carreras,
   isLoading,
   onRefresh
 }: TabLaboratoriosProps) {
-  // Modal Crear / Editar
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'crear' | 'editar'>('crear');
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -124,13 +136,14 @@ export default function TabLaboratorios({
     nombre: '',
     capacidad: '',
     ubicacion: '',
+    latitud: '',
+    longitud: '',
     carreraId: '',
     reservaPorComputadora: false,
     estadoOperativo: 'Activo',
     imagenUrl: ''
   });
 
-  // Modal Equipamiento
   const [isEquipModalOpen, setIsEquipModalOpen] = useState(false);
   const [selectedLabId, setSelectedLabId] = useState<number | null>(null);
   const [selectedLabName, setSelectedLabName] = useState('');
@@ -138,12 +151,15 @@ export default function TabLaboratorios({
   const [currentLabEquipos, setCurrentLabEquipos] = useState<LabEquipo[]>([]);
   const [equipForm, setEquipForm] = useState({ equipamientoId: '', cantidad: '1' });
   const [isEquipLoading, setIsEquipLoading] = useState(false);
+  const [mostrarCrearEquip, setMostrarCrearEquip] = useState(false);
+  const [nuevoEquipNombre, setNuevoEquipNombre] = useState('');
+  const [guardandoEquipBase, setGuardandoEquipBase] = useState(false);
+  const [editingEquipId, setEditingEquipId] = useState<number | null>(null);
+  const [editingCantidad, setEditingCantidad] = useState<string>('1');
 
-  // Modal Horarios
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [scheduleForm, setScheduleForm] = useState(defaultSchedule);
 
-  // Estado y gestores para subida de imagen desde dispositivo
   const [modoCargaImagen, setModoCargaImagen] = useState<'archivo' | 'url'>('archivo');
   const [isDragging, setIsDragging] = useState(false);
   const [isProcesandoImagen, setIsProcesandoImagen] = useState(false);
@@ -160,6 +176,29 @@ export default function TabLaboratorios({
     } finally {
       setIsProcesandoImagen(false);
     }
+  };
+
+  
+  const obtenerUbicacionGpsActual = () => {
+    if (!navigator.geolocation) {
+      toast.error('Tu navegador no soporta geolocalización GPS');
+      return;
+    }
+    toast.loading('Detectando coordenadas GPS del campus...', { id: 'gps-detect' });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData(prev => ({
+          ...prev,
+          latitud: pos.coords.latitude.toFixed(6),
+          longitud: pos.coords.longitude.toFixed(6)
+        }));
+        toast.success('Coordenadas capturadas exitosamente', { id: 'gps-detect' });
+      },
+      (err) => {
+        toast.error('No se pudo obtener la ubicación GPS: ' + err.message, { id: 'gps-detect' });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,6 +249,8 @@ export default function TabLaboratorios({
       nombre: '',
       capacidad: '',
       ubicacion: '',
+      latitud: '',
+      longitud: '',
       carreraId: '',
       reservaPorComputadora: false,
       estadoOperativo: 'Activo',
@@ -227,6 +268,8 @@ export default function TabLaboratorios({
       nombre: lab.nombre,
       capacidad: lab.capacidad.toString(),
       ubicacion: lab.ubicacion || '',
+      latitud: (lab as any).latitud ? String((lab as any).latitud) : '',
+      longitud: (lab as any).longitud ? String((lab as any).longitud) : '',
       carreraId: lab.carreraId ? lab.carreraId.toString() : '',
       reservaPorComputadora: lab.reservaPorComputadora,
       estadoOperativo: lab.estadoOperativo || 'Activo',
@@ -247,10 +290,13 @@ export default function TabLaboratorios({
         nombre: formData.nombre.trim(),
         capacidad: capNum,
         ubicacion: formData.ubicacion.trim(),
+        latitud: formData.latitud ? Number(formData.latitud) : null,
+        longitud: formData.longitud ? Number(formData.longitud) : null,
         carreraId: formData.carreraId ? Number(formData.carreraId) : null,
         reservaPorComputadora: formData.reservaPorComputadora,
         estadoOperativo: formData.estadoOperativo,
-        imagenUrl: formData.imagenUrl.trim() ? formData.imagenUrl.trim() : null
+        imagenUrl: formData.imagenUrl.trim() ? formData.imagenUrl.trim() : null,
+        horarios: modalMode === 'crear' ? scheduleForm : undefined
       };
 
       if (modalMode === 'crear') {
@@ -288,6 +334,90 @@ export default function TabLaboratorios({
     await loadEquipData(lab.id);
   };
 
+  const handleCrearEquipamientoBase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nuevoEquipNombre.trim()) {
+      return toast.error('Ingresa el nombre del equipamiento');
+    }
+    setGuardandoEquipBase(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:3000/api/equipamientos',
+        {
+          nombre: nuevoEquipNombre.trim(),
+          tipo: 'General'
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`"${nuevoEquipNombre.trim()}" registrado en el catálogo`);
+      setNuevoEquipNombre('');
+      setMostrarCrearEquip(false);
+      const resBase = await axios.get('http://localhost:3000/api/equipamientos', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const dataBase = Array.isArray(resBase.data) ? resBase.data : (resBase.data?.data || []);
+      setEquiposBase(dataBase);
+      if (res.data?.data?.id || res.data?.id) {
+        const nuevoId = res.data?.data?.id || res.data?.id;
+        setEquipForm(prev => ({ ...prev, equipamientoId: String(nuevoId) }));
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || error.response?.data?.message || 'Error al registrar equipamiento');
+    } finally {
+      setGuardandoEquipBase(false);
+    }
+  };
+
+  const handleStartEditEquip = (eq: LabEquipo) => {
+    setEditingEquipId(eq.equipamiento.id);
+    setEditingCantidad(String(eq.cantidad));
+  };
+
+  const handleCancelEditEquip = () => {
+    setEditingEquipId(null);
+    setEditingCantidad('1');
+  };
+
+  const handleGuardarEditEquip = async (equipId: number) => {
+    if (!selectedLabId) return;
+    const cantNum = Number(editingCantidad);
+    if (isNaN(cantNum) || cantNum <= 0) {
+      return toast.error('La cantidad debe ser mayor a 0');
+    }
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://localhost:3000/api/equipamientos/laboratorio/${selectedLabId}/${equipId}`,
+        { cantidad: cantNum },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Cantidad actualizada');
+      setEditingEquipId(null);
+      await loadEquipData(selectedLabId);
+      onRefresh();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al actualizar cantidad');
+    }
+  };
+
+  const handleEliminarEquip = async (equipId: number, nombreEquip: string) => {
+    if (!selectedLabId) return;
+    if (!window.confirm(`¿Confirmas retirar "${nombreEquip}" de este laboratorio?`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:3000/api/equipamientos/laboratorio/${selectedLabId}/${equipId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`"${nombreEquip}" retirado del laboratorio`);
+      await loadEquipData(selectedLabId);
+      onRefresh();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al retirar equipamiento');
+    }
+  };
+
   const loadEquipData = async (labId: number) => {
     try {
       setIsEquipLoading(true);
@@ -295,11 +425,12 @@ export default function TabLaboratorios({
       const resBase = await axios.get('http://localhost:3000/api/equipamientos', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setEquiposBase(resBase.data);
+      const dataBase = Array.isArray(resBase.data) ? resBase.data : (resBase.data?.data || []);
+      setEquiposBase(dataBase);
       const resLab = await axios.get(`http://localhost:3000/api/laboratorios/${labId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCurrentLabEquipos(resLab.data.data.equipos || []);
+      setCurrentLabEquipos(resLab.data?.data?.equipos || resLab.data?.equipos || []);
     } catch (error) {
       toast.error('Error al cargar equipamiento');
     } finally {
@@ -319,9 +450,10 @@ export default function TabLaboratorios({
         },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      toast.success('Equipamiento vinculado');
+      toast.success('Equipamiento asignado al laboratorio');
       setEquipForm({ equipamientoId: '', cantidad: '1' });
       await loadEquipData(selectedLabId);
+      onRefresh();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al vincular equipamiento');
     }
@@ -567,6 +699,69 @@ export default function TabLaboratorios({
                   />
                 </div>
 
+                {/* Geolocalización GPS y Campus FCyT (HU-31) */}
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center">
+                      <MapPin className="w-4 h-4 mr-1.5 text-rose-500" />
+                      Geolocalización GPS (Campus FCyT)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={obtenerUbicacionGpsActual}
+                      className="text-xs px-2.5 py-1 bg-blue-50 dark:bg-blue-950/40 text-tech-blue dark:text-blue-400 hover:bg-blue-100 rounded-lg font-semibold transition-colors flex items-center"
+                    >
+                      Detectar GPS actual
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+                      Punto de referencia rápido (Edificios FCyT)
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const edificio = FCYT_BUILDINGS.find(b => b.nombre === e.target.value);
+                        if (edificio) {
+                          setFormData(prev => ({ ...prev, latitud: String(edificio.lat), longitud: String(edificio.lng) }));
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none"
+                    >
+                      <option value="">Seleccionar edificio del campus...</option>
+                      {FCYT_BUILDINGS.map(b => (
+                        <option key={b.nombre} value={b.nombre}>{b.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Latitud (WGS 84)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="-17.393845"
+                        value={formData.latitud}
+                        onChange={(e) => setFormData({ ...formData, latitud: e.target.value })}
+                        className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">Longitud (WGS 84)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="-66.146210"
+                        value={formData.longitud}
+                        onChange={(e) => setFormData({ ...formData, longitud: e.target.value })}
+                        className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Estado Operativo
@@ -707,6 +902,92 @@ export default function TabLaboratorios({
                   />
                 </div>
 
+                {/* Horario Operativo Semanal Inicial (Al crear nuevo laboratorio) */}
+                {modalMode === 'crear' && (
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center">
+                        <Clock className="w-4 h-4 mr-1.5 text-tech-blue" />
+                        Horario Operativo Semanal
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScheduleForm(scheduleForm.map(s => ({
+                            ...s,
+                            activo: s.dia !== 'Domingo',
+                            horaApertura: '06:45',
+                            horaCierre: s.dia === 'Sábado' ? '13:00' : '21:45'
+                          })));
+                          toast.success('Horario oficial FCyT cargado');
+                        }}
+                        className="text-xs px-2.5 py-1 bg-blue-50 dark:bg-blue-950/40 text-tech-blue dark:text-blue-400 hover:bg-blue-100 rounded-lg font-semibold transition-colors"
+                      >
+                        Aplicar Estándar FCyT (06:45 - 21:45)
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Define los días y franjas horarias de funcionamiento para que el laboratorio quede listo y disponible para reservas de inmediato.
+                    </p>
+
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {scheduleForm.map((diaInfo, idx) => (
+                        <div
+                          key={diaInfo.dia}
+                          className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-colors ${
+                            diaInfo.activo
+                              ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                              : 'bg-slate-100/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-60'
+                          }`}
+                        >
+                          <label className="flex items-center space-x-2 font-bold text-slate-800 dark:text-slate-200 cursor-pointer min-w-[90px]">
+                            <input
+                              type="checkbox"
+                              checked={diaInfo.activo}
+                              onChange={(e) => {
+                                const nuevo = [...scheduleForm];
+                                nuevo[idx].activo = e.target.checked;
+                                setScheduleForm(nuevo);
+                              }}
+                              className="rounded text-tech-blue"
+                            />
+                            <span>{diaInfo.dia}</span>
+                          </label>
+
+                          {diaInfo.activo ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="time"
+                                value={diaInfo.horaApertura}
+                                onChange={(e) => {
+                                  const nuevo = [...scheduleForm];
+                                  nuevo[idx].horaApertura = e.target.value;
+                                  setScheduleForm(nuevo);
+                                }}
+                                className="px-2 py-1 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white"
+                              />
+                              <span className="text-slate-400">a</span>
+                              <input
+                                type="time"
+                                value={diaInfo.horaCierre}
+                                onChange={(e) => {
+                                  const nuevo = [...scheduleForm];
+                                  nuevo[idx].horaCierre = e.target.value;
+                                  setScheduleForm(nuevo);
+                                }}
+                                className="px-2 py-1 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">Cerrado</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                   <input
                     type="checkbox"
@@ -768,11 +1049,45 @@ export default function TabLaboratorios({
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <h3 className="font-bold text-slate-800 dark:text-white mb-4">Añadir Equipo</h3>
+                    
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold text-slate-800 dark:text-white">Asignar Equipo al Laboratorio</h3>
+                      <button
+                        type="button"
+                        onClick={() => setMostrarCrearEquip(!mostrarCrearEquip)}
+                        className="text-xs font-semibold px-2.5 py-1 bg-tech-blue/10 hover:bg-tech-blue/20 text-tech-blue rounded-lg transition-colors"
+                      >
+                        {mostrarCrearEquip ? 'Cerrar' : '+ Registrar nuevo equipo'}
+                      </button>
+                    </div>
+
+                    {mostrarCrearEquip && (
+                      <form onSubmit={handleCrearEquipamientoBase} className="mb-4 p-3 bg-blue-50/60 dark:bg-slate-900/80 rounded-xl border border-blue-200 dark:border-blue-900/40 space-y-2">
+                        <p className="text-xs font-bold text-slate-800 dark:text-white">Nuevo nombre de equipamiento</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Nombre del equipamiento (ej. Microscopio, Impresora 3D)"
+                            value={nuevoEquipNombre}
+                            onChange={(e) => setNuevoEquipNombre(e.target.value)}
+                            className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white outline-none"
+                            autoFocus
+                          />
+                          <button
+                            type="submit"
+                            disabled={guardandoEquipBase}
+                            className="px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {guardandoEquipBase ? 'Guardando...' : 'Guardar'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
                     <form onSubmit={handleAddEquip} className="space-y-4">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                          Catálogo
+                          Equipamiento
                         </label>
                         <select
                           required
@@ -783,7 +1098,7 @@ export default function TabLaboratorios({
                           <option value="" disabled>Seleccione un equipo...</option>
                           {equiposBase.map((eq) => (
                             <option key={eq.id} value={eq.id}>
-                              {eq.nombre} ({eq.tipo})
+                              {eq.nombre}
                             </option>
                           ))}
                         </select>
@@ -805,31 +1120,87 @@ export default function TabLaboratorios({
                         type="submit"
                         className="w-full bg-tech-blue hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl transition-colors"
                       >
-                        Vincular Equipo
+                        Vincular al Laboratorio
                       </button>
                     </form>
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-800 dark:text-white mb-4">Inventario Actual</h3>
+                    <h3 className="font-bold text-slate-800 dark:text-white mb-4">
+                      Inventario Actual ({currentLabEquipos.length})
+                    </h3>
                     {currentLabEquipos.length > 0 ? (
                       <ul className="space-y-3">
-                        {currentLabEquipos.map((eq, i) => (
-                          <li
-                            key={i}
-                            className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700"
-                          >
-                            <div>
-                              <p className="font-bold text-sm text-slate-900 dark:text-white">{eq.equipamiento.nombre}</p>
-                              <p className="text-xs text-slate-500">{eq.equipamiento.tipo}</p>
-                            </div>
-                            <span className="bg-umss-blue text-white px-2 py-1 rounded-lg text-xs font-bold">
-                              x{eq.cantidad}
-                            </span>
-                          </li>
-                        ))}
+                        {currentLabEquipos.map((eq) => {
+                          const isEditing = editingEquipId === eq.equipamiento.id;
+                          return (
+                            <li
+                              key={eq.equipamiento.id}
+                              className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700 gap-2"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                                  {eq.equipamiento.nombre}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center space-x-1.5">
+                                {isEditing ? (
+                                  <div className="flex items-center space-x-1.5">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={editingCantidad}
+                                      onChange={(e) => setEditingCantidad(e.target.value)}
+                                      className="w-16 px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white font-bold text-center outline-none focus:ring-2 focus:ring-tech-blue"
+                                      autoFocus
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleGuardarEditEquip(eq.equipamiento.id)}
+                                      title="Guardar cantidad"
+                                      className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelEditEquip}
+                                      title="Cancelar edición"
+                                      className="p-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <span className="bg-umss-blue text-white px-2.5 py-1 rounded-lg text-xs font-bold">
+                                      x{eq.cantidad}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartEditEquip(eq)}
+                                      title="Modificar cantidad"
+                                      className="p-1.5 text-slate-400 hover:text-tech-blue dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEliminarEquip(eq.equipamiento.id, eq.equipamiento.nombre)}
+                                      title="Retirar equipamiento del laboratorio"
+                                      className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     ) : (
-                      <p className="text-sm text-slate-500 italic">No hay equipos asignados.</p>
+                      <p className="text-sm text-slate-500 italic">No hay equipos asignados a este laboratorio.</p>
                     )}
                   </div>
                 </div>

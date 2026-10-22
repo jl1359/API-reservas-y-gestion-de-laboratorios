@@ -2,15 +2,17 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
-// [ESTUDIANTE] Solicitar un nuevo rol
+/**
+ * Solicitar elevación de rol académico por parte del usuario.
+ */
 export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const usuarioId = req.user?.id;
     const { rolSolicitado, motivo } = req.body;
 
-    if (rolSolicitado === 'Admin') {
+    if (rolSolicitado === 'Admin' || rolSolicitado === 'Administrador') {
       return res.status(403).json({ error: 'Brecha de seguridad detectada: No se puede solicitar permisos de Administrador' });
-    } // Ej: "Docente" o "Auxiliar"
+    }
 
     if (!usuarioId) {
       return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -51,7 +53,9 @@ export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any
   }
 };
 
-// [ADMIN] Ver todas las solicitudes pendientes
+/**
+ * Listar solicitudes de rol con estado pendiente para revisión de administradores.
+ */
 export const listarSolicitudes = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const solicitudes = await prisma.solicitudRol.findMany({
@@ -61,6 +65,7 @@ export const listarSolicitudes = async (req: AuthRequest, res: Response): Promis
           select: { nombreCompleto: true, correo: true, rol: true },
         },
       },
+      orderBy: { id: 'desc' }
     });
 
     return res.json(solicitudes);
@@ -70,11 +75,13 @@ export const listarSolicitudes = async (req: AuthRequest, res: Response): Promis
   }
 };
 
-// [ADMIN] Aprobar o Rechazar solicitud
+/**
+ * Aprobar o rechazar formalmente una solicitud de rol con justificación.
+ */
 export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { id } = req.params; // ID de la solicitud
-    const { accion } = req.body; // "Aprobar" o "Rechazar"
+    const { accion, motivoRechazo } = req.body; // "Aprobar" o "Rechazar"
 
     const solicitud = await prisma.solicitudRol.findUnique({ where: { id: Number(id) } });
     
@@ -83,11 +90,32 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
     }
 
     if (accion === 'Rechazar') {
+      const motivo = motivoRechazo && typeof motivoRechazo === 'string' && motivoRechazo.trim() !== ''
+        ? motivoRechazo.trim()
+        : 'La solicitud no cumple con los antecedentes y requisitos académicos necesarios';
+
       await prisma.solicitudRol.update({
         where: { id: Number(id) },
         data: { estado: 'Rechazada' },
       });
-      return res.json({ mensaje: 'Solicitud rechazada correctamente' });
+
+      // Notificación formal al usuario
+      await prisma.notificacion.create({
+        data: {
+          usuarioId: solicitud.usuarioId,
+          mensaje: `Tu solicitud de cambio al rol de '${solicitud.rolSolicitado}' ha sido rechazada por la administración. Motivo: ${motivo}`
+        }
+      }).catch(() => null);
+
+      // Bitácora inmutable de auditoría
+      await prisma.auditoria.create({
+        data: {
+          usuarioId: req.user?.id || null,
+          accion: `Rechazo de Solicitud de Rol: Rol '${solicitud.rolSolicitado}' para usuario #${solicitud.usuarioId}. Motivo: ${motivo}`
+        }
+      }).catch(() => null);
+
+      return res.json({ mensaje: 'Solicitud rechazada formalmente y notificada al usuario' });
     }
 
     if (accion === 'Aprobar') {
@@ -109,6 +137,22 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
         data: { estado: 'Aprobada' },
       });
 
+      // Notificación al usuario
+      await prisma.notificacion.create({
+        data: {
+          usuarioId: solicitud.usuarioId,
+          mensaje: `Tu solicitud ha sido aprobada. Ahora cuentas con el rol de '${solicitud.rolSolicitado}' en la plataforma.`
+        }
+      }).catch(() => null);
+
+      // Bitácora de auditoría
+      await prisma.auditoria.create({
+        data: {
+          usuarioId: req.user?.id || null,
+          accion: `Aprobación de Rol: Usuario #${solicitud.usuarioId} ascendido exitosamente al rol '${solicitud.rolSolicitado}'.`
+        }
+      }).catch(() => null);
+
       return res.json({ mensaje: 'Rol actualizado y solicitud aprobada' });
     }
 
@@ -119,18 +163,17 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
   }
 };
 
-
 export const listarRoles = async (req: Request, res: Response): Promise<any> => {
   try {
     const { todos, paraAdmin } = req.query;
     const where: any = {};
 
     if (todos === 'true' || paraAdmin === 'true') {
-      // Para administración de usuarios en el Panel Admin, se incluyen los roles asignables
-      where.nombre = { not: 'Admin' };
+      // Para administración de usuarios en el Panel Admin, se excluyen variantes de Administrador
+      where.nombre = { notIn: ['Admin', 'Administrador'] };
     } else {
       // Para solicitudes de rol desde el perfil de estudiante
-      where.nombre = { notIn: ['Admin', 'Estudiante'] };
+      where.nombre = { notIn: ['Admin', 'Administrador', 'Estudiante'] };
     }
 
     const roles = await prisma.rol.findMany({
