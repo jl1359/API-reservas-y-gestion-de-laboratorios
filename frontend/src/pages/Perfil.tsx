@@ -538,9 +538,9 @@ export default function Perfil() {
               
               {misReservas.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 dark:text-slate-400">
-                  <p className="text-sm font-medium">No tienes solicitudes de reserva registradas actualmente.</p>
+                  <p className="text-sm font-medium">No tienes reservas registradas actualmente.</p>
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                    Puedes solicitar una reserva desde la página de detalle de cualquier laboratorio.
+                    Puedes realizar una reserva desde la página de detalle de cualquier laboratorio.
                   </p>
                 </div>
               ) : (

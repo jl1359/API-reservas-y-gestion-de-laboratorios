@@ -21,7 +21,7 @@ router.get('/mi-estado', verificarToken, consultarMiEstadoSancion);
 router.get('/mis-sanciones', verificarToken, listarMisSanciones);
 
 // =========================================================================
-// RUTAS DE GESTIÓN ADMINISTRATIVA (HU-30 y HU-33)
+// RUTAS DE GESTIÓN ADMINISTRATIVA Y DISCIPLINA
 // =========================================================================
 // Listar todas las sanciones institucionales
 router.get(
@@ -39,7 +39,7 @@ router.post(
   ejecutarProcesamientoInasistencias
 );
 
-// Perdonar o levantar una sanción manualmente (HU-33)
+// Perdonar o levantar una sanción manualmente
 router.put(
   '/:id/perdonar',
   verificarToken,
@@ -47,7 +47,7 @@ router.put(
   perdonarSancion
 );
 
-// Aplicar sanción disciplinaria manual (HU-33)
+// Aplicar sanción disciplinaria manual
 router.post(
   '/manual',
   verificarToken,

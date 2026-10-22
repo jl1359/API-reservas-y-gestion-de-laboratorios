@@ -16,6 +16,7 @@ export default function Login() {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [nombreCompleto, setNombreCompleto] = useState('');
+  const [ci, setCi] = useState('');
   const [telefono, setTelefono] = useState('');
   const [carreraId, setCarreraId] = useState('');
   const [carreras, setCarreras] = useState<Carrera[]>([]);
@@ -92,12 +93,28 @@ export default function Login() {
           setIsLoading(false);
           return;
         }
+        if (!ci.trim()) {
+          toast.error('La Cédula de Identidad (CI) es obligatoria');
+          setIsLoading(false);
+          return;
+        }
+        if (!telefono.trim() || telefono.trim().length < 7) {
+          toast.error('El número de celular o teléfono es obligatorio (mínimo 7 dígitos)');
+          setIsLoading(false);
+          return;
+        }
         await axios.post('http://localhost:3000/api/auth/register', {
-          nombreCompleto, correo, password, telefono, carreraId: Number(carreraId)
+          nombreCompleto,
+          correo,
+          password,
+          ci: ci.trim(),
+          telefono: telefono.trim(),
+          carreraId: Number(carreraId)
         });
         toast.success('Cuenta creada exitosamente. Revisa tu correo.');
         setIsLogin(true); 
         setPassword('');
+        setCi('');
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Ocurrió un error en el servidor');
@@ -211,9 +228,30 @@ export default function Login() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Teléfono / Celular</label>
-                  <input type="tel" required value={telefono} onChange={(e) => setTelefono(e.target.value)}
-                    className="mt-1 block w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm text-slate-900 dark:text-white focus:ring-tech-blue focus:border-tech-blue" />
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Cédula de Identidad (CI) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. 1234567 o 1234567-LP"
+                    value={ci}
+                    onChange={(e) => setCi(e.target.value)}
+                    className="mt-1 block w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm text-slate-900 dark:text-white focus:ring-tech-blue focus:border-tech-blue"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Teléfono / Celular <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Ej. 71234567"
+                    value={telefono}
+                    onChange={(e) => setTelefono(e.target.value)}
+                    className="mt-1 block w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm text-slate-900 dark:text-white focus:ring-tech-blue focus:border-tech-blue"
+                  />
                 </div>
               </>
             )}
@@ -281,8 +319,8 @@ export default function Login() {
         </div>
             {/* Modal Olvidé Contraseña */}
       {isForgotModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto my-auto">
             <button
               onClick={() => setIsForgotModalOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition"

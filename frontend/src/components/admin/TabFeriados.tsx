@@ -73,7 +73,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
             Calendario de Feriados y Días Bloqueados
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Las fechas aquí registradas inhabilitan automáticamente cualquier solicitud de reserva en la facultad.
+            Las fechas aquí registradas inhabilitan automáticamente las reservas en la facultad durante esa jornada.
           </p>
         </div>
         <button
@@ -160,8 +160,8 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
 
       {/* Modal Feriado */}
       {isFeriadoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl max-h-[92vh] overflow-y-auto my-auto animate-fadeIn">
             <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
               <h3 className="font-poppins font-bold text-slate-900 dark:text-white flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-tech-blue" />
@@ -199,7 +199,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
                 />
               </div>
               <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-800 dark:text-amber-300">
-                Al guardar, las solicitudes que coincidan con este día serán rechazadas por el motor de concurrencia.
+                Al guardar, los intentos de reserva que coincidan con este día serán bloqueados automáticamente.
               </div>
               <div className="flex justify-end space-x-3 pt-2">
                 <button

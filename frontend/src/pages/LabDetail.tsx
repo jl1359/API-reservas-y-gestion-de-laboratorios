@@ -421,7 +421,7 @@ export default function LabDetail() {
                 onClick={handleAbrirReservaGeneral}
                 className="w-full md:w-auto bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all shadow-blue-500/30 cursor-pointer"
               >
-                Solicitar Reserva
+                Reservar Laboratorio
               </button>
             )}
 
@@ -465,14 +465,14 @@ export default function LabDetail() {
                 Reserva de Instalaciones
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Docentes y auxiliares pueden solicitar el uso exclusivo del laboratorio para el dictado de sus materias.
+                Docentes y auxiliares pueden agendar el uso exclusivo del laboratorio para el dictado de sus materias.
               </p>
               <button
                 onClick={handleAbrirReservaGeneral}
                 className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
                 <CalendarPlus className="w-5 h-5" />
-                <span>Solicitar Reserva</span>
+                <span>Reservar Laboratorio</span>
               </button>
             </div>
 

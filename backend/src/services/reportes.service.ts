@@ -25,7 +25,7 @@ export interface ResumenMetricasAcademicas {
 }
 
 /**
- * HU-35: Obtener métricas consolidadas de ocupación e impacto académico.
+ * Obtener métricas consolidadas de ocupación e impacto académico.
  */
 export const obtenerMetricasOcupacionAcademicas = async (
   fechaInicioStr?: string,
@@ -149,7 +149,7 @@ export const obtenerMetricasOcupacionAcademicas = async (
 };
 
 /**
- * HU-35: Generar archivo CSV compatible con Excel (BOM UTF-8, delimitador coma).
+ * Generar archivo CSV compatible con Excel (BOM UTF-8, delimitador coma).
  */
 export const generarCsvMetricasAcademicas = (datos: ResumenMetricasAcademicas): string => {
   const encabezados = [

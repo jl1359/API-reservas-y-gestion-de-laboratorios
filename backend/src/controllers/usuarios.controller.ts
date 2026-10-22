@@ -7,9 +7,10 @@ import {
   obtenerHistorialSesionesYAuditoriaService,
   actualizarPerfilService
 } from '../services/usuarios.service';
+import { actualizarPerfilSchema } from '../validators/usuario.validator';
 
 /**
- * HU-02 Ampliada: Listar todos los usuarios del sistema con filtros de carrera y rol
+ * Listar todos los usuarios del sistema con filtros de carrera y rol
  * GET /api/usuarios
  */
 export const listarUsuarios = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -40,7 +41,7 @@ export const listarUsuarios = async (req: AuthRequest, res: Response): Promise<a
 };
 
 /**
- * HU-02 Ampliada: Asignación y revocación directa de rol
+ * Asignación y revocación directa de rol
  * PUT /api/usuarios/:id/rol
  */
 export const cambiarRolUsuario = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -74,7 +75,7 @@ export const cambiarRolUsuario = async (req: AuthRequest, res: Response): Promis
 };
 
 /**
- * HU-02 Ampliada: Activar o suspender cuenta de usuario
+ * Activar o suspender cuenta de usuario
  * PATCH /api/usuarios/:id/estado
  */
 export const cambiarEstadoUsuario = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -108,7 +109,7 @@ export const cambiarEstadoUsuario = async (req: AuthRequest, res: Response): Pro
 };
 
 /**
- * HU-05: Ver historial de accesos y auditoría de sesiones
+ * Ver historial de accesos y auditoría de sesiones
  * GET /api/usuarios/auditoria/sesiones
  */
 export const obtenerHistorialSesiones = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -131,7 +132,7 @@ export const obtenerHistorialSesiones = async (req: AuthRequest, res: Response):
 };
 
 /**
- * HU-04: Actualizar información de perfil complementaria
+ * Actualizar información de perfil complementaria
  * PUT /api/usuarios/perfil
  */
 export const actualizarPerfil = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -141,8 +142,14 @@ export const actualizarPerfil = async (req: AuthRequest, res: Response): Promise
       return res.status(401).json({ success: false, error: 'No autenticado' });
     }
 
-    const { nombreCompleto, telefono } = req.body;
-    const perfilActualizado = await actualizarPerfilService(usuarioId, { nombreCompleto, telefono });
+    const validacion = actualizarPerfilSchema.safeParse(req.body);
+    if (!validacion.success) {
+      const errorMsg = (validacion.error as any).issues?.[0]?.message || (validacion.error as any).errors?.[0]?.message || 'Datos de actualización inválidos';
+      return res.status(400).json({ success: false, error: errorMsg });
+    }
+
+    const { nombreCompleto, ci, telefono } = validacion.data;
+    const perfilActualizado = await actualizarPerfilService(usuarioId, { nombreCompleto, ci, telefono });
 
     return res.status(200).json({
       success: true,
@@ -159,7 +166,7 @@ export const actualizarPerfil = async (req: AuthRequest, res: Response): Promise
 };
 
 /**
- * HU-04: Consultar información completa de mi perfil
+ * Consultar información completa de mi perfil
  * GET /api/usuarios/perfil
  */
 export const obtenerMiPerfil = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -176,6 +183,7 @@ export const obtenerMiPerfil = async (req: AuthRequest, res: Response): Promise<
         id: true,
         nombreCompleto: true,
         correo: true,
+        ci: true,
         telefono: true,
         activo: true,
         correoVerificado: true,
@@ -197,4 +205,3 @@ export const obtenerMiPerfil = async (req: AuthRequest, res: Response): Promise<
     return res.status(500).json({ success: false, error: 'Error al consultar perfil' });
   }
 };
-

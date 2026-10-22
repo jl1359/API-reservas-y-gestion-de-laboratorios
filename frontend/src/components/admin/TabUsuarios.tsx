@@ -40,8 +40,10 @@ export default function TabUsuarios({
     const q = busquedaUsuario.toLowerCase();
     const nom = u.nombreCompleto?.toLowerCase() || '';
     const cor = u.correo?.toLowerCase() || '';
+    const ciVal = (u.ci || '').toLowerCase();
+    const telVal = (u.telefono || '').toLowerCase();
     const rol = typeof u.rol === 'object' ? u.rol?.nombre?.toLowerCase() || '' : String(u.rol || '').toLowerCase();
-    return nom.includes(q) || cor.includes(q) || rol.includes(q);
+    return nom.includes(q) || cor.includes(q) || ciVal.includes(q) || telVal.includes(q) || rol.includes(q);
   });
 
   const handleCambiarRolUsuario = async (usuarioId: number, nuevoRolId: number, nombre: string) => {
@@ -167,6 +169,7 @@ export default function TabUsuarios({
                         <td className="px-6 py-4">
                           <p className="font-bold text-slate-900 dark:text-white">{u.nombreCompleto}</p>
                           <p className="text-xs text-slate-500">{u.correo}</p>
+                          {u.ci && <p className="text-[11px] font-mono text-slate-400 mt-0.5">CI: {u.ci}</p>}
                         </td>
                         <td className="px-6 py-4">
                           <span className="flex items-center text-xs text-slate-600 dark:text-slate-300">

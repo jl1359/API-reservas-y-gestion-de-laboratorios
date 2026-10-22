@@ -27,6 +27,7 @@ export const listarUsuariosService = async (filtros: FiltrosUsuarios = {}) => {
     where.OR = [
       { nombreCompleto: { contains: q, mode: 'insensitive' } },
       { correo: { contains: q, mode: 'insensitive' } },
+      { ci: { contains: q, mode: 'insensitive' } },
       { telefono: { contains: q, mode: 'insensitive' } }
     ];
   }
@@ -37,6 +38,7 @@ export const listarUsuariosService = async (filtros: FiltrosUsuarios = {}) => {
       id: true,
       nombreCompleto: true,
       correo: true,
+      ci: true,
       telefono: true,
       activo: true,
       correoVerificado: true,
@@ -159,7 +161,7 @@ export const cambiarEstadoUsuarioService = async (
 
 export const actualizarPerfilService = async (
   usuarioId: number,
-  datos: { nombreCompleto?: string; telefono?: string | null }
+  datos: { nombreCompleto?: string; ci?: string | null; telefono?: string | null }
 ) => {
   const usuario = await prisma.usuario.findUnique({
     where: { id: usuarioId },
@@ -170,13 +172,12 @@ export const actualizarPerfilService = async (
     throw new Error('Usuario no encontrado');
   }
 
-  if (usuario.rol.nombre === 'Admin') {
-    throw new Error('No está permitido suspender una cuenta de Administrador institucional');
-  }
-
   const dataToUpdate: any = {};
   if (datos.nombreCompleto && datos.nombreCompleto.trim()) {
     dataToUpdate.nombreCompleto = datos.nombreCompleto.trim();
+  }
+  if (datos.ci !== undefined) {
+    dataToUpdate.ci = datos.ci ? datos.ci.trim() : null;
   }
   if (datos.telefono !== undefined) {
     dataToUpdate.telefono = datos.telefono ? datos.telefono.trim() : null;
@@ -189,6 +190,7 @@ export const actualizarPerfilService = async (
       id: true,
       nombreCompleto: true,
       correo: true,
+      ci: true,
       telefono: true,
       activo: true,
       correoVerificado: true,

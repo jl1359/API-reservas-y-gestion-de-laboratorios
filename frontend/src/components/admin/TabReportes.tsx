@@ -197,7 +197,7 @@ export default function TabReportes({ laboratorios }: TabReportesProps) {
             <p className="text-xl font-bold font-poppins text-slate-900 dark:text-white mt-1 truncate" title={metricasData.laboratorioMasDemandado}>
               {metricasData.laboratorioMasDemandado}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">Mayor número de solicitudes</p>
+            <p className="text-[11px] text-slate-400 mt-1">Mayor frecuencia de uso y reservas</p>
           </div>
         </div>
       )}

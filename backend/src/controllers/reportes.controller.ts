@@ -9,7 +9,7 @@ import {
 
 
 /**
- * HU-24: reservas programadas para un día y su asistencia registrada.
+ * Auditoría diaria de reservas programadas y asistencia registrada.
  * El día se interpreta en horario de Bolivia (UTC-04:00).
  */
 export const reporteAsistenciasDiarias = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -87,7 +87,7 @@ export const reporteAsistenciasDiarias = async (req: AuthRequest, res: Response)
 };
 
 /**
- * HU-35: Consulta de métricas consolidadas de ocupación para Dashboard e Informes Académicos.
+ * Consulta de métricas consolidadas de ocupación para Dashboard e Informes Académicos.
  */
 export const obtenerMetricasAcademicas = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -114,7 +114,7 @@ export const obtenerMetricasAcademicas = async (req: AuthRequest, res: Response)
 };
 
 /**
- * HU-35: Descarga directa de archivo CSV para Excel con métricas académicas y de ocupación.
+ * Descarga directa de archivo CSV para Excel con métricas académicas y de ocupación.
  */
 export const exportarCsvMetricasAcademicas = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

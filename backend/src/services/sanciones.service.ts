@@ -1,6 +1,6 @@
 import { prisma } from '../config/prisma';
 
-// Constante de penalización según HU-30: 24 horas exactas en milisegundos
+// Constante de penalización disciplinaria: 24 horas exactas en milisegundos
 const DURACION_SANCION_MS = 24 * 60 * 60 * 1000;
 
 // Tiempo de tolerancia de inasistencia (por defecto 15 minutos tras inicio pactado)
@@ -19,7 +19,7 @@ export interface EstadoSancionUsuario {
 }
 
 /**
- * CRITERIO 3 (HU-30): Bloqueo punitivo de transacciones.
+ * Bloqueo punitivo de transacciones por inasistencia.
  * Verifica si un usuario cuenta con una sanción activa en la base de datos.
  * Además, actualiza automáticamente las sanciones que ya hayan cumplido sus 24 horas a 'Expirada'.
  */
@@ -72,7 +72,7 @@ export const verificarSancionActiva = async (usuarioId: number): Promise<EstadoS
 };
 
 /**
- * CRITERIO 2 (HU-30): Aplicación de castigo temporal estricto.
+ * Aplicación de castigo temporal estricto.
  * Aplica una sanción de exactamente 24 horas al usuario de una reserva específica.
  */
 export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPersonalizado?: string) => {
@@ -140,7 +140,7 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
 };
 
 /**
- * CRITERIO 1 (HU-30): Detección de negligencia enlazada.
+ * Detección de inasistencias enlazadas.
  * Algoritmo autónomo de detección de inasistencias.
  * Revisa reservas en estado 'Aprobada' cuyo tiempo de tolerancia ya caducó
  * y donde nunca se selló la asistencia (horaAsistencia == null).
@@ -197,7 +197,7 @@ export const procesarInasistenciasPendientes = async (minutosTolerancia = MINUTO
 };
 
 /**
- * HU-33: Listar todas las sanciones registradas con auto-expiración de registros vencidos.
+ * Listar todas las sanciones registradas con auto-expiración de registros vencidos.
  */
 export const listarTodasLasSancionesService = async (estado?: string) => {
   const ahora = new Date();
@@ -234,7 +234,7 @@ export const listarTodasLasSancionesService = async (estado?: string) => {
 };
 
 /**
- * HU-33: Levantar o perdonar manualmente una sanción disciplinaria por parte del Administrador.
+ * Levantar o perdonar manualmente una sanción disciplinaria por parte del Administrador.
  */
 export const perdonarSancionService = async (sancionId: number, adminId?: number, motivoPerdon?: string) => {
   const sancion = await prisma.sancion.findUnique({
@@ -281,7 +281,7 @@ export const perdonarSancionService = async (sancionId: number, adminId?: number
 };
 
 /**
- * HU-33: Aplicar sanción disciplinaria manual por parte del Administrador.
+ * Aplicar sanción disciplinaria manual por parte del Administrador.
  */
 export const aplicarSancionManualService = async (
   usuarioId: number,

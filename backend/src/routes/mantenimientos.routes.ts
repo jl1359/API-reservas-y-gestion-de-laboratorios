@@ -17,10 +17,10 @@ import {
 
 const router = Router();
 
-// HU-11: Listar mantenimientos (público o autenticado)
+// Listar mantenimientos (público o autenticado)
 router.get('/', listarMantenimientos);
 
-// HU-11: Registrar reporte de mantenimiento (Admin o Responsable)
+// Registrar reporte de mantenimiento (Admin o Responsable)
 router.post(
   '/',
   verificarToken,
@@ -29,10 +29,10 @@ router.post(
   registrarMantenimiento
 );
 
-// HU-11: Eliminar o finalizar mantenimiento (Admin o Responsable)
+// Eliminar o finalizar mantenimiento (Admin o Responsable)
 router.delete('/:id', verificarToken, esAdminOResponsable, eliminarMantenimiento);
 
-// HU-10: Cambiar estado operativo rápido de laboratorio (Admin o Responsable)
+// Cambiar estado operativo rápido de laboratorio (Admin o Responsable)
 router.patch(
   '/laboratorios/:id/estado-operativo',
   verificarToken,

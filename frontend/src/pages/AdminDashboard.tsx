@@ -10,7 +10,7 @@ import type { Usuario, Mantenimiento, AuditoriaEvento, Rol, Sancion } from '../t
 
 import TabLaboratorios, { type LaboratorioAdminItem } from '../components/admin/TabLaboratorios';
 import TabUsuarios, { type SolicitudRolItem } from '../components/admin/TabUsuarios';
-import TabReservas, { type ReservaPendiente } from '../components/admin/TabReservas';
+import TabReservas, { type ReservaItem } from '../components/admin/TabReservas';
 import TabMantenimientos from '../components/admin/TabMantenimientos';
 import TabFeriados from '../components/admin/TabFeriados';
 import TabAuditoria from '../components/admin/TabAuditoria';
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   const [laboratorios, setLaboratorios] = useState<LaboratorioAdminItem[]>([]);
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [solicitudes, setSolicitudes] = useState<SolicitudRolItem[]>([]);
-  const [reservasPendientes, setReservasPendientes] = useState<ReservaPendiente[]>([]);
+  const [reservasList, setReservasList] = useState<ReservaItem[]>([]);
   const [feriadosList, setFeriadosList] = useState<FeriadoItem[]>([]);
   const [usuariosList, setUsuariosList] = useState<Usuario[]>([]);
   const [rolesList, setRolesList] = useState<Rol[]>([]);
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
           axios.get('http://localhost:3000/api/laboratorios?incluirTodos=true'),
           axios.get('http://localhost:3000/api/carreras'),
           axios.get('http://localhost:3000/api/roles/requests', { headers }).catch(() => ({ data: [] })),
-          axios.get('http://localhost:3000/api/reservas/pendientes', { headers }).catch(() => ({ data: { data: [] } })),
+          axios.get('http://localhost:3000/api/reservas', { headers }).catch(() => ({ data: { data: [] } })),
           axios.get('http://localhost:3000/api/feriados').catch(() => ({ data: { data: [] } })),
           usuariosApi.listar().catch(() => []),
           laboratoriosApi.listarMantenimientos().catch(() => []),
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
       setLaboratorios(resLabs.data?.laboratorios || resLabs.data?.data || []);
       setCarreras(resCarreras.data || []);
       setSolicitudes(resSols.data || []);
-      setReservasPendientes(resReservas.data?.data || resReservas.data?.reservas || []);
+      setReservasList(resReservas.data?.data || resReservas.data?.reservas || []);
       setFeriadosList(resFeriados.data?.data || []);
       setUsuariosList(users || []);
       setMantenimientosList(mants || []);
@@ -147,14 +147,14 @@ export default function AdminDashboard() {
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
-            Solicitudes de Reserva
-            {reservasPendientes.length > 0 && (
+            Reservas del Campus
+            {reservasList.length > 0 && (
               <span
                 className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                  activeTab === 'reservas' ? 'bg-white text-tech-blue' : 'bg-amber-500 text-white'
+                  activeTab === 'reservas' ? 'bg-white text-tech-blue' : 'bg-tech-blue text-white'
                 }`}
               >
-                {reservasPendientes.length}
+                {reservasList.length}
               </span>
             )}
           </button>
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
 
         {activeTab === 'reservas' && (
           <TabReservas
-            reservasPendientes={reservasPendientes}
+            reservasList={reservasList}
             isLoading={isLoading}
             onRefresh={fetchData}
           />

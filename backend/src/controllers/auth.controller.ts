@@ -1,18 +1,32 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/prisma';
 import { enviarCorreoRecuperacion, enviarCorreoActivacion } from '../helpers/mailer';
 import { OAuth2Client } from 'google-auth-library';
+import { registroSchema } from '../validators/usuario.validator';
 
 export const register = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { nombreCompleto, correo, password, carreraId } = req.body;
+    const validacion = registroSchema.safeParse(req.body);
+    if (!validacion.success) {
+      const errorMsg = (validacion.error as any).issues?.[0]?.message || (validacion.error as any).errors?.[0]?.message || 'Datos de registro inválidos';
+      return res.status(400).json({ error: errorMsg });
+    }
+
+    const { nombreCompleto, correo, password, ci, telefono, carreraId } = validacion.data;
     const correoNormalizado = correo.toLowerCase().trim();
+    const ciNormalizado = ci.trim();
+    const telefonoNormalizado = telefono.trim();
 
     const usuarioExistente = await prisma.usuario.findUnique({ where: { correo: correoNormalizado } });
     if (usuarioExistente) {
-      return res.status(400).json({ error: 'El correo ya está registrado' });
+      return res.status(400).json({ error: 'El correo electrónico ya está registrado' });
+    }
+
+    const ciExistente = await prisma.usuario.findFirst({ where: { ci: ciNormalizado } });
+    if (ciExistente) {
+      return res.status(400).json({ error: 'La Cédula de Identidad (CI) ya se encuentra registrada en el sistema' });
     }
 
     let rolEstudiante = await prisma.rol.findFirst({ where: { nombre: 'Estudiante' } });
@@ -32,12 +46,14 @@ export const register = async (req: Request, res: Response): Promise<any> => {
 
     const nuevoUsuario = await prisma.usuario.create({
       data: {
-        nombreCompleto,
+        nombreCompleto: nombreCompleto.trim(),
         correo: correoNormalizado,
         passwordHash,
+        ci: ciNormalizado,
+        telefono: telefonoNormalizado,
         carreraId: Number(carreraFinalId),
         rolId: rolEstudiante.id,
-        correoVerificado: false // NUEVO: Obliga a verificar
+        correoVerificado: false
       },
     });
 
@@ -52,7 +68,7 @@ export const register = async (req: Request, res: Response): Promise<any> => {
       usuarioId: nuevoUsuario.id 
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error en register:', error);
     return res.status(500).json({ error: 'Error interno del servidor al registrar' });
   }
 };
@@ -94,7 +110,14 @@ export const login = async (req: Request, res: Response): Promise<any> => {
     return res.json({
       mensaje: 'Login exitoso',
       token,
-      usuario: { id: usuario.id, nombreCompleto: usuario.nombreCompleto, correo: usuario.correo, rol: usuario.rol.nombre }
+      usuario: {
+        id: usuario.id,
+        nombreCompleto: usuario.nombreCompleto,
+        correo: usuario.correo,
+        ci: usuario.ci,
+        telefono: usuario.telefono,
+        rol: usuario.rol.nombre
+      }
     });
   } catch (error) {
     return res.status(500).json({ error: 'Error interno del servidor al iniciar sesión' });
@@ -158,7 +181,7 @@ export const loginConGoogle = async (req: Request, res: Response): Promise<any> 
           passwordHash: '', 
           carreraId: carreraDummy.id,
           rolId: rolEstudiante.id,
-          correoVerificado: true // Si entra con google, ya está verificado
+          correoVerificado: true
         },
         include: { rol: true },
       });
@@ -171,7 +194,14 @@ export const loginConGoogle = async (req: Request, res: Response): Promise<any> 
     return res.json({
       mensaje: 'Login con Google exitoso',
       token: jwtToken,
-      usuario: { id: usuario.id, nombreCompleto: usuario.nombreCompleto, correo: usuario.correo, rol: usuario.rol.nombre },
+      usuario: {
+        id: usuario.id,
+        nombreCompleto: usuario.nombreCompleto,
+        correo: usuario.correo,
+        ci: usuario.ci,
+        telefono: usuario.telefono,
+        rol: usuario.rol.nombre
+      },
     });
   } catch (error) {
     return res.status(500).json({ error: 'Error al autenticar con Google' });

@@ -53,7 +53,7 @@ const handleServiceError = (res: Response, error: any, defaultMsg = 'Error al pr
 };
 
 /**
- * HU-28: Reserva individual de computadora
+ * Reserva individual de computadora
  * POST /api/reservas/laboratorio/:id/computadora
  */
 export const crearReservaIndividual = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -88,7 +88,7 @@ export const crearReservaIndividual = async (req: AuthRequest, res: Response): P
 };
 
 /**
- * HU-13 y HU-14: Reserva de aula completa y serie semestral recurrente
+ * Reserva de aula completa y serie semestral recurrente
  * POST /api/reservas
  */
 export const crearReserva = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -121,7 +121,7 @@ export const crearReserva = async (req: AuthRequest, res: Response): Promise<any
 };
 
 /**
- * HU-16: Bandeja de reservas pendientes
+ * Bandeja de reservas pendientes
  * GET /api/reservas/pendientes
  */
 export const listarReservasPendientes = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -143,7 +143,7 @@ export const listarReservasPendientes = async (req: AuthRequest, res: Response):
 };
 
 /**
- * HU-17: Gestión unificada de reservas (Aprobar / Rechazar)
+ * Gestión unificada de reservas (Aprobar / Rechazar)
  * PATCH /api/reservas/:id/gestionar
  */
 export const gestionarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -167,7 +167,7 @@ export const gestionarReserva = async (req: AuthRequest, res: Response): Promise
 };
 
 /**
- * HU-22: Visualización de código QR para ingreso presencial
+ * Visualización de código QR para ingreso presencial
  * GET /api/reservas/:id/qr
  */
 export const obtenerQrReserva = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -186,7 +186,7 @@ export const obtenerQrReserva = async (req: AuthRequest, res: Response): Promise
 };
 
 /**
- * HU-21: Historial personal de reservas
+ * Historial personal de reservas
  * GET /api/reservas/mis-reservas
  */
 export const listarMisReservas = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -209,7 +209,7 @@ export const listarMisReservas = async (req: AuthRequest, res: Response): Promis
 export const obtenerMisReservas = listarMisReservas;
 
 /**
- * HU-23: Escaneo y validación presencial de código QR
+ * Escaneo y validación presencial de código QR
  * POST /api/reservas/escanear-qr
  */
 export const escanearQr = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -228,7 +228,7 @@ export const escanearQr = async (req: AuthRequest, res: Response): Promise<any> 
 };
 
 /**
- * HU-17: Aprobar formalmente una reserva
+ * Aprobar formalmente una reserva
  * PATCH /api/reservas/:id/aprobar
  */
 export const aprobarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -246,7 +246,7 @@ export const aprobarReserva = async (req: AuthRequest, res: Response): Promise<a
 };
 
 /**
- * HU-17: Rechazar formalmente una reserva
+ * Rechazar formalmente una reserva
  * PATCH /api/reservas/:id/rechazar
  */
 export const rechazarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -288,7 +288,7 @@ export const listarTodasLasReservas = async (req: AuthRequest, res: Response): P
 };
 
 /**
- * HU-18: Cancelación voluntaria de reserva propia
+ * Cancelación voluntaria de reserva propia
  * PATCH /api/reservas/:id/cancelar
  */
 export const cancelarReserva = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -306,7 +306,7 @@ export const cancelarReserva = async (req: AuthRequest, res: Response): Promise<
 };
 
 /**
- * HU-19: Cancelación por Fuerza Mayor con notificación urgente obligatoria
+ * Cancelación por Fuerza Mayor con notificación urgente obligatoria
  * PUT /api/reservas/:id/cancelar-fuerza-mayor
  */
 export const cancelarReservaFuerzaMayor = async (req: AuthRequest, res: Response): Promise<any> => {

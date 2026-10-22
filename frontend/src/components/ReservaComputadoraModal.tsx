@@ -95,12 +95,12 @@ export default function ReservaComputadoraModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm overflow-y-auto">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-reserva-computadora"
-        className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800 md:p-8"
+        className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800 md:p-8 max-h-[92vh] overflow-y-auto my-auto"
       >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>

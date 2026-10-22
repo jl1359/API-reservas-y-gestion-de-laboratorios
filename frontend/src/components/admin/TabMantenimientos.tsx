@@ -176,8 +176,8 @@ export default function TabMantenimientos({
 
       {/* Modal Programar Mantenimiento */}
       {isMantenimientoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6 border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto my-auto">
             <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
               <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
                 <Wrench className="w-5 h-5 mr-2 text-tech-blue" />
