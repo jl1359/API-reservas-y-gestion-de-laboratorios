@@ -154,29 +154,29 @@ export default function TabUsuarios({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 dark:bg-slate-900/80 p-3 sm:p-4 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm backdrop-blur-sm">
         <div className="flex space-x-2">
           <button
             onClick={() => setSubTabUsuarios('directorio')}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all active:scale-[0.98] ${
               subTabUsuarios === 'directorio'
-                ? 'bg-tech-blue text-white shadow'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                ? 'bg-tech-blue text-white shadow-sm shadow-blue-500/25'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             Directorio de Usuarios ({usuariosList.length})
           </button>
           <button
             onClick={() => setSubTabUsuarios('solicitudes')}
-            className={`flex items-center px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all active:scale-[0.98] ${
               subTabUsuarios === 'solicitudes'
-                ? 'bg-tech-blue text-white shadow'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                ? 'bg-tech-blue text-white shadow-sm shadow-blue-500/25'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             Solicitudes Pendientes
             {solicitudes.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-rose-500 text-white">
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-rose-500 text-white font-semibold">
                 {solicitudes.length}
               </span>
             )}
@@ -185,23 +185,25 @@ export default function TabUsuarios({
 
         {subTabUsuarios === 'directorio' && (
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar por nombre, correo o rol..."
               value={busquedaUsuario}
               onChange={(e) => setBusquedaUsuario(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:border-tech-blue focus:ring-2 focus:ring-tech-blue/20 outline-none transition-all"
             />
           </div>
         )}
       </div>
 
       {subTabUsuarios === 'directorio' && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-              <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700 text-xs">
+        <>
+          {/* Vista de Tabla Escritorio */}
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-sm text-slate-600 dark:text-slate-400">
+              <thead className="bg-slate-50/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 font-heading border-b border-slate-150 dark:border-slate-800 text-xs tracking-wide">
                 <tr>
                   <th className="px-6 py-4 font-bold">Usuario</th>
                   <th className="px-6 py-4 font-bold">Contacto</th>
@@ -257,7 +259,7 @@ export default function TabUsuarios({
                               title="Cambiar rol institucional directamente"
                             >
                               {rolesList.map((r) => (
-                                <option key={r.id} value={r.id}>
+                                <option key={r.id} value={r.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                                   {r.nombre}
                                 </option>
                               ))}
@@ -307,77 +309,231 @@ export default function TabUsuarios({
             </table>
           </div>
         </div>
+
+        {/* Vista Móvil de Directorio de Usuarios */}
+        <div className="block md:hidden space-y-3">
+          {isLoading ? (
+            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div>
+            </div>
+          ) : usuariosFiltrados.length === 0 ? (
+            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 text-slate-500 text-sm">
+              No se encontraron usuarios coincidentes
+            </div>
+          ) : (
+            usuariosFiltrados.map((u) => {
+              const esAdminUsuario = u.rol?.nombre === 'Admin' || u.rol?.nombre === 'Administrador' || u.rolId === 1;
+              return (
+                <div
+                  key={u.id}
+                  className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-heading font-bold text-slate-900 dark:text-white text-sm">
+                        {u.nombreCompleto}
+                      </h4>
+                      <p className="text-xs text-slate-500">{u.correo}</p>
+                      {u.ci && <p className="text-[11px] font-mono text-slate-400 mt-0.5">CI: {u.ci}</p>}
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        u.activo !== false
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      }`}
+                    >
+                      {u.activo !== false ? 'Activo' : 'Suspendido'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                    <div>
+                      <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-0.5">Rol</span>
+                      {esAdminUsuario ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                          <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                          Admin
+                        </span>
+                      ) : (
+                        <select
+                          value={u.rolId}
+                          onChange={(e) => handleCambiarRolUsuario(u.id, Number(e.target.value), u.nombreCompleto)}
+                          className="w-full text-xs font-medium px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 outline-none"
+                        >
+                          {rolesList.map((r) => (
+                            <option key={r.id} value={r.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{r.nombre}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-0.5">Teléfono</span>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 font-medium py-1">{u.telefono || 'Sin teléfono'}</p>
+                    </div>
+                  </div>
+
+                  {!esAdminUsuario && (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        onClick={() => {
+                          if (u.activo !== false) {
+                            handleAbrirSuspension(u);
+                          } else {
+                            handleHabilitarCuenta(u);
+                          }
+                        }}
+                        className={`w-full py-2 text-xs font-semibold rounded-xl border transition-all active:scale-[0.98] ${
+                          u.activo !== false
+                            ? 'text-rose-600 border-rose-200 bg-rose-50/50 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/20'
+                            : 'text-emerald-600 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/20'
+                        }`}
+                      >
+                        {u.activo !== false ? 'Suspender Cuenta' : 'Habilitar Cuenta'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </>
       )}
 
       {subTabUsuarios === 'solicitudes' && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-              <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  <th className="px-6 py-4 font-bold">Usuario</th>
-                  <th className="px-6 py-4 font-bold">Rol Actual</th>
-                  <th className="px-6 py-4 font-bold">Solicita</th>
-                  <th className="px-6 py-4 font-bold">Motivo</th>
-                  <th className="px-6 py-4 font-bold text-right">Decisión</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
+        <>
+          {/* Vista Escritorio Solicitudes */}
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-sm text-slate-600 dark:text-slate-400">
+                <thead className="bg-slate-50/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 font-heading border-b border-slate-150 dark:border-slate-800 text-xs tracking-wide">
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div>
-                    </td>
+                    <th className="px-6 py-4 font-bold">Usuario</th>
+                    <th className="px-6 py-4 font-bold">Rol Actual</th>
+                    <th className="px-6 py-4 font-bold">Solicita</th>
+                    <th className="px-6 py-4 font-bold">Motivo</th>
+                    <th className="px-6 py-4 font-bold text-right">Decisión</th>
                   </tr>
-                ) : solicitudes.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-16 text-center">
-                      <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-500 font-medium">No hay solicitudes pendientes.</p>
-                    </td>
-                  </tr>
-                ) : (
-                  solicitudes.map((sol) => (
-                    <tr
-                      key={sol.id}
-                      className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-slate-900 dark:text-white">{sol.usuario.nombreCompleto}</p>
-                        <p className="text-xs text-slate-500">{sol.usuario.correo}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">
-                          {typeof sol.usuario.rol === 'object' ? sol.usuario.rol?.nombre : sol.usuario.rol || 'Estudiante'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-bold text-tech-blue dark:text-blue-400">{sol.rolSolicitado}</td>
-                      <td className="px-6 py-4 max-w-xs truncate" title={sol.motivo}>
-                        {sol.motivo}
-                      </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button
-                          onClick={() => handleAprobarSolicitud(sol.id, sol.usuario.nombreCompleto, sol.rolSolicitado)}
-                          title="Aprobar"
-                          className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
-                        >
-                          <CheckCircle className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleAbrirRechazarSolicitud(sol)}
-                          title="Rechazar"
-                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
-                        >
-                          <XCircle className="w-5 h-5" />
-                        </button>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : solicitudes.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-16 text-center">
+                        <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No hay solicitudes pendientes.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    solicitudes.map((sol) => (
+                      <tr
+                        key={sol.id}
+                        className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-slate-900 dark:text-white">{sol.usuario.nombreCompleto}</p>
+                          <p className="text-xs text-slate-500">{sol.usuario.correo}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-full text-xs font-semibold">
+                            {typeof sol.usuario.rol === 'object' ? sol.usuario.rol?.nombre : sol.usuario.rol || 'Estudiante'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 font-bold text-tech-blue dark:text-blue-400">{sol.rolSolicitado}</td>
+                        <td className="px-6 py-4 max-w-xs truncate" title={sol.motivo}>
+                          {sol.motivo}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleAprobarSolicitud(sol.id, sol.usuario.nombreCompleto, sol.rolSolicitado)}
+                              title="Aprobar Solicitud"
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 active:scale-[0.98]"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleAbrirRechazarSolicitud(sol)}
+                              title="Rechazar Solicitud"
+                              className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors rounded-xl border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-800 active:scale-[0.98]"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Vista Móvil Solicitudes */}
+          <div className="block md:hidden space-y-3">
+            {isLoading ? (
+              <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div>
+              </div>
+            ) : solicitudes.length === 0 ? (
+              <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 text-slate-500 text-sm">
+                <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                <p className="font-medium">No hay solicitudes pendientes.</p>
+              </div>
+            ) : (
+              solicitudes.map((sol) => (
+                <div
+                  key={sol.id}
+                  className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-heading font-bold text-slate-900 dark:text-white text-sm">
+                        {sol.usuario.nombreCompleto}
+                      </h4>
+                      <p className="text-xs text-slate-500">{sol.usuario.correo}</p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-tech-blue dark:text-blue-400">
+                      {sol.rolSolicitado}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-slate-50/80 dark:bg-slate-950/50 rounded-2xl border border-slate-150 dark:border-slate-800/80 text-xs space-y-1">
+                    <p className="text-slate-500">
+                      Rol actual: <span className="font-semibold text-slate-700 dark:text-slate-300">{typeof sol.usuario.rol === 'object' ? sol.usuario.rol?.nombre : sol.usuario.rol || 'Estudiante'}</span>
+                    </p>
+                    <p className="text-slate-600 dark:text-slate-400 italic pt-1">
+                      "{sol.motivo}"
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => handleAprobarSolicitud(sol.id, sol.usuario.nombreCompleto, sol.rolSolicitado)}
+                      className="py-2.5 px-3 flex items-center justify-center space-x-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs active:scale-[0.98] transition-all"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Aprobar</span>
+                    </button>
+                    <button
+                      onClick={() => handleAbrirRechazarSolicitud(sol)}
+                      className="py-2.5 px-3 flex items-center justify-center space-x-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 font-semibold text-xs active:scale-[0.98] transition-all"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>Rechazar</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
       )}
       {/* Modal Suspender Cuenta con Justificación Obligatoria */}
       {isSuspenderModalOpen && usuarioASuspender && (

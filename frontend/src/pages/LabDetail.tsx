@@ -359,53 +359,53 @@ export default function LabDetail() {
     lab.reservaPorComputadora && localStorage.getItem('userRole') === 'Estudiante';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter transition-colors duration-200">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] font-inter transition-colors duration-200">
       <Navbar />
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         
         {/* Botón de Regreso */}
-        <Link to="/" className="inline-flex items-center space-x-2 text-slate-500 hover:text-tech-blue dark:text-slate-400 dark:hover:text-blue-400 font-medium mb-8 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+        <Link to="/" className="inline-flex items-center space-x-2 text-slate-500 hover:text-tech-blue dark:text-slate-400 dark:hover:text-blue-400 font-semibold text-xs mb-6 transition-colors">
+          <ArrowLeft className="w-4 h-4" />
           <span>Volver al catálogo</span>
         </Link>
 
         {/* Encabezado del Laboratorio */}
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row gap-8 items-start mb-8 transition-colors">
-          <div className="w-full md:w-1/3 h-64 bg-slate-100 dark:bg-slate-700 rounded-2xl overflow-hidden relative flex-shrink-0">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-xs border border-slate-200/80 dark:border-slate-800/80 flex flex-col md:flex-row gap-8 items-start mb-8 transition-all">
+          <div className="w-full md:w-1/3 h-64 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden relative flex-shrink-0">
             {lab.imagenUrl ? (
               <img src={lab.imagenUrl} alt={lab.nombre} className="w-full h-full object-cover" />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-umss-blue to-tech-blue opacity-90 flex items-center justify-center">
-                <Monitor className="w-24 h-24 text-white/50" />
+                <Monitor className="w-20 h-20 text-white/50" />
               </div>
             )}
           </div>
 
           <div className="flex-1 w-full">
-            <div className="inline-block bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full mb-3">
-              {lab.carrera ? lab.carrera.nombre : 'Uso General'}
+            <div className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 text-tech-blue dark:text-blue-400 text-xs font-bold px-3 py-1 rounded-full mb-3 border border-blue-200/60 dark:border-blue-900/40">
+              {lab.carrera ? lab.carrera.nombre : 'Uso General FCyT'}
             </div>
-            <h1 className="text-3xl md:text-4xl font-poppins font-bold text-slate-900 dark:text-white mb-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-poppins font-bold text-slate-900 dark:text-white mb-4">
               {lab.nombre}
             </h1>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                <Users className="w-5 h-5 text-tech-blue mb-2" />
-                <p className="text-xs text-slate-500 dark:text-slate-400">Capacidad</p>
-                <p className="font-bold text-slate-900 dark:text-white">{lab.capacidad} asientos</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+              <div className="bg-slate-50/80 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+                <Users className="w-4 h-4 text-tech-blue mb-1" />
+                <p className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Capacidad</p>
+                <p className="font-bold text-sm text-slate-900 dark:text-white">{lab.capacidad} asientos</p>
               </div>
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                <MapPin className="w-5 h-5 text-tech-blue mb-2" />
-                <p className="text-xs text-slate-500 dark:text-slate-400">Ubicación</p>
-                <p className="font-bold text-slate-900 dark:text-white">{lab.ubicacion || 'N/A'}</p>
+              <div className="bg-slate-50/80 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+                <MapPin className="w-4 h-4 text-tech-blue mb-1" />
+                <p className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Ubicación</p>
+                <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{lab.ubicacion || 'Campus Central'}</p>
               </div>
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                <Monitor className="w-5 h-5 text-tech-blue mb-2" />
-                <p className="text-xs text-slate-500 dark:text-slate-400">Modalidad</p>
-                <p className="font-bold text-slate-900 dark:text-white truncate" title={lab.reservaPorComputadora ? 'Por PC' : 'Lab. Completo'}>
-                  {lab.reservaPorComputadora ? 'Por PC' : 'Lab. Completo'}
+              <div className="bg-slate-50/80 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 col-span-2 sm:col-span-1">
+                <Monitor className="w-4 h-4 text-tech-blue mb-1" />
+                <p className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Modalidad</p>
+                <p className="font-bold text-sm text-slate-900 dark:text-white truncate" title={lab.reservaPorComputadora ? 'Por Puesto' : 'Aula Completa'}>
+                  {lab.reservaPorComputadora ? 'Por Puesto' : 'Aula Completa'}
                 </p>
               </div>
             </div>
@@ -414,15 +414,15 @@ export default function LabDetail() {
               <button
                 type="button"
                 onClick={() => setMostrarReserva(true)}
-                className="w-full md:w-auto bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all shadow-blue-500/30"
+                className="w-full sm:w-auto bg-tech-blue hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-2xl shadow-md shadow-blue-500/25 transition-all text-sm"
               >
-                Reservar computadora
+                Reservar Computadora
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleAbrirReservaGeneral}
-                className="w-full md:w-auto bg-tech-blue hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all shadow-blue-500/30 cursor-pointer"
+                className="w-full sm:w-auto bg-tech-blue hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-2xl shadow-md shadow-blue-500/25 transition-all text-sm cursor-pointer"
               >
                 Reservar Laboratorio
               </button>
@@ -436,41 +436,40 @@ export default function LabDetail() {
           
           {/* Columna Izquierda: Equipamiento y Acciones Rápidas */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
-              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white mb-4 flex items-center">
-                <Box className="w-5 h-5 mr-2 text-tech-blue" />
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-xs border border-slate-200/80 dark:border-slate-800/80 transition-colors">
+              <h2 className="text-base font-poppins font-bold text-slate-900 dark:text-white mb-4 flex items-center">
+                <Box className="w-4 h-4 mr-2 text-tech-blue" />
                 Equipamiento Disponible
               </h2>
               
               {lab.equipos && lab.equipos.length > 0 ? (
-                <ul className="space-y-3">
+                <ul className="space-y-2.5">
                   {lab.equipos.map((eq, i) => (
-                    <li key={i} className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-700 last:border-0">
+                    <li key={i} className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800/60 last:border-0">
                       <div>
-                        <p className="text-sm font-bold text-slate-800 dark:text-white">{eq.equipamiento.nombre}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{eq.equipamiento.tipo}</p>
+                        <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">{eq.equipamiento.nombre}</p>
+                        <p className="text-[11px] text-slate-400">{eq.equipamiento.tipo}</p>
                       </div>
-                      <span className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold">
+                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 rounded-lg text-xs font-bold border border-slate-200/60 dark:border-slate-700/60">
                         x{eq.cantidad}
                       </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-slate-500 dark:text-slate-400 text-xs">No hay equipos registrados para este laboratorio.</p>
+                <p className="text-slate-400 text-xs">No hay equipos registrados para este laboratorio.</p>
               )}
             </div>
 
-            
             {/* Ubicación y Mapa Interactivo del Campus FCyT (HU-31) */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-xs border border-slate-200/80 dark:border-slate-800/80 space-y-3.5">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
-                  <MapPin className="w-5 h-5 mr-2 text-rose-500" />
+                <h2 className="text-base font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                  <MapPin className="w-4 h-4 mr-2 text-rose-500" />
                   Ubicación en el Campus
                 </h2>
                 {lab.latitud && lab.longitud && (
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60">
                     {Number(lab.latitud).toFixed(4)}, {Number(lab.longitud).toFixed(4)}
                   </span>
                 )}
@@ -481,7 +480,7 @@ export default function LabDetail() {
               </p>
 
               {lab.latitud && lab.longitud ? (
-                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner relative h-48 bg-slate-100 dark:bg-slate-900">
+                <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80 shadow-inner relative h-48 bg-slate-100 dark:bg-slate-950">
                   <iframe
                     title="Mapa de Ubicación Campus FCyT"
                     width="100%"
@@ -495,7 +494,7 @@ export default function LabDetail() {
                   />
                 </div>
               ) : (
-                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-center text-xs text-slate-400">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl text-center text-xs text-slate-400">
                   Ubicación en mapa no disponible.
                 </div>
               )}
@@ -507,34 +506,34 @@ export default function LabDetail() {
                     const url = `https://www.google.com/maps/dir/?api=1&destination=${lab.latitud},${lab.longitud}&travelmode=walking`;
                     window.open(url, '_blank');
                   }}
-                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2 text-xs transition-all hover:scale-[1.01]"
+                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-sm shadow-emerald-500/20 flex items-center justify-center space-x-2 text-xs transition-all"
                 >
-                  <Navigation className="w-4 h-4" />
+                  <Navigation className="w-3.5 h-3.5" />
                   <span>Cómo llegar (Navegación a pie)</span>
                 </button>
               )}
             </div>
 
             {/* Acción Rápida de Reserva */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-1.5 flex items-center">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-xs border border-slate-200/80 dark:border-slate-800/80">
+              <h3 className="font-bold text-slate-900 dark:text-white mb-1 flex items-center text-sm">
                 <CalendarPlus className="w-4 h-4 mr-2 text-tech-blue" />
                 Reserva de Instalaciones
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Docentes y auxiliares pueden agendar el uso exclusivo del laboratorio para el dictado de sus materias.
+                Agendamiento oficial para prácticas y dictado de materias.
               </p>
               <button
                 onClick={handleAbrirReservaGeneral}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full py-2.5 px-4 bg-tech-blue hover:bg-blue-600 text-white font-semibold rounded-xl shadow-md shadow-blue-500/20 flex items-center justify-center space-x-2 text-xs transition-all"
               >
-                <CalendarPlus className="w-5 h-5" />
+                <CalendarPlus className="w-4 h-4" />
                 <span>Reservar Laboratorio</span>
               </button>
             </div>
 
             {/* Resumen de Horarios Semanales */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-xs border border-slate-200/80 dark:border-slate-800/80">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center">
                 <Clock className="w-4 h-4 mr-2 text-tech-blue" />
                 Horarios Operativos
@@ -542,7 +541,7 @@ export default function LabDetail() {
               {horarios.length > 0 ? (
                 <div className="space-y-1.5">
                   {horarios.map((h) => (
-                    <div key={h.id} className="flex justify-between items-center text-xs py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+                    <div key={h.id} className="flex justify-between items-center text-xs py-1 border-b border-slate-100 dark:border-slate-800/60 last:border-0">
                       <span className="font-semibold text-slate-700 dark:text-slate-300">{h.dia}</span>
                       <span className="text-slate-500 dark:text-slate-400">
                         {getHorarioTimeStr(h.horaApertura)} - {getHorarioTimeStr(h.horaCierre)}
@@ -567,10 +566,10 @@ export default function LabDetail() {
 
           {/* Columna Derecha: Calendario y Disponibilidad en Tiempo Real */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-xs border border-slate-200/80 dark:border-slate-800/80 transition-all">
               
               {/* Encabezado y Alternancia de Vistas */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h2 className="text-xl font-poppins font-bold text-slate-900 dark:text-white flex items-center">
                     <CalendarIcon className="w-5 h-5 mr-2 text-tech-blue" />
@@ -582,16 +581,16 @@ export default function LabDetail() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 px-3 py-1 rounded-full flex items-center">
+                  <span className="text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center">
                     <CheckCircle className="w-3.5 h-3.5 mr-1" /> Tiempo Real
                   </span>
-                  <div className="bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl flex space-x-1">
+                  <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex space-x-1 border border-slate-200/60 dark:border-slate-700/60">
                     <button
                       type="button"
                       onClick={() => setVistaAgenda('bloques')}
                       className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center ${
                         vistaAgenda === 'bloques'
-                          ? 'bg-white dark:bg-slate-800 text-tech-blue shadow-xs'
+                          ? 'bg-white dark:bg-slate-700 text-tech-blue dark:text-white shadow-xs'
                           : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
                       }`}
                     >
@@ -603,7 +602,7 @@ export default function LabDetail() {
                       onClick={() => setVistaAgenda('lista')}
                       className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center ${
                         vistaAgenda === 'lista'
-                          ? 'bg-white dark:bg-slate-800 text-tech-blue shadow-xs'
+                          ? 'bg-white dark:bg-slate-700 text-tech-blue dark:text-white shadow-xs'
                           : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
                       }`}
                     >
@@ -615,7 +614,7 @@ export default function LabDetail() {
               </div>
 
               {/* Barra de Navegación de Fechas (Día Anterior, Selector y Día Siguiente) */}
-              <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 mb-6 border border-slate-200 dark:border-slate-700/70">
+              <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl p-4 mb-6 border border-slate-200/60 dark:border-slate-800/60">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center space-x-2 w-full sm:w-auto">
                     <button
@@ -646,7 +645,7 @@ export default function LabDetail() {
                     <button
                       type="button"
                       onClick={() => setFechaSeleccionada(hoyStr)}
-                      className="px-3 py-2 text-xs font-bold text-tech-blue hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition"
+                      className="px-3 py-2 text-xs font-bold text-tech-blue hover:bg-blue-500/10 rounded-xl transition"
                     >
                       Hoy
                     </button>
@@ -657,10 +656,10 @@ export default function LabDetail() {
                     <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wide mr-2">
                       {diaSemanaNombre}, {diaSel}/{mesSel}/{añoSel}
                     </span>
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                       {totalDisponibles} Libres
                     </span>
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                       {totalOcupados} Ocupados
                     </span>
                   </div>
@@ -668,20 +667,20 @@ export default function LabDetail() {
 
                 {/* Banner de Advertencia si es Feriado */}
                 {feriadoDelDia && (
-                  <div className="mt-3.5 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center space-x-2 text-xs text-amber-800 dark:text-amber-300">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                  <div className="mt-3.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center space-x-2 text-xs text-amber-700 dark:text-amber-300">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
                     <span>
-                      <strong>Feriado Oficial Institucional:</strong> {feriadoDelDia.motivo}. El campus permanece cerrado.
+                      <strong>Feriado Institucional:</strong> {feriadoDelDia.motivo}. El campus permanece cerrado.
                     </span>
                   </div>
                 )}
 
                 {/* Banner de Advertencia si está en Mantenimiento */}
                 {mantenimientoDelDia && (
-                  <div className="mt-3.5 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center space-x-2 text-xs text-amber-800 dark:text-amber-300">
-                    <Wrench className="w-4 h-4 shrink-0 text-amber-600" />
+                  <div className="mt-3.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center space-x-2 text-xs text-amber-700 dark:text-amber-300">
+                    <Wrench className="w-4 h-4 shrink-0 text-amber-500" />
                     <span>
-                      <strong>Mantenimiento Técnico:</strong> {mantenimientoDelDia.motivo}. Las actividades se encuentran suspendidas.
+                      <strong>Mantenimiento Técnico:</strong> {mantenimientoDelDia.motivo}. Actividades suspendidas.
                     </span>
                   </div>
                 )}
@@ -708,32 +707,30 @@ export default function LabDetail() {
                         key={bloque.id}
                         className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl border transition-all ${
                           isDisponible
-                            ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/40 hover:border-emerald-400'
+                            ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20 dark:border-emerald-500/30 hover:border-emerald-500/50'
                             : isOcupado
-                            ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/40'
+                            ? 'bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/20 dark:border-rose-500/30'
                             : isMantenimiento || isFeriado
-                            ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/40'
-                            : 'bg-slate-50/60 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800 opacity-60'
+                            ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/20 dark:border-amber-500/30'
+                            : 'bg-slate-500/5 dark:bg-slate-500/10 border-slate-500/20 opacity-60'
                         }`}
                       >
                         {/* Bloque y Rango Horario */}
                         <div className="flex items-center space-x-3 mb-2 sm:mb-0">
                           <div className={`p-2.5 rounded-xl ${
                             isDisponible
-                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                               : isOcupado
-                              ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
-                              : isMantenimiento
-                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
-                              : isFeriado
-                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                              : isMantenimiento || isFeriado
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                               : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
                           }`}>
                             {isMantenimiento ? <Wrench className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                 {bloque.etiqueta}
                               </span>
                               <span className="text-sm font-extrabold text-slate-900 dark:text-white">
@@ -754,7 +751,7 @@ export default function LabDetail() {
                             <button
                               type="button"
                               onClick={() => handleAbrirReservaBloque(bloque.inicio, bloque.fin)}
-                              className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition flex items-center cursor-pointer"
+                              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-xs transition-all active:scale-[0.98] flex items-center cursor-pointer"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                               Reservar Bloque
@@ -762,19 +759,19 @@ export default function LabDetail() {
                           )}
 
                           {isOcupado && (
-                            <span className="px-3 py-1 text-xs font-bold rounded-xl bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                            <span className="px-3 py-1 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                               Ocupado ({bloque.estadoReserva})
                             </span>
                           )}
 
                           {isMantenimiento && (
-                            <span className="px-3 py-1 text-xs font-bold rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center">
+                            <span className="px-3 py-1 text-xs font-semibold rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center">
                               <Wrench className="w-3 h-3 mr-1" /> Mantenimiento
                             </span>
                           )}
 
                           {isFeriado && (
-                            <span className="px-3 py-1 text-xs font-bold rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            <span className="px-3 py-1 text-xs font-semibold rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                               Feriado
                             </span>
                           )}
@@ -802,40 +799,40 @@ export default function LabDetail() {
                         return (
                           <div
                             key={reserva.id}
-                            className="flex flex-col md:flex-row md:items-center bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 gap-4"
+                            className="flex flex-col md:flex-row md:items-center bg-slate-50/80 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 gap-4 transition-all hover:border-slate-300 dark:hover:border-slate-700"
                           >
                             {/* Fecha Badge */}
-                            <div className="flex-shrink-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-2 text-center w-20">
-                              <p className="text-xs font-bold text-slate-400 uppercase">
+                            <div className="flex-shrink-0 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-2 text-center w-20 shadow-xs">
+                              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                                 {start.toLocaleString('es-ES', { month: 'short' })}
                               </p>
-                              <p className="text-xl font-extrabold text-umss-blue dark:text-blue-400 leading-none">
+                              <p className="text-xl font-extrabold text-umss-blue dark:text-blue-400 leading-none mt-0.5">
                                 {start.getDate()}
                               </p>
                             </div>
 
                             {/* Info Reserva */}
                             <div className="flex-1">
-                              <p className="font-bold text-slate-900 dark:text-white text-base">
+                              <p className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
                                 {reserva.materia || reserva.motivo || 'Sesión de Laboratorio'}
                               </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Reservado por: {reserva.usuario.nombreCompleto}
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Reservado por: <span className="font-medium text-slate-700 dark:text-slate-300">{reserva.usuario.nombreCompleto}</span>
                               </p>
                             </div>
 
                             {/* Horario */}
-                            <div className="flex-shrink-0 text-right md:border-l border-slate-200 dark:border-slate-700 md:pl-4">
+                            <div className="flex-shrink-0 text-right md:border-l border-slate-200/60 dark:border-slate-700/60 md:pl-4">
                               <div className="flex items-center justify-end text-slate-700 dark:text-slate-300 font-semibold text-xs">
                                 <Clock className="w-3.5 h-3.5 mr-1.5 text-tech-blue" />
                                 {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} -{' '}
                                 {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                               </div>
                               <span
-                                className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded font-bold ${
+                                className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
                                   reserva.estado === 'Aprobada'
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                                 }`}
                               >
                                 {reserva.estado}

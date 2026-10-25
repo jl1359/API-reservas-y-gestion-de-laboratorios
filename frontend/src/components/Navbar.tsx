@@ -151,7 +151,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white dark:bg-slate-900 border-b border-transparent dark:border-slate-800 px-4 sm:px-8 py-4 sticky top-0 z-50 shadow-sm transition-colors duration-200">
+    <nav className="bg-white/85 dark:bg-[#090d16]/85 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/80 px-4 sm:px-8 py-3.5 sticky top-0 z-50 transition-all duration-200 shadow-xs">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
         {/* Logo y Título */}
@@ -238,7 +238,7 @@ export default function Navbar() {
 
               {/* Menú Flotante de Notificaciones */}
               {isNotifOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 py-3 z-50">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100 dark:border-slate-800">
                     <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
                       <Bell className="w-4 h-4 text-tech-blue" /> Notificaciones

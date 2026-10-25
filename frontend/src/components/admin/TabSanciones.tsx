@@ -96,13 +96,13 @@ export default function TabSanciones({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 dark:bg-slate-900/80 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm backdrop-blur-sm">
         <div>
-          <h3 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+          <h3 className="text-lg font-heading font-bold text-slate-900 dark:text-white flex items-center">
             <Ban className="w-5 h-5 mr-2 text-rose-600" />
             Régimen Disciplinario y Sanciones
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Gestión y levantamiento de sanciones por inasistencia.
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function TabSanciones({
           <button
             onClick={handleEjecutarInasistencias}
             disabled={isProcesandoInasistencias}
-            className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition flex items-center shadow-xs disabled:opacity-50"
+            className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center shadow-xs active:scale-[0.98] disabled:opacity-50"
             title="Detectar reservas sin check-in tras el tiempo de tolerancia y suspender por 24 horas"
           >
             <Clock className="w-4 h-4 mr-1.5 text-amber-500" />
@@ -122,7 +122,7 @@ export default function TabSanciones({
               setManualSancionForm({ usuarioId: '', horasDuracion: '24', motivo: '' });
               setIsManualSancionModalOpen(true);
             }}
-            className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition flex items-center shadow-sm"
+            className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all flex items-center shadow-sm shadow-rose-600/20 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 mr-1.5" />
             Aplicar Sanción Manual
@@ -131,17 +131,17 @@ export default function TabSanciones({
       </div>
 
       {/* Filtros rápidos de estado */}
-      <div className="flex items-center space-x-2">
+      <div className="flex flex-wrap items-center gap-2">
         {(['Todas', 'Activa', 'Perdonada', 'Expirada'] as const).map((est) => {
           const cant = est === 'Todas' ? sancionesList.length : sancionesList.filter((s) => s.estado === est).length;
           return (
             <button
               key={est}
               onClick={() => setFiltroEstadoSancion(est)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] ${
                 filtroEstadoSancion === est
-                  ? 'bg-tech-blue text-white shadow'
-                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                  ? 'bg-tech-blue text-white shadow-sm shadow-blue-500/25'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60'
               }`}
             >
               {est} ({cant})
@@ -150,10 +150,11 @@ export default function TabSanciones({
         })}
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Vista de Escritorio / Tablet Grande (Tabla con ancho mínimo protegido) */}
+      <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-            <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700 text-xs">
+          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400 min-w-[760px]">
+            <thead className="bg-slate-50/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 font-heading border-b border-slate-150 dark:border-slate-800 text-xs tracking-wide">
               <tr>
                 <th className="px-6 py-4 font-bold">Usuario Sancionado</th>
                 <th className="px-6 py-4 font-bold">Causa / Justificación</th>
@@ -248,6 +249,83 @@ export default function TabSanciones({
         </div>
       </div>
 
+      {/* Vista Móvil / Tablet Pequeña (Tarjetas Táctiles) */}
+      <div className="block md:hidden space-y-3">
+        {isLoading ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200/80 dark:border-slate-800">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div>
+          </div>
+        ) : sancionesList.filter((s) => filtroEstadoSancion === 'Todas' || s.estado === filtroEstadoSancion).length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200/80 dark:border-slate-800 text-slate-500 text-sm">
+            No se encontraron sanciones registradas en este estado
+          </div>
+        ) : (
+          sancionesList
+            .filter((s) => filtroEstadoSancion === 'Todas' || s.estado === filtroEstadoSancion)
+            .map((s) => {
+              const inicio = new Date(s.fechaInicio);
+              const fin = new Date(s.fechaFin);
+              const ahora = new Date();
+              const activaReal = s.estado === 'Activa' && ahora < fin;
+
+              return (
+                <div
+                  key={s.id}
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+                        {s.usuario?.nombreCompleto || 'Usuario'}
+                      </h4>
+                      <p className="text-xs text-slate-500">{s.usuario?.correo}</p>
+                      {s.reserva?.laboratorio && (
+                        <p className="text-[11px] text-tech-blue dark:text-blue-400 mt-0.5">
+                          Reserva: {s.reserva.laboratorio.nombre}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${
+                        s.estado === 'Activa' && activaReal
+                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
+                          : s.estado === 'Perdonada'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                      }`}
+                    >
+                      {s.estado === 'Activa' && activaReal ? 'Activa' : s.estado === 'Perdonada' ? 'Perdonada' : 'Expirada'}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-150 dark:border-slate-700/60 text-xs space-y-1">
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">Causa: </span>
+                      {s.motivo}
+                    </p>
+                    <div className="pt-1 flex flex-col sm:flex-row sm:justify-between text-[11px] text-slate-500 gap-0.5">
+                      <span>Desde: {inicio.toLocaleDateString('es-ES')} {inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>Hasta: {fin.toLocaleDateString('es-ES')} {fin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+
+                  {s.estado === 'Activa' && activaReal && (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                      <button
+                        onClick={() => handleAbrirPerdonar(s)}
+                        className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>Levantar Sanción</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+        )}
+      </div>
+
       {/* Modal Sanción Manual */}
       {isManualSancionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in overflow-y-auto">
@@ -273,9 +351,9 @@ export default function TabSanciones({
                   onChange={(e) => setManualSancionForm({ ...manualSancionForm, usuarioId: e.target.value })}
                   className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none dark:text-white"
                 >
-                  <option value="" disabled>Seleccione un usuario...</option>
+                  <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Seleccione un usuario...</option>
                   {usuariosList.map((u) => (
-                    <option key={u.id} value={u.id}>
+                    <option key={u.id} value={u.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                       {u.nombreCompleto} ({u.correo}) - {typeof u.rol === 'object' ? u.rol?.nombre : u.rol}
                     </option>
                   ))}

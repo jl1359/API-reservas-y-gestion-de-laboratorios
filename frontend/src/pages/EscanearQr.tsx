@@ -594,7 +594,7 @@ export default function EscanearQr() {
                     Validación Manual o Lector USB
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                    Ingresa el CI, N° de reserva o escanea con pistola de código de barras.
+                    Ingresa el CI, N° de reserva o ingresa el codigo de la reserva
                   </p>
 
                   <form onSubmit={handleManualSubmit} className="flex gap-2">

@@ -497,16 +497,17 @@ export default function TabLaboratorios({
       <div className="flex justify-end mb-4">
         <button
           onClick={handleOpenCreate}
-          className="bg-tech-blue hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center shadow-sm transition-all"
+          className="inline-flex items-center bg-tech-blue hover:bg-blue-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all"
         >
-          <Plus className="w-5 h-5 mr-2" /> Nuevo Laboratorio
+          <Plus className="w-4 h-4 mr-2" /> Nuevo Laboratorio
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Vista de Tabla para Escritorio y Tablets Grandes */}
+      <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-            <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700">
+          <table className="w-full min-w-[760px] text-left text-sm text-slate-600 dark:text-slate-400">
+            <thead className="bg-slate-50/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 font-heading border-b border-slate-150 dark:border-slate-800 text-xs tracking-wide">
               <tr>
                 <th className="px-6 py-4 font-bold">Laboratorio</th>
                 <th className="px-6 py-4 font-bold">Capacidad</th>
@@ -532,7 +533,7 @@ export default function TabLaboratorios({
                 laboratorios.map((lab) => (
                   <tr
                     key={lab.id}
-                    className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors"
+                    className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
@@ -540,13 +541,13 @@ export default function TabLaboratorios({
                           <img
                             src={lab.imagenUrl}
                             alt={lab.nombre}
-                            className="w-10 h-10 object-cover rounded-xl shadow-xs border border-slate-200 dark:border-slate-700"
+                            className="w-10 h-10 object-cover rounded-xl shadow-xs border border-slate-200 dark:border-slate-700 shrink-0"
                             onError={(e) => {
                               (e.target as HTMLElement).style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 shrink-0">
                             <Server className="w-5 h-5" />
                           </div>
                         )}
@@ -558,8 +559,8 @@ export default function TabLaboratorios({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">{lab.capacidad} Asientos</td>
-                    <td className="px-6 py-4">{lab.reservaPorComputadora ? 'Por PC' : 'Lab. Completo'}</td>
+                    <td className="px-6 py-4 font-medium">{lab.capacidad} Asientos</td>
+                    <td className="px-6 py-4 font-medium">{lab.reservaPorComputadora ? 'Por PC' : 'Lab. Completo'}</td>
                     <td className="px-6 py-4">
                       <select
                         value={
@@ -568,49 +569,51 @@ export default function TabLaboratorios({
                             : lab.estadoOperativo || 'Activo'
                         }
                         onChange={(e) => handleCambiarEstadoOperativo(lab.id, e.target.value as any)}
-                        className={`text-xs font-bold rounded-lg px-2.5 py-1.5 border transition-colors outline-none cursor-pointer ${
+                        className={`text-xs font-semibold rounded-xl px-2.5 py-1.5 border transition-colors outline-none cursor-pointer ${
                           lab.estadoOperativo === 'En Mantenimiento' || lab.estadoOperativo === 'Mantenimiento'
-                            ? 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700'
+                            ? 'bg-amber-500/10 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-500/30'
                             : lab.estadoOperativo === 'Inactivo'
-                            ? 'bg-red-50 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-700'
-                            : 'bg-green-50 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-300 dark:border-green-700'
+                            ? 'bg-rose-500/10 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                            : 'bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
                         }`}
                         title="Cambiar estado operativo inmediatamente"
                       >
-                        <option value="Activo">Activo</option>
-                        <option value="Mantenimiento">Mantenimiento</option>
-                        <option value="Inactivo">Inactivo</option>
+                        <option value="Activo" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Activo</option>
+                        <option value="Mantenimiento" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Mantenimiento</option>
+                        <option value="Inactivo" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Inactivo</option>
                       </select>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleOpenSchedule(lab)}
-                        title="Horarios"
-                        className="p-2 text-slate-400 hover:text-indigo-500 transition-colors bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-600"
-                      >
-                        <Clock className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenEquip(lab)}
-                        title="Equipamiento"
-                        className="p-2 text-slate-400 hover:text-amber-500 transition-colors bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-600"
-                      >
-                        <Box className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenEdit(lab)}
-                        title="Editar"
-                        className="p-2 text-slate-400 hover:text-tech-blue transition-colors bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-600"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(lab.id)}
-                        title="Eliminar"
-                        className="p-2 text-slate-400 hover:text-red-500 transition-colors bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                        <button
+                          onClick={() => handleOpenSchedule(lab)}
+                          title="Horarios"
+                          className="p-2 text-slate-500 hover:text-indigo-600 transition-colors bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl active:scale-[0.98]"
+                        >
+                          <Clock className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEquip(lab)}
+                          title="Equipamiento"
+                          className="p-2 text-slate-500 hover:text-amber-600 transition-colors bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl active:scale-[0.98]"
+                        >
+                          <Box className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEdit(lab)}
+                          title="Editar"
+                          className="p-2 text-slate-500 hover:text-tech-blue transition-colors bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl active:scale-[0.98]"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(lab.id)}
+                          title="Eliminar"
+                          className="p-2 text-slate-500 hover:text-rose-600 transition-colors bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl active:scale-[0.98]"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -618,6 +621,119 @@ export default function TabLaboratorios({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Vista de Tarjetas Móvil (Smartphones y Tablets en Modo Vertical) */}
+      <div className="block md:hidden space-y-3">
+        {isLoading ? (
+          <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div>
+          </div>
+        ) : laboratorios.length === 0 ? (
+          <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 text-slate-500 text-sm">
+            No hay laboratorios registrados
+          </div>
+        ) : (
+          laboratorios.map((lab) => (
+            <div
+              key={lab.id}
+              className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center space-x-3 min-w-0 flex-1">
+                  {lab.imagenUrl ? (
+                    <img
+                      src={lab.imagenUrl}
+                      alt={lab.nombre}
+                      className="w-12 h-12 object-cover rounded-2xl shadow-xs border border-slate-200 dark:border-slate-700 shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                      <Server className="w-6 h-6" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-heading font-bold text-slate-900 dark:text-white text-sm truncate">
+                      {lab.nombre}
+                    </h4>
+                    <p className="text-xs text-slate-500 truncate mt-0.5">
+                      {lab.ubicacion || 'Sin ubicación'} • {lab.carrera?.nombre || 'General'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  {lab.capacidad} Asientos
+                </span>
+                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-tech-blue dark:text-blue-400">
+                  {lab.reservaPorComputadora ? 'Por PC' : 'Lab. Completo'}
+                </span>
+                <div className="flex-1 min-w-[130px]">
+                  <select
+                    value={
+                      lab.estadoOperativo === 'En Mantenimiento'
+                        ? 'Mantenimiento'
+                        : lab.estadoOperativo || 'Activo'
+                    }
+                    onChange={(e) => handleCambiarEstadoOperativo(lab.id, e.target.value as any)}
+                    className={`w-full text-xs font-semibold rounded-xl px-2.5 py-1.5 border transition-colors outline-none cursor-pointer ${
+                      lab.estadoOperativo === 'En Mantenimiento' || lab.estadoOperativo === 'Mantenimiento'
+                        ? 'bg-amber-500/10 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                        : lab.estadoOperativo === 'Inactivo'
+                        ? 'bg-rose-500/10 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                        : 'bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                    }`}
+                  >
+                    <option value="Activo" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Activo</option>
+                    <option value="Mantenimiento" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Mantenimiento</option>
+                    <option value="Inactivo" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Inactivo</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Botonera de acciones rápida táctil */}
+              <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-150 dark:border-slate-800">
+                <button
+                  onClick={() => handleOpenSchedule(lab)}
+                  className="py-2.5 flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-700/60 transition-all active:scale-[0.98]"
+                  title="Horarios"
+                >
+                  <Clock className="w-4 h-4 text-indigo-500 dark:text-indigo-400 mb-1" />
+                  <span className="text-[10px] font-semibold">Horarios</span>
+                </button>
+                <button
+                  onClick={() => handleOpenEquip(lab)}
+                  className="py-2.5 flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-700/60 transition-all active:scale-[0.98]"
+                  title="Equipamiento"
+                >
+                  <Box className="w-4 h-4 text-amber-500 dark:text-amber-400 mb-1" />
+                  <span className="text-[10px] font-semibold">Equipos</span>
+                </button>
+                <button
+                  onClick={() => handleOpenEdit(lab)}
+                  className="py-2.5 flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-700/60 transition-all active:scale-[0.98]"
+                  title="Editar"
+                >
+                  <Edit2 className="w-4 h-4 text-tech-blue dark:text-blue-400 mb-1" />
+                  <span className="text-[10px] font-semibold">Editar</span>
+                </button>
+                <button
+                  onClick={() => handleDelete(lab.id)}
+                  className="py-2.5 flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-700/60 transition-all active:scale-[0.98]"
+                  title="Eliminar"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-500 dark:text-rose-400 mb-1" />
+                  <span className="text-[10px] font-semibold">Baja</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Modal Crear / Editar */}

@@ -1117,20 +1117,8 @@ export default function ReporteAsistencias() {
                       </div>
                     </div>
 
-                    {/* Selector Pastel vs Barras */}
+                    {/* Selector Circular vs Barras */}
                     <div className="flex items-center bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs self-start sm:self-auto">
-                      <button
-                        type="button"
-                        onClick={() => setFormatoGraficoCarreras('pastel')}
-                        className={`flex items-center space-x-1 px-2.5 py-1 rounded-md transition-colors ${
-                          formatoGraficoCarreras === 'pastel'
-                            ? 'bg-tech-blue text-white font-medium'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                        }`}
-                      >
-                        <PieChart className="w-3.5 h-3.5" />
-                        <span>Pastel</span>
-                      </button>
                       <button
                         type="button"
                         onClick={() => setFormatoGraficoCarreras('barras')}
@@ -1142,6 +1130,18 @@ export default function ReporteAsistencias() {
                       >
                         <BarChart3 className="w-3.5 h-3.5" />
                         <span>Barras</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormatoGraficoCarreras('pastel')}
+                        className={`flex items-center space-x-1 px-2.5 py-1 rounded-md transition-colors ${
+                          formatoGraficoCarreras === 'pastel'
+                            ? 'bg-tech-blue text-white font-medium'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                      >
+                        <PieChart className="w-3.5 h-3.5" />
+                        <span>Circular</span>
                       </button>
                     </div>
                   </div>
@@ -1273,20 +1273,8 @@ export default function ReporteAsistencias() {
                       </div>
                     </div>
 
-                    {/* Selector Pastel vs Barras */}
+                    {/* Selector Circular vs Barras */}
                     <div className="flex items-center bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs self-start sm:self-auto">
-                      <button
-                        type="button"
-                        onClick={() => setFormatoGraficoLabs('pastel')}
-                        className={`flex items-center space-x-1 px-2.5 py-1 rounded-md transition-colors ${
-                          formatoGraficoLabs === 'pastel'
-                            ? 'bg-tech-blue text-white font-medium'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                        }`}
-                      >
-                        <PieChart className="w-3.5 h-3.5" />
-                        <span>Pastel</span>
-                      </button>
                       <button
                         type="button"
                         onClick={() => setFormatoGraficoLabs('barras')}
@@ -1298,6 +1286,18 @@ export default function ReporteAsistencias() {
                       >
                         <BarChart3 className="w-3.5 h-3.5" />
                         <span>Barras</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormatoGraficoLabs('pastel')}
+                        className={`flex items-center space-x-1 px-2.5 py-1 rounded-md transition-colors ${
+                          formatoGraficoLabs === 'pastel'
+                            ? 'bg-tech-blue text-white font-medium'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                      >
+                        <PieChart className="w-3.5 h-3.5" />
+                        <span>Circular</span>
                       </button>
                     </div>
                   </div>
@@ -1409,7 +1409,7 @@ export default function ReporteAsistencias() {
                       </div>
                     </div>
 
-                    {/* Selector Barras vs Pastel */}
+                    {/* Selector Barras vs Circular */}
                     <div className="flex items-center bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs self-start sm:self-auto">
                       <button
                         type="button"
@@ -1433,7 +1433,7 @@ export default function ReporteAsistencias() {
                         }`}
                       >
                         <PieChart className="w-3.5 h-3.5" />
-                        <span>Pastel</span>
+                        <span>Circular</span>
                       </button>
                     </div>
                   </div>
@@ -1730,7 +1730,7 @@ export default function ReporteAsistencias() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 min-w-[850px]">
                 <thead className="bg-slate-50 dark:bg-slate-900/60 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
                   <tr>
                     <th scope="col" className="px-5 py-3.5">Fecha y Horario</th>
