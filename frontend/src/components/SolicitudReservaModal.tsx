@@ -321,7 +321,7 @@ export default function SolicitudReservaModal({
                   className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white transition"
                 />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Se reservará este mismo horario cada semana. La creación es <strong>atómica</strong>: si alguna semana choca con otra clase o feriado, se rechazará la serie completa.
+                  Reserva semanal sujeta a disponibilidad continua de fechas.
                 </p>
               </div>
             )}
@@ -331,7 +331,7 @@ export default function SolicitudReservaModal({
           <div className="flex items-start p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs">
             <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
             <span>
-              <strong>Aprobación Inmediata:</strong> La reserva quedará confirmada al instante y tu código QR de acceso estará disponible inmediatamente en tu perfil.
+              <strong>Confirmación inmediata:</strong> Tu código QR de ingreso se generará al instante.
             </span>
           </div>
 

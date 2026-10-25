@@ -477,7 +477,7 @@ export default function LabDetail() {
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                {lab.ubicacion || 'Campus Central de la Facultad de Ciencias y Tecnología (FCyT) - UMSS'}
+                {lab.ubicacion || 'Campus Central FCyT - UMSS'}
               </p>
 
               {lab.latitud && lab.longitud ? (
@@ -496,7 +496,7 @@ export default function LabDetail() {
                 </div>
               ) : (
                 <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-center text-xs text-slate-400">
-                  Coordenadas geográficas no configuradas para este espacio.
+                  Ubicación en mapa no disponible.
                 </div>
               )}
 

@@ -126,20 +126,46 @@ export default function Navbar() {
     } catch (e) {}
   };
 
+  const handleNotificationClick = async (notif: any) => {
+    if (!notif.leido) {
+      await handleMarcarLeida(notif.id);
+    }
+    setIsNotifOpen(false);
+
+    const msg = (notif.mensaje || '').toLowerCase();
+
+    // Redirigir al módulo según el contexto
+    if (msg.includes('sanción') || msg.includes('sancion') || msg.includes('suspendid')) {
+      navigate('/perfil');
+    } else if (msg.includes('reserva') || msg.includes('código qr') || msg.includes('codigo qr') || msg.includes('cancelada')) {
+      navigate('/perfil');
+    } else if (msg.includes('rol') || msg.includes('permisos')) {
+      navigate('/perfil');
+    } else if (msg.includes('mantenimiento')) {
+      navigate('/');
+    } else if (['Admin', 'Administrador', 'Responsable de Laboratorio'].includes(userRole)) {
+      navigate('/admin');
+    } else {
+      navigate('/perfil');
+    }
+  };
+
   return (
     <nav className="bg-white dark:bg-slate-900 border-b border-transparent dark:border-slate-800 px-4 sm:px-8 py-4 sticky top-0 z-50 shadow-sm transition-colors duration-200">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
         {/* Logo y Título */}
-        <div className="flex items-center space-x-3">
-          <Link to="/" className="flex items-center space-x-3">
-            <LogoIcon className="w-8 h-8 sm:w-9 sm:h-9 text-umss-blue dark:text-blue-400" />
-            <div className="hidden sm:block">
+        <div className="flex items-center">
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="flex flex-col items-center justify-center shrink-0">
+              <LogoIcon className="w-8 h-8 text-umss-blue dark:text-blue-400 transition-transform group-hover:scale-105" />
+              <span className="text-[10px] font-extrabold text-tech-blue dark:text-blue-400 tracking-tight font-poppins mt-0.5 leading-none">
+                LabReserve
+              </span>
+            </div>
+            <div className="hidden sm:block border-l border-slate-200 dark:border-slate-700 pl-3">
               <h1 className="font-poppins font-bold text-umss-blue dark:text-white leading-tight text-sm">Universidad Mayor de San Simón</h1>
               <p className="text-slate-500 dark:text-slate-300 text-[10px] sm:text-xs">Facultad de Ciencias y Tecnología</p>
-            </div>
-            <div className="ml-2 sm:ml-4 px-2 sm:px-3 py-1 bg-tech-blue text-white text-[10px] sm:text-xs font-bold rounded-lg shadow-sm">
-              LabReserve
             </div>
           </Link>
         </div>
@@ -241,22 +267,27 @@ export default function Navbar() {
                       notificaciones.map((notif: any) => (
                         <div
                           key={notif.id}
-                          onClick={() => !notif.leido && handleMarcarLeida(notif.id)}
-                          className={`p-3 text-xs cursor-pointer transition-colors ${
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`p-3.5 text-xs cursor-pointer transition-all group ${
                             !notif.leido 
-                              ? 'bg-blue-50/60 dark:bg-blue-950/30 hover:bg-blue-50 dark:hover:bg-blue-950/50' 
-                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                              ? 'bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/60 dark:hover:bg-blue-950/50' 
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center justify-between gap-2 mb-1">
                             <span className="text-[10px] text-slate-400">
                               {notif.fechaCreacion ? new Date(notif.fechaCreacion).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                             </span>
-                            {!notif.leido && (
-                              <span className="w-2 h-2 rounded-full bg-tech-blue shrink-0 mt-1" />
-                            )}
+                            <div className="flex items-center gap-1.5">
+                              {!notif.leido && (
+                                <span className="w-2 h-2 rounded-full bg-tech-blue shrink-0" />
+                              )}
+                              <span className="text-[10px] font-semibold text-tech-blue dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                Ver módulo →
+                              </span>
+                            </div>
                           </div>
-                          <p className="text-slate-700 dark:text-slate-200 mt-1 leading-relaxed">
+                          <p className="text-slate-700 dark:text-slate-200 leading-relaxed font-normal">
                             {notif.mensaje}
                           </p>
                         </div>

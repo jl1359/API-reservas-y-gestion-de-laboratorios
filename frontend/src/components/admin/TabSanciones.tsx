@@ -103,7 +103,7 @@ export default function TabSanciones({
             Régimen Disciplinario y Sanciones
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Control institucional de bloqueos por inasistencia y aplicación/levantamiento de sanciones a docentes y estudiantes.
+            Gestión y levantamiento de sanciones por inasistencia.
           </p>
         </div>
 
@@ -296,7 +296,7 @@ export default function TabSanciones({
                   className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none dark:text-white"
                   placeholder="24"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">24 horas estándar o hasta 720 horas (30 días) para faltas graves.</p>
+                <p className="text-[11px] text-slate-400 mt-1">De 1 a 720 horas (máx. 30 días).</p>
               </div>
 
               <div>

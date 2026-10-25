@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { laboratoriosApi } from '../../api/laboratorios.api';
+import CampusMapPicker, { EDIFICIOS_OFICIALES_FCYT } from './CampusMapPicker';
 
 interface Carrera {
   id: number;
@@ -115,13 +116,7 @@ const comprimirYConvertirABase64 = (file: File): Promise<string> => {
 };
 
 
-const FCYT_BUILDINGS = [
-  { nombre: 'Edificio Central / Sistemas', lat: -17.393845, lng: -66.146210 },
-  { nombre: 'Bloque de Informática', lat: -17.394010, lng: -66.146420 },
-  { nombre: 'Edificio MEMI', lat: -17.393750, lng: -66.146150 },
-  { nombre: 'Bloque de Química y Alimentos', lat: -17.394230, lng: -66.145810 },
-  { nombre: 'Bloque de Física y Nuevas Aulas', lat: -17.393520, lng: -66.146820 }
-];
+
 
 export default function TabLaboratorios({
   laboratorios,
@@ -693,10 +688,33 @@ export default function TabLaboratorios({
                   </label>
                   <input
                     type="text"
+                    list="edificios-fcyt-datalist"
+                    placeholder="Ej: Edificio MEMI, 2do Piso, Lab 24"
                     value={formData.ubicacion}
-                    onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const matched = EDIFICIOS_OFICIALES_FCYT.find(b => b.nombre.toLowerCase() === val.toLowerCase());
+                      if (matched) {
+                        setFormData(prev => ({
+                          ...prev,
+                          ubicacion: val,
+                          latitud: String(matched.lat),
+                          longitud: String(matched.lng)
+                        }));
+                      } else {
+                        setFormData(prev => ({ ...prev, ubicacion: val }));
+                      }
+                    }}
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
                   />
+                  <datalist id="edificios-fcyt-datalist">
+                    {EDIFICIOS_OFICIALES_FCYT.map(b => (
+                      <option key={b.nombre} value={b.nombre} />
+                    ))}
+                  </datalist>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Puedes elegir un bloque sugerido o escribir la ubicación libremente (piso, número de aula o pasillo).
+                  </p>
                 </div>
 
                 {/* Geolocalización GPS y Campus FCyT (HU-31) */}
@@ -704,7 +722,7 @@ export default function TabLaboratorios({
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center">
                       <MapPin className="w-4 h-4 mr-1.5 text-rose-500" />
-                      Geolocalización GPS (Campus FCyT)
+                      Geolocalización GPS y Mapa Interactivo (Campus FCyT)
                     </label>
                     <button
                       type="button"
@@ -717,22 +735,46 @@ export default function TabLaboratorios({
 
                   <div>
                     <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
-                      Punto de referencia rápido (Edificios FCyT)
+                      Punto de referencia rápido (Edificios Oficiales FCyT)
                     </label>
                     <select
                       onChange={(e) => {
-                        const edificio = FCYT_BUILDINGS.find(b => b.nombre === e.target.value);
+                        const edificio = EDIFICIOS_OFICIALES_FCYT.find(b => b.nombre === e.target.value);
                         if (edificio) {
-                          setFormData(prev => ({ ...prev, latitud: String(edificio.lat), longitud: String(edificio.lng) }));
+                          setFormData(prev => ({
+                            ...prev,
+                            latitud: String(edificio.lat),
+                            longitud: String(edificio.lng),
+                            ubicacion: prev.ubicacion || edificio.nombre
+                          }));
                         }
                       }}
                       className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none"
                     >
                       <option value="">Seleccionar edificio del campus...</option>
-                      {FCYT_BUILDINGS.map(b => (
+                      {EDIFICIOS_OFICIALES_FCYT.map(b => (
                         <option key={b.nombre} value={b.nombre}>{b.nombre}</option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* Selector Interactivo con Clic en Mapa del Campus */}
+                  <div className="pt-1">
+                    <CampusMapPicker
+                      latitud={formData.latitud}
+                      longitud={formData.longitud}
+                      onCoordinatesChange={(lat, lng) => {
+                        setFormData(prev => ({ ...prev, latitud: lat, longitud: lng }));
+                      }}
+                      onSelectEdificio={(edificio) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          latitud: String(edificio.lat),
+                          longitud: String(edificio.lng),
+                          ubicacion: prev.ubicacion || edificio.nombre
+                        }));
+                      }}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">

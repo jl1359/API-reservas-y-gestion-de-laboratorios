@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middlewares/auth.middleware';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/prisma';
@@ -217,5 +218,94 @@ export const desactivarCuenta = async (req: Request, res: Response): Promise<any
     return res.json({ mensaje: 'Cuenta desactivada exitosamente' });
   } catch (error) {
     return res.status(500).json({ error: 'Error al desactivar la cuenta' });
+  }
+};
+
+/**
+ * Cambiar contraseña de usuario autenticado
+ * PUT /api/auth/cambiar-password
+ */
+export const cambiarPassword = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const usuarioId = req.user?.id;
+    if (!usuarioId) {
+      return res.status(401).json({ error: 'No autenticado' });
+    }
+
+    const { passwordActual, nuevaPassword } = req.body;
+
+    if (!passwordActual || !nuevaPassword) {
+      return res.status(400).json({ error: 'Debes proporcionar tu contraseña actual y la nueva contraseña' });
+    }
+
+    if (nuevaPassword.length < 8) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' });
+    }
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: usuarioId }
+    });
+
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // Si el usuario se registro con Google y no tiene passwordHash establecido
+    if (!usuario.passwordHash) {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(nuevaPassword, salt);
+
+      await prisma.usuario.update({
+        where: { id: usuarioId },
+        data: { passwordHash }
+      });
+
+      await prisma.auditoria.create({
+        data: {
+          usuarioId,
+          accion: 'Asignacion de contrasena local para usuario OAuth Google'
+        }
+      }).catch(() => null);
+
+      return res.json({
+        success: true,
+        mensaje: 'Contraseña establecida exitosamente'
+      });
+    }
+
+    // Verificar contraseña actual
+    const coincide = await bcrypt.compare(passwordActual, usuario.passwordHash);
+    if (!coincide) {
+      return res.status(400).json({ error: 'La contraseña actual no es correcta' });
+    }
+
+    // No permitir que la nueva contraseña sea identica a la actual
+    const esMisma = await bcrypt.compare(nuevaPassword, usuario.passwordHash);
+    if (esMisma) {
+      return res.status(400).json({ error: 'La nueva contraseña no puede ser igual a la contraseña actual' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(nuevaPassword, salt);
+
+    await prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { passwordHash }
+    });
+
+    await prisma.auditoria.create({
+      data: {
+        usuarioId,
+        accion: 'Cambio de contrasena realizado por el propio usuario'
+      }
+    }).catch(() => null);
+
+    return res.json({
+      success: true,
+      mensaje: 'Contraseña actualizada correctamente'
+    });
+  } catch (error) {
+    console.error('Error al cambiar contrasena:', error);
+    return res.status(500).json({ error: 'Error al cambiar la contraseña' });
   }
 };

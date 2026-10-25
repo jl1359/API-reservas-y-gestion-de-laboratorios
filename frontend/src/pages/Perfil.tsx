@@ -19,7 +19,9 @@ import {
   FileText,
   CalendarPlus,
   ExternalLink,
-  X
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 import Navbar from '../components/Navbar';
@@ -74,7 +76,48 @@ export default function Perfil() {
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
   const [isSubmittingCancelacion, setIsSubmittingCancelacion] = useState(false);
 
+  // Estados y logica para cambiar contrasena directamente desde el perfil
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordActual, setPasswordActual] = useState('');
+  const [nuevaPassword, setNuevaPassword] = useState('');
+  const [confirmarPassword, setConfirmarPassword] = useState('');
+  const [mostrarPasswords, setMostrarPasswords] = useState(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+
   const navigate = useNavigate();
+
+  const handleCambiarPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordActual.trim()) {
+      return toast.error('Ingresa tu contraseña actual');
+    }
+    if (nuevaPassword.length < 8) {
+      return toast.error('La nueva contraseña debe tener al menos 8 caracteres');
+    }
+    if (nuevaPassword !== confirmarPassword) {
+      return toast.error('Las contraseñas no coinciden');
+    }
+
+    setIsSubmittingPassword(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(
+        'http://localhost:3000/api/auth/cambiar-password',
+        { passwordActual, nuevaPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success(res.data?.mensaje || 'Contraseña actualizada correctamente');
+      setIsPasswordModalOpen(false);
+      setPasswordActual('');
+      setNuevaPassword('');
+      setConfirmarPassword('');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Error al cambiar la contraseña');
+    } finally {
+      setIsSubmittingPassword(false);
+    }
+  };
 
   const fetchMisReservas = async () => {
     try {
@@ -170,7 +213,7 @@ export default function Perfil() {
     e.preventDefault();
     if (!motivo.trim()) return toast.error('Debes escribir un motivo');
     if (!rolSeleccionado) return toast.error('Debes seleccionar un rol');
-    
+
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
@@ -253,7 +296,7 @@ export default function Perfil() {
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-6 py-10">
-        
+
         {/* Cabecera del Perfil con Datos Reales del Usuario */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 mb-8">
           <div className="w-20 h-20 bg-tech-blue/10 dark:bg-blue-900/30 text-tech-blue dark:text-blue-400 rounded-2xl flex items-center justify-center flex-shrink-0 font-poppins font-bold text-2xl">
@@ -310,14 +353,14 @@ export default function Perfil() {
                 </span>
               </div>
               <h2 className="text-lg font-poppins font-bold text-rose-900 dark:text-rose-200">
-                Tus privilegios de reserva están suspendidos temporalmente
+                Cuenta suspendida temporalmente
               </h2>
               <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">
-                Se detectó una falta de inasistencia en una reserva previa sin registro oportuno de código QR. Conforme al reglamento institucional del campus, tu cuenta no puede generar nuevas reservas hasta el{' '}
+                Sanción por inasistencia previa sin aviso. Podrás volver a reservar el{' '}
                 <span className="font-bold underline">{sancionActiva.fechaFin ? new Date(sancionActiva.fechaFin).toLocaleString('es-ES') : ''}</span>.
               </p>
               <p className="text-xs text-rose-600 dark:text-rose-400 mt-2 italic bg-rose-100/60 dark:bg-rose-900/30 p-2.5 rounded-xl border border-rose-200 dark:border-rose-800/40">
-                Detalle oficial: {sancionActiva.motivo || 'Inasistencia a reserva'}
+                Motivo: {sancionActiva.motivo || 'Inasistencia a reserva'}
               </p>
             </div>
           </div>
@@ -522,10 +565,10 @@ export default function Perfil() {
             {/* Información de Perfil Complementaria */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
-                <User className="w-5 h-5 mr-2 text-tech-blue" /> Información Personal y de Contacto
+                <User className="w-5 h-5 mr-2 text-tech-blue" /> Información Personal
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                Mantén actualizados tus datos complementarios de contacto para notificaciones universitarias.
+                Datos personales y de contacto.
               </p>
               <form onSubmit={guardarPerfil} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -564,13 +607,13 @@ export default function Perfil() {
                       type="text"
                       value={perfilCi}
                       onChange={(e) => setPerfilCi(e.target.value)}
-                      placeholder="Ej. 8472912 CB"
+                      placeholder="Ej. 8472912"
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-tech-blue"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1.5 flex items-center">
-                      <Mail className="w-3.5 h-3.5 mr-1 text-slate-400" /> Correo Institucional
+                      <Mail className="w-3.5 h-3.5 mr-1 text-slate-400" /> Correo electronico
                     </label>
                     <p className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
                       {usuario?.correo || 'Cargando...'}
@@ -613,15 +656,15 @@ export default function Perfil() {
                   <Shield className="w-5 h-5 mr-2 text-tech-blue" /> Solicitar Permisos
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                  Si eres Docente o Auxiliar, solicita el escalamiento de tu rol al Administrador.
+                  Solicitud de cambio de rol al Administrador.
                 </p>
                 <form onSubmit={solicitarRol}>
                   <div className="mb-4">
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                       Rol Solicitado
                     </label>
-                    <select 
-                      value={rolSeleccionado} 
+                    <select
+                      value={rolSeleccionado}
                       onChange={(e) => setRolSeleccionado(e.target.value)}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
                     >
@@ -630,17 +673,17 @@ export default function Perfil() {
                       ))}
                     </select>
                   </div>
-                  <textarea 
-                    rows={3} 
-                    required 
-                    value={motivo} 
-                    onChange={(e) => setMotivo(e.target.value)} 
-                    placeholder="Justifica por qué necesitas este rol..." 
+                  <textarea
+                    rows={3}
+                    required
+                    value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                    placeholder="Justifica por qué necesitas este rol..."
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none mb-4 resize-none"
                   ></textarea>
-                  <button 
-                    type="submit" 
-                    disabled={isSubmitting} 
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
                     className="bg-tech-blue hover:bg-blue-600 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-bold flex items-center"
                   >
                     <Send className="w-4 h-4 mr-2" /> {isSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
@@ -654,7 +697,7 @@ export default function Perfil() {
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-tech-blue" /> Mis Reservas de Laboratorio
               </h3>
-              
+
               {misReservas.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 dark:text-slate-400">
                   <p className="text-sm font-medium">No tienes reservas registradas actualmente.</p>
@@ -708,13 +751,14 @@ export default function Perfil() {
                 <Key className="w-5 h-5 mr-2 text-tech-blue" /> Seguridad
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                Puedes cambiar tu contraseña mediante el enlace de restablecimiento seguro.
+                Actualiza tu clave de acceso periódicamente.
               </p>
-              <button 
-                onClick={() => toast.success('Para cambiar tu contraseña, utiliza la opción "Olvidé mi contraseña" en la pantalla de inicio.')}
-                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-6 py-2.5 rounded-xl font-bold text-sm"
+              <button
+                onClick={() => setIsPasswordModalOpen(true)}
+                className="bg-tech-blue hover:bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all flex items-center space-x-2"
               >
-                Cambiar Contraseña
+                <Key className="w-4 h-4" />
+                <span>Cambiar Contraseña</span>
               </button>
             </div>
 
@@ -723,10 +767,10 @@ export default function Perfil() {
                 <AlertTriangle className="w-5 h-5 mr-2" /> Zona de Peligro
               </h3>
               <p className="text-red-600 dark:text-red-300/80 text-sm mb-6">
-                Esta acción es irreversible y eliminará todos tus registros y accesos personales.
+                Acción irreversible. Se eliminarán tu cuenta y reservas asociadas.
               </p>
-              <button 
-                onClick={eliminarCuenta} 
+              <button
+                onClick={eliminarCuenta}
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm"
               >
                 Eliminar mi cuenta
@@ -765,7 +809,7 @@ export default function Perfil() {
               </div>
 
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Por normativa académica de la FCyT, es obligatorio registrar la justificación de la cancelación para liberar el laboratorio a otros postulantes.
+                Indica el motivo de cancelación para liberar el turno a otros estudiantes.
               </p>
 
               <div>
@@ -796,6 +840,118 @@ export default function Perfil() {
                   className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50"
                 >
                   {isSubmittingCancelacion ? 'Cancelando...' : 'Confirmar Cancelación'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Cambiar Contraseña Directo */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto my-auto">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+                <Key className="w-5 h-5 mr-2 text-tech-blue" />
+                Cambiar Contraseña
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPasswordModalOpen(false);
+                  setPasswordActual('');
+                  setNuevaPassword('');
+                  setConfirmarPassword('');
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCambiarPassword} className="mt-4 space-y-4">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Define tu nueva contraseña (mínimo 8 caracteres).
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Contraseña Actual <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={mostrarPasswords ? 'text' : 'password'}
+                    required
+                    value={passwordActual}
+                    onChange={(e) => setPasswordActual(e.target.value)}
+                    placeholder="Tu contraseña actual"
+                    className="w-full pl-3 pr-10 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarPasswords(!mostrarPasswords)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    title={mostrarPasswords ? 'Ocultar' : 'Mostrar'}
+                  >
+                    {mostrarPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nueva Contraseña <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type={mostrarPasswords ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={nuevaPassword}
+                  onChange={(e) => setNuevaPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Confirmar Nueva Contraseña <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type={mostrarPasswords ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={confirmarPassword}
+                  onChange={(e) => setConfirmarPassword(e.target.value)}
+                  placeholder="Repite tu nueva contraseña"
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPasswordModalOpen(false);
+                    setPasswordActual('');
+                    setNuevaPassword('');
+                    setConfirmarPassword('');
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingPassword}
+                  className="px-5 py-2 text-xs font-bold text-white bg-tech-blue hover:bg-blue-600 rounded-xl disabled:opacity-50 shadow-md transition-all flex items-center space-x-1.5"
+                >
+                  {isSubmittingPassword ? (
+                    <span>Guardando...</span>
+                  ) : (
+                    <span>Guardar Contraseña</span>
+                  )}
                 </button>
               </div>
             </form>

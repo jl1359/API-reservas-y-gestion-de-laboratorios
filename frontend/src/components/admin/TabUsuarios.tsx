@@ -410,7 +410,7 @@ export default function TabUsuarios({
               </div>
 
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Por política y normativa disciplinaria institucional de la FCyT, es obligatorio fundamentar el motivo de la suspensión. El usuario recibirá una notificación formal y la causa quedará asentada en la bitácora de auditoría.
+                Indica el motivo de la suspensión para la bitácora de auditoría.
               </p>
 
               <div>

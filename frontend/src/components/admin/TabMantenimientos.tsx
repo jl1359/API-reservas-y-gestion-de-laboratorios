@@ -76,7 +76,7 @@ export default function TabMantenimientos({
             Programación de Mantenimiento y Bloqueos
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Bloquea temporalmente el calendario de los laboratorios ante reparaciones preventivas o correctivas.
+            Bloqueo de horarios por mantenimiento preventivo o correctivo.
           </p>
         </div>
         <button

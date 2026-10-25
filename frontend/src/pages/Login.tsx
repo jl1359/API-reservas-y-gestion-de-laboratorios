@@ -180,7 +180,7 @@ export default function Login() {
           </h1>
 
           <p className="text-blue-100 text-lg font-medium">
-            Ingresa al sistema para buscar, comparar y reservar laboratorios de las carreras de la Facultad de Ciencias y Tecnología.
+            Sistema de gestión y reserva de laboratorios de la FCyT.
           </p>
         </div>
         
@@ -337,7 +337,7 @@ export default function Login() {
               </div>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-              Ingresa tu correo institucional y te enviaremos un enlace con vigencia temporal para definir una nueva contraseña.
+              Te enviaremos un enlace para definir una nueva contraseña.
             </p>
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>

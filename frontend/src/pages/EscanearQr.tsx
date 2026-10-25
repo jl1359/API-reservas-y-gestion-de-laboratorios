@@ -1,7 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
 import axios from 'axios';
-import { Camera, QrCode, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Volume2, VolumeX, ShieldCheck, User, MapPin, Monitor, Clock, ArrowLeft } from 'lucide-react';
+import {
+  Camera,
+  QrCode,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  RefreshCw,
+  Volume2,
+  VolumeX,
+  ShieldCheck,
+  User,
+  MapPin,
+  Monitor,
+  Clock,
+  ArrowLeft,
+  Search,
+  CheckCheck,
+  Building2
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -14,7 +32,7 @@ interface ResultadoEscaneo {
     reservaId: number;
     estado: string;
     horaAsistencia: string;
-    usuario?: { id: number; nombreCompleto: string; correo: string };
+    usuario?: { id: number; nombreCompleto: string; ci?: string; correo: string };
     laboratorio?: { id: number; nombre: string; ubicacion?: string; reservaPorComputadora?: boolean };
     numeroComputadora?: number | null;
     fechaInicio?: string;
@@ -23,6 +41,31 @@ interface ResultadoEscaneo {
     motivo?: string | null;
   };
   detalles?: any;
+}
+
+interface ReservaTurno {
+  id: number;
+  fechaInicio: string;
+  fechaFin: string;
+  estado: string;
+  materia?: string | null;
+  motivo?: string | null;
+  numeroComputadora?: number | null;
+  horaAsistencia?: string | null;
+  usuario?: {
+    id: number;
+    nombreCompleto: string;
+    ci?: string | null;
+    correo: string;
+    telefono?: string | null;
+    rol?: { nombre: string };
+  };
+  laboratorio?: {
+    id: number;
+    nombre: string;
+    ubicacion?: string;
+    reservaPorComputadora?: boolean;
+  };
 }
 
 interface HistorialPase {
@@ -43,6 +86,14 @@ export default function EscanearQr() {
   const [historial, setHistorial] = useState<HistorialPase[]>([]);
   const [camaraActiva, setCamaraActiva] = useState(false);
   const [sonidoHabilitado, setSonidoHabilitado] = useState(true);
+
+  // Estados para el modo manual y lista del turno actual
+  const [reservasTurno, setReservasTurno] = useState<ReservaTurno[]>([]);
+  const [cargandoTurno, setCargandoTurno] = useState(false);
+  const [filtroLab, setFiltroLab] = useState<number | 'todos'>('todos');
+  const [busquedaTurno, setBusquedaTurno] = useState('');
+  const [laboratorios, setLaboratorios] = useState<{ id: number; nombre: string }[]>([]);
+  const [marcandoId, setMarcandoId] = useState<number | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -217,12 +268,101 @@ export default function EscanearQr() {
     }
   };
 
+  // Cargar reservas de la jornada actual para check-in rapido
+  const cargarReservasTurno = async () => {
+    setCargandoTurno(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      const params: any = {};
+      if (filtroLab !== 'todos') params.laboratorioId = filtroLab;
+      if (busquedaTurno.trim()) params.q = busquedaTurno.trim();
+
+      const [resReservas, resLabs] = await Promise.all([
+        axios.get('http://localhost:3000/api/reservas/turno-actual', { headers, params }),
+        laboratorios.length === 0 ? axios.get('http://localhost:3000/api/laboratorios') : Promise.resolve({ data: { laboratorios } })
+      ]);
+
+      if (resReservas.data?.success) {
+        setReservasTurno(resReservas.data.data);
+      }
+      if (resLabs.data?.laboratorios) {
+        setLaboratorios(resLabs.data.laboratorios);
+      }
+    } catch (error) {
+      console.error('Error al cargar reservas de la jornada:', error);
+    } finally {
+      setCargandoTurno(false);
+    }
+  };
+
+  useEffect(() => {
+    if (modo === 'manual') {
+      cargarReservasTurno();
+    }
+  }, [modo, filtroLab]);
+
+  // Validar asistencia con un solo clic desde la tabla
+  const marcarAsistenciaDirecta = async (reserva: ReservaTurno) => {
+    if (marcandoId) return;
+    setMarcandoId(reserva.id);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `http://localhost:3000/api/reservas/${reserva.id}/asistencia-manual`,
+        { motivo: 'Registro manual de asistencia en puerta' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data?.success) {
+        emitirSonido('exito');
+        toast.success(`Asistencia confirmada para ${reserva.usuario?.nombreCompleto || 'Usuario'}`);
+
+        setResultado({
+          exito: true,
+          mensaje: 'Asistencia Registrada Exitosamente (Validación Manual)',
+          data: res.data.data
+        });
+
+        // Actualizar en la lista local reactivamente
+        setReservasTurno((prev) =>
+          prev.map((r) =>
+            r.id === reserva.id
+              ? { ...r, estado: 'Asistió', horaAsistencia: new Date().toISOString() }
+              : r
+          )
+        );
+
+        // Anadir al historial
+        setHistorial((prev) => [
+          {
+            id: Date.now(),
+            hora: new Date().toLocaleTimeString('es-ES'),
+            usuario: reserva.usuario?.nombreCompleto || 'Usuario',
+            laboratorio: reserva.laboratorio?.nombre || 'Laboratorio',
+            computadora: reserva.numeroComputadora,
+            exito: true
+          },
+          ...prev.slice(0, 9)
+        ]);
+      }
+    } catch (error: any) {
+      emitirSonido('error');
+      const msg = error.response?.data?.error || 'Error al registrar asistencia manual';
+      toast.error(msg);
+    } finally {
+      setMarcandoId(null);
+    }
+  };
+
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!tokenInput.trim()) {
-      return toast.error('Ingresa o escanea un código QR');
+      return toast.error('Ingresa un Carnet (CI), # de Reserva o token');
     }
-    procesarValidacion(tokenInput.trim());
+    procesarValidacion(tokenInput.trim()).then(() => {
+      cargarReservasTurno();
+    });
   };
 
   const reanudarEscaneo = () => {
@@ -238,7 +378,7 @@ export default function EscanearQr() {
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-6 py-10">
-        
+
         {/* Encabezado */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -247,10 +387,10 @@ export default function EscanearQr() {
             </Link>
             <h1 className="text-2xl sm:text-3xl font-poppins font-bold text-slate-900 dark:text-white flex items-center">
               <ShieldCheck className="w-8 h-8 mr-3 text-tech-blue dark:text-blue-400" />
-              Control de Acceso Físico
+              Control de Acceso
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Validación óptica de códigos QR para ingreso a laboratorios de la FCyT
+              Verificación y registro de asistencia a laboratorios
             </p>
           </div>
 
@@ -271,7 +411,7 @@ export default function EscanearQr() {
 
         {/* Panel Principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Columna Izquierda: Escáner / Entrada (2 columnas) */}
           <div className="lg:col-span-2 space-y-6">
 
@@ -286,7 +426,7 @@ export default function EscanearQr() {
                 }`}
               >
                 <Camera className="w-4 h-4" />
-                <span>Lector de Cámara</span>
+                <span>Cámara QR</span>
               </button>
 
               <button
@@ -298,7 +438,7 @@ export default function EscanearQr() {
                 }`}
               >
                 <QrCode className="w-4 h-4" />
-                <span>Pistola USB / Manual</span>
+                <span>Ingreso Manual</span>
               </button>
             </div>
 
@@ -404,7 +544,7 @@ export default function EscanearQr() {
                 </div>
               </div>
             ) : modo === 'camara' ? (
-              
+
               /* VISTA DE LA CÁMARA (OPTICAL SCANNER) */
               <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 text-center">
                 <div className="relative w-full max-w-md mx-auto aspect-square bg-black rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
@@ -432,59 +572,208 @@ export default function EscanearQr() {
                   {!camaraActiva && (
                     <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center text-white p-6">
                       <Camera className="w-12 h-12 text-slate-400 mb-3 animate-pulse" />
-                      <p className="text-sm font-semibold">Iniciando sensor óptico...</p>
+                      <p className="text-sm font-semibold">Iniciando cámara...</p>
                     </div>
                   )}
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-4">
-                  Apunta la cámara directamente al código QR del usuario para validar el ingreso automáticamente.
+                  Enfoca el código QR en el marco para validar el ingreso.
                 </p>
               </div>
 
             ) : (
 
-              /* VISTA MANUAL / PISTOLA USB */
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center">
-                  <QrCode className="w-5 h-5 mr-2 text-tech-blue" />
-                  Ingreso Manual o Pistola USB
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
-                  Si utilizas un lector de código de barras USB o deseas probar un token manualmente, ingresa o pega el código a continuación.
-                </p>
+              /* VISTA MANUAL Y PLAN DE CONTINGENCIA */
+              <div className="space-y-6">
 
-                <form onSubmit={handleManualSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                      Token Criptográfico del QR
-                    </label>
-                    <input
-                      type="text"
-                      autoFocus
-                      required
-                      value={tokenInput}
-                      onChange={(e) => setTokenInput(e.target.value)}
-                      placeholder="Ej: a7f9b8c2..."
-                      className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none transition-all"
-                    />
+                {/* 1. Formulario de Búsqueda y Validación Directa */}
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1 flex items-center">
+                    <QrCode className="w-5 h-5 mr-2 text-tech-blue" />
+                    Validación Manual o Lector USB
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                    Ingresa el CI, N° de reserva o escanea con pistola de código de barras.
+                  </p>
+
+                  <form onSubmit={handleManualSubmit} className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={tokenInput}
+                        onChange={(e) => setTokenInput(e.target.value)}
+                        placeholder="CI, # de reserva o código..."
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none transition-all"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isProcessing || !tokenInput.trim()}
+                      className="bg-tech-blue hover:bg-blue-600 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl shadow-md transition-all text-sm flex items-center justify-center space-x-2 shrink-0"
+                    >
+                      {isProcessing ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <span>Validar</span>
+                      )}
+                    </button>
+                  </form>
+                </div>
+
+                {/* 2. Lista de Reservas de la Jornada (Turno Actual con 1 Clic) */}
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center">
+                        <Clock className="w-4 h-4 mr-2 text-tech-blue" />
+                        Reservas de Hoy / Turno Actual
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Check-in directo del turno actual.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={cargarReservasTurno}
+                      disabled={cargandoTurno}
+                      className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-tech-blue dark:hover:text-white text-xs font-semibold flex items-center space-x-1.5 transition-colors self-start sm:self-auto"
+                      title="Refrescar lista de reservas"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${cargandoTurno ? 'animate-spin' : ''}`} />
+                      <span>Actualizar</span>
+                    </button>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={isProcessing || !tokenInput.trim()}
-                    className="w-full bg-tech-blue hover:bg-blue-600 disabled:opacity-50 text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition-all text-sm flex items-center justify-center space-x-2"
-                  >
-                    {isProcessing ? (
-                      <span className="flex items-center space-x-2">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Validando en Servidor...</span>
-                      </span>
-                    ) : (
-                      <span>Validar Código e Ingreso</span>
-                    )}
-                  </button>
-                </form>
+                  {/* Filtros de la lista */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+                      <select
+                        value={filtroLab}
+                        onChange={(e) => setFiltroLab(e.target.value === 'todos' ? 'todos' : Number(e.target.value))}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
+                      >
+                        <option value="todos">Todos los Laboratorios</option>
+                        {laboratorios.map((lab) => (
+                          <option key={lab.id} value={lab.id}>{lab.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={busquedaTurno}
+                        onChange={(e) => setBusquedaTurno(e.target.value)}
+                        placeholder="Filtrar por estudiante, CI o materia..."
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-tech-blue outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Listado de tarjetas de reserva */}
+                  {cargandoTurno ? (
+                    <div className="text-center py-8 text-slate-400 dark:text-slate-500">
+                      <RefreshCw className="w-6 h-6 mx-auto mb-2 animate-spin text-tech-blue" />
+                      <p className="text-xs">Cargando reservas de la jornada...</p>
+                    </div>
+                  ) : (() => {
+                    const filtradas = reservasTurno.filter((r) => {
+                      if (filtroLab !== 'todos' && r.laboratorio?.id !== filtroLab) return false;
+                      if (!busquedaTurno.trim()) return true;
+                      const q = busquedaTurno.toLowerCase();
+                      const nombre = r.usuario?.nombreCompleto?.toLowerCase() || '';
+                      const ci = r.usuario?.ci?.toLowerCase() || '';
+                      const materia = r.materia?.toLowerCase() || '';
+                      const idStr = String(r.id);
+                      return nombre.includes(q) || ci.includes(q) || materia.includes(q) || idStr.includes(q);
+                    });
+
+                    if (filtradas.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+                          <p className="text-xs font-medium">No se encontraron reservas programadas para hoy con los filtros aplicados.</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                        {filtradas.map((r) => {
+                          const horaInicioStr = new Date(r.fechaInicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          const horaFinStr = new Date(r.fechaFin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                          return (
+                            <div
+                              key={r.id}
+                              className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-800 transition-all bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-bold text-slate-900 dark:text-white text-sm">
+                                    {r.usuario?.nombreCompleto}
+                                  </span>
+                                  {r.usuario?.ci && (
+                                    <span className="font-mono text-[11px] bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md">
+                                      CI: {r.usuario.ci}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] text-slate-400">#{r.id}</span>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600 dark:text-slate-400 text-[11px]">
+                                  <span className="font-semibold text-tech-blue dark:text-blue-400">
+                                    {r.laboratorio?.nombre}
+                                    {r.numeroComputadora ? ` (PC #${r.numeroComputadora})` : ' (Aula Completa)'}
+                                  </span>
+                                  <span>{horaInicioStr} - {horaFinStr}</span>
+                                  {r.materia && <span className="italic truncate max-w-[150px]">{r.materia}</span>}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center self-end sm:self-auto shrink-0">
+                                {r.estado === 'Aprobada' ? (
+                                  <button
+                                    onClick={() => marcarAsistenciaDirecta(r)}
+                                    disabled={marcandoId === r.id}
+                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center space-x-1.5"
+                                  >
+                                    {marcandoId === r.id ? (
+                                      <>
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Marcando...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCheck className="w-3.5 h-3.5" />
+                                        <span>Marcar Asistencia</span>
+                                      </>
+                                    )}
+                                  </button>
+                                ) : r.estado === 'Asistió' ? (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                    <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600 dark:text-emerald-400" />
+                                    Asistió {r.horaAsistencia ? new Date(r.horaAsistencia).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300">
+                                    <XCircle className="w-3 h-3 mr-1 text-rose-600 dark:text-rose-400" />
+                                    Inasistencia
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
               </div>
 
             )}
@@ -504,7 +793,7 @@ export default function EscanearQr() {
               {historial.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 dark:text-slate-500">
                   <ShieldCheck className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                  <p className="text-xs font-medium">No se han registrado pases durante esta sesión.</p>
+                  <p className="text-xs font-medium">Sin registros en esta sesión.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -538,12 +827,12 @@ export default function EscanearQr() {
             {/* Guía Rápida para el Operador */}
             <div className="bg-blue-50/60 dark:bg-blue-950/20 rounded-3xl p-6 border border-blue-200 dark:border-blue-900/40 text-xs text-slate-700 dark:text-slate-300 space-y-2">
               <h4 className="font-bold text-tech-blue dark:text-blue-400 flex items-center">
-                <AlertTriangle className="w-3.5 h-3.5 mr-1" /> Instrucciones de Puerta
+                <AlertTriangle className="w-3.5 h-3.5 mr-1" /> Criterios de Ingreso
               </h4>
               <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-400">
-                <li>Solo se permite el ingreso si la pantalla muestra luz verde.</li>
-                <li>Si el estudiante llega 30 minutos antes de su horario, el sistema rebotará el ingreso.</li>
-                <li>Una vez que el QR es escaneado, queda invalidado para evitar préstamos de credenciales.</li>
+                <li>Luz verde: ingreso autorizado.</li>
+                <li>Tolerancia máxima de anticipación: 15 minutos.</li>
+                <li>Cada código QR es intransferible y de un solo uso.</li>
               </ul>
             </div>
           </div>

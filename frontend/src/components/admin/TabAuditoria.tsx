@@ -35,7 +35,7 @@ export default function TabAuditoria({ auditoriaList, isLoading }: TabAuditoriaP
             Auditoría de Sesiones y Accesos
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Registro cronológico inmutable de logins, asignación de roles, cancelaciones y validaciones QR.
+            Historial de inicios de sesión, cambios de rol y eventos del sistema.
           </p>
         </div>
         <div className="relative w-full sm:w-72">

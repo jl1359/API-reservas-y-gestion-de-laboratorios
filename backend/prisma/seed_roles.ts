@@ -6,6 +6,6 @@ async function main() {
     const existe = await prisma.rol.findFirst({ where: { nombre: nombreRol }});
     if (!existe) await prisma.rol.create({ data: { nombre: nombreRol }});
   }
-  console.log('✅ Roles adicionales insertados.');
+  console.log('Roles adicionales insertados.');
 }
 main().finally(async () => { await prisma.$disconnect(); });

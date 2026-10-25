@@ -12,7 +12,9 @@ import {
   cancelarReserva,
   cancelarReservaFuerzaMayor,
   listarTodasLasReservas,
-  crearReservaIndividual
+  crearReservaIndividual,
+  listarReservasTurnoActual,
+  registrarAsistenciaManual
 } from '../controllers/reservas.controller';
 import {
   AuthRequest,
@@ -47,6 +49,22 @@ router.post(
   verificarToken,
   permitirRoles('Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'),
   escanearQr
+);
+
+// Listar reservas del turno actual para control de asistencia presencial
+router.get(
+  '/turno-actual',
+  verificarToken,
+  permitirRoles('Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'),
+  listarReservasTurnoActual
+);
+
+// Registrar asistencia manual de contingencia
+router.post(
+  '/:id/asistencia-manual',
+  verificarToken,
+  permitirRoles('Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'),
+  registrarAsistenciaManual
 );
 
 // Gestion y aprobacion/rechazo de reservas

@@ -99,7 +99,7 @@ export default function ModalQrReserva({ isOpen, onClose, reserva }: ModalQrProp
             Código QR de Reserva
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Presenta este código al Auxiliar en la puerta del laboratorio
+            Muestra este código en la puerta del laboratorio.
           </p>
         </div>
 

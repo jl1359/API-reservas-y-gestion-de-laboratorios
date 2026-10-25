@@ -73,7 +73,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
             Calendario de Feriados y Días Bloqueados
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Las fechas aquí registradas inhabilitan automáticamente las reservas en la facultad durante esa jornada.
+            Días no laborables sin disponibilidad de reservas.
           </p>
         </div>
         <button
