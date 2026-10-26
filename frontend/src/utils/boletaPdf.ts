@@ -1,6 +1,6 @@
 /**
  * Generador de Comprobante Oficial de Reserva (HU-34)
- * Genera una ventana de impresión / guardado en PDF de alta fidelidad con membrete FCyT.
+ * Genera una ventana con vista previa oficial, botones de descarga en PDF / impresión y membrete FCyT.
  */
 
 export const imprimirBoletaOficial = (reserva: {
@@ -52,7 +52,7 @@ export const imprimirBoletaOficial = (reserva: {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           color: #1e293b;
           margin: 0;
-          padding: 40px;
+          padding: 30px;
           background: #fff;
         }
         .header {
@@ -153,13 +153,70 @@ export const imprimirBoletaOficial = (reserva: {
           border-top: 1px dashed #cbd5e1;
           padding-top: 15px;
         }
+        .toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 12px 20px;
+          margin-bottom: 25px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .btn-primary {
+          background: #003366;
+          color: #fff;
+          border: none;
+          padding: 9px 18px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: background 0.15s ease;
+        }
+        .btn-primary:hover {
+          background: #002244;
+        }
+        .btn-secondary {
+          background: #fff;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+          padding: 9px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: background 0.15s ease;
+        }
+        .btn-secondary:hover {
+          background: #f1f5f9;
+        }
         @media print {
-          body { padding: 20px; }
-          .no-print { display: none; }
+          body {
+            padding: 10px;
+          }
+          .no-print {
+            display: none !important;
+          }
         }
       </style>
     </head>
     <body>
+      <div class="toolbar no-print">
+        <div style="font-size: 13px; color: #475569;">
+          <strong>Comprobante Oficial:</strong> Puedes guardar este pase como documento PDF o imprimirlo.
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-primary" onclick="window.print()">
+            Guardar como PDF / Imprimir
+          </button>
+          <button class="btn-secondary" onclick="window.close()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+
       <div class="header">
         <div class="institucion">Universidad Mayor de San Simón</div>
         <div class="facultad">Facultad de Ciencias y Tecnología &bull; LabReserve Campus</div>
@@ -227,12 +284,6 @@ export const imprimirBoletaOficial = (reserva: {
         Documento emitido electrónicamente por el Sistema Institucional LabReserve FCyT - UMSS.<br>
         Hash de integridad: SHA256-${reserva.tokenQr ? reserva.tokenQr.substring(0, 24) : 'VALID'}-VERIFIED &bull; Cochabamba, Bolivia
       </div>
-
-      <script>
-        window.onload = function() {
-          window.print();
-        };
-      </script>
     </body>
     </html>
   `;

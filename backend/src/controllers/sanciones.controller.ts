@@ -173,4 +173,3 @@ export const aplicarSancionManual = async (req: AuthRequest, res: Response): Pro
     return res.status(400).json({ success: false, error: error.message || 'Error al aplicar sanción manual' });
   }
 };
-

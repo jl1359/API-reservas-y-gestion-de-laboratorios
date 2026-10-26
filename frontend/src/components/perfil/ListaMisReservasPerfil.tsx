@@ -167,10 +167,10 @@ export default function ListaMisReservasPerfil({
                       }
                     })}
                     className="inline-flex items-center justify-center space-x-1.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-100 font-semibold py-2 px-3.5 rounded-xl border border-slate-700/60 dark:border-slate-700 transition-all text-xs active:scale-[0.98]"
-                    title="Imprimir o descargar boleta oficial en PDF"
+                    title="Guardar o imprimir boleta oficial en PDF"
                   >
                     <FileText className="w-4 h-4" />
-                    <span>Boleta PDF</span>
+                    <span>Guardar en PDF</span>
                   </button>
 
                   <button

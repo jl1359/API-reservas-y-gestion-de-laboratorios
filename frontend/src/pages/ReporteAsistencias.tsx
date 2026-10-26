@@ -1,14 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  FileText,
-  BarChart3,
-  GraduationCap,
-  Download,
-  Printer,
-  RefreshCw,
-  ArrowLeft,
-  PieChart
-} from 'lucide-react';
+import { FileText, BarChart3, GraduationCap, Download, RefreshCw, ArrowLeft, PieChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
@@ -21,7 +12,8 @@ import ChartDiasReporte from '../components/reportes/ChartDiasReporte';
 import ChartEstadosYHorariosReporte from '../components/reportes/ChartEstadosYHorariosReporte';
 import TablaAuditoriaAsistencias from '../components/reportes/TablaAuditoriaAsistencias';
 import { useReporteAsistenciasCalculos, type ReporteData, PALETA_COLORES } from '../hooks/useReporteAsistenciasCalculos';
-import { exportarDatasetPowerBI } from '../utils/exportDatasetPowerBI';
+import { exportarReporteExcel, exportarReporteCsv } from '../utils/exportDatasetPowerBI';
+import { imprimirReporteAuditoriaPdf } from '../utils/reporteAuditoriaPdf';
 
 interface LaboratorioOpcion {
   id: number;
@@ -57,21 +49,9 @@ export default function ReporteAsistencias() {
   const [formatoGraficoDias, setFormatoGraficoDias] = useState<'barras' | 'pastel'>('barras');
 
   const {
-    total,
-    asistencias,
-    ausencias,
-    porcentajeAsistencia,
-    carreraTop,
-    labTop,
-    diaTop,
-    maxCarreraReservas,
-    maxLabReservas,
-    maxDiaReservas,
-    segmentosPastelCarreras,
-    segmentosPastelEstados,
-    segmentosPastelLabs,
-    segmentosPastelDias,
-    distribucionHoraria
+    total, asistencias, ausencias, porcentajeAsistencia, carreraTop, labTop, diaTop,
+    maxCarreraReservas, maxLabReservas, maxDiaReservas, segmentosPastelCarreras,
+    segmentosPastelEstados, segmentosPastelLabs, segmentosPastelDias, distribucionHoraria
   } = useReporteAsistenciasCalculos(reporte);
 
   useEffect(() => {
@@ -204,6 +184,18 @@ export default function ReporteAsistencias() {
   };
 
   const nombreCarreraFiltro = carreras.find(c => c.id === Number(carreraId))?.nombre;
+  const nombreLaboratorioFiltro = laboratorios.find(l => l.id === Number(laboratorioId))?.nombre;
+
+  const handleGuardarPdf = () => {
+    imprimirReporteAuditoriaPdf(reporte, {
+      modoAuditoria,
+      fecha,
+      fechaInicio,
+      fechaFin,
+      carreraNombre: nombreCarreraFiltro,
+      laboratorioNombre: nombreLaboratorioFiltro
+    });
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter transition-colors duration-200">
@@ -237,21 +229,31 @@ export default function ReporteAsistencias() {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => exportarDatasetPowerBI(reporte?.reservas, modoAuditoria, fecha, fechaInicio, fechaFin)}
+              onClick={() => exportarReporteExcel(reporte?.reservas, modoAuditoria, fecha, fechaInicio, fechaFin)}
               type="button"
-              className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl font-medium transition-all shadow-sm text-xs sm:text-sm cursor-pointer"
-              title="Descarga el reporte de asistencias en formato CSV compatible con Excel y herramientas de análisis"
+              className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl font-medium transition-all shadow-sm text-xs sm:text-sm cursor-pointer"
+              title="Descarga el reporte de asistencias en formato oficial de Excel (.xlsx)"
             >
               <Download className="w-4 h-4" />
-              <span>Exportar Reporte</span>
+              <span>Exportar Excel</span>
             </button>
             <button
-              onClick={() => window.print()}
+              onClick={() => exportarReporteCsv(reporte?.reservas, modoAuditoria, fecha, fechaInicio, fechaFin)}
               type="button"
-              className="inline-flex items-center space-x-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-xl font-medium transition-all shadow-sm text-xs sm:text-sm cursor-pointer"
+              className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl font-medium transition-all shadow-sm text-xs sm:text-sm cursor-pointer"
+              title="Descarga el reporte de asistencias en formato estándar CSV (.csv)"
             >
-              <Printer className="w-4 h-4" />
-              <span className="hidden sm:inline">Imprimir</span>
+              <Download className="w-4 h-4" />
+              <span>Exportar CSV</span>
+            </button>
+            <button
+              onClick={handleGuardarPdf}
+              type="button"
+              className="inline-flex items-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl font-medium transition-all shadow-sm text-xs sm:text-sm cursor-pointer"
+              title="Genera el reporte oficial de auditoría para guardar en PDF o imprimir"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Guardar en PDF</span>
             </button>
             <button
               onClick={() => consultarReporte(true)}
@@ -267,35 +269,23 @@ export default function ReporteAsistencias() {
 
         {/* Barra de Filtros */}
         <FiltrosReporteAsistencias
-          modoAuditoria={modoAuditoria}
-          setModoAuditoria={setModoAuditoria}
-          fecha={fecha}
-          setFecha={setFecha}
-          fechaInicio={fechaInicio}
-          setFechaInicio={setFechaInicio}
-          fechaFin={fechaFin}
-          setFechaFin={setFechaFin}
-          carreraId={carreraId}
-          setCarreraId={setCarreraId}
-          carreras={carreras}
-          laboratorioId={laboratorioId}
-          setLaboratorioId={setLaboratorioId}
-          laboratorios={laboratorios}
+          modoAuditoria={modoAuditoria} setModoAuditoria={setModoAuditoria}
+          fecha={fecha} setFecha={setFecha}
+          fechaInicio={fechaInicio} setFechaInicio={setFechaInicio}
+          fechaFin={fechaFin} setFechaFin={setFechaFin}
+          carreraId={carreraId} setCarreraId={setCarreraId}
+          carreras={carreras} laboratorioId={laboratorioId}
+          setLaboratorioId={setLaboratorioId} laboratorios={laboratorios}
           onAplicarPreset={aplicarPreset}
         />
 
         {/* Tarjetas de Estadísticas Principales (KPIs) */}
         <KpiResumenAsistencias
-          modoAuditoria={modoAuditoria}
-          total={total}
-          asistencias={asistencias}
-          ausencias={ausencias}
+          modoAuditoria={modoAuditoria} total={total}
+          asistencias={asistencias} ausencias={ausencias}
           porcentajeAsistencia={porcentajeAsistencia}
-          carreraTop={carreraTop}
-          labTop={labTop}
-          diaTop={diaTop}
-          isLoading={isLoading}
-          formatearFecha={formatearFecha}
+          carreraTop={carreraTop} labTop={labTop} diaTop={diaTop}
+          isLoading={isLoading} formatearFecha={formatearFecha}
         />
 
         {/* Banner de Contexto de Carrera si está filtrado */}

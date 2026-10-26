@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode, FileText, Bell, CheckCheck } from 'lucide-react';
+import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode, FileText, Bell, CheckCheck, Download } from 'lucide-react';
 import { usuariosApi } from '../api/usuarios.api';
 import { notificacionesApi } from '../api/notificaciones.api';
 
@@ -15,6 +15,38 @@ export default function Navbar() {
   
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Estados para PWA (Instalar en el dispositivo)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', () => {
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstallable(false);
+    }
+    setDeferredPrompt(null);
+  };
 
   // Estados de Notificaciones
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
@@ -196,7 +228,18 @@ export default function Navbar() {
         )}
 
         {/* Botones de Acción */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {isInstallable && (
+            <button
+              onClick={handleInstallClick}
+              className="inline-flex items-center space-x-1.5 bg-tech-blue hover:bg-blue-600 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+              title="Instalar LabReserve en este dispositivo"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Instalar App</span>
+            </button>
+          )}
+
           <button 
             onClick={toggleDarkMode}
             className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
@@ -335,6 +378,18 @@ export default function Navbar() {
             <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl">
               Panel Administrador
             </Link>
+          )}
+          {isInstallable && (
+            <button
+              onClick={() => {
+                handleInstallClick();
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full text-left px-4 py-3 bg-tech-blue/10 dark:bg-blue-900/30 text-tech-blue dark:text-blue-400 font-bold rounded-xl flex items-center space-x-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Instalar Aplicación en este Dispositivo</span>
+            </button>
           )}
           <button onClick={handleLogout} className="w-full text-left mt-4 px-4 py-3 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold">
             Cerrar Sesión

@@ -32,14 +32,22 @@ export const reservasApi = {
   crearReservaIndividual: async (
     laboratorioId: number,
     datos: {
-      fecha: string;
-      horaInicio: string;
-      horaFin: string;
+      fechaInicio?: string;
+      fechaFin?: string;
+      fecha?: string;
+      horaInicio?: string;
+      horaFin?: string;
       motivo?: string;
-      numeroComputadora?: number;
+      numeroComputadora: number;
     }
   ): Promise<Reserva> => {
-    const res = await apiClient.post(`/api/laboratorios/${laboratorioId}/reservas`, datos);
+    const payload = {
+      numeroComputadora: datos.numeroComputadora,
+      motivo: datos.motivo || '',
+      fechaInicio: datos.fechaInicio || (datos.fecha && datos.horaInicio ? `${datos.fecha}T${datos.horaInicio}:00` : ''),
+      fechaFin: datos.fechaFin || (datos.fecha && datos.horaFin ? `${datos.fecha}T${datos.horaFin}:00` : '')
+    };
+    const res = await apiClient.post(`/api/laboratorios/${laboratorioId}/reservas`, payload);
     return res.data?.data || res.data;
   },
 

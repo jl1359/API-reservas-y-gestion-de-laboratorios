@@ -1,7 +1,47 @@
+import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import type { ReservaReporte } from '../components/reportes/TablaAuditoriaAsistencias';
 
-export const exportarDatasetPowerBI = (
+const procesarFilasReporte = (reservas: ReservaReporte[]) => {
+  const formatearHora = (isoDate: string) => {
+    try {
+      const d = new Date(isoDate);
+      return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch {
+      return '--:--';
+    }
+  };
+
+  const formatearHoraExacta = (isoDate: string | null | undefined) => {
+    if (!isoDate) return 'N/A';
+    try {
+      const d = new Date(isoDate);
+      return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    } catch {
+      return isoDate;
+    }
+  };
+
+  return reservas.map(r => ({
+    'ID Reserva': r.id,
+    'Fecha': r.fechaInicio.slice(0, 10),
+    'Hora Inicio': formatearHora(r.fechaInicio),
+    'Hora Fin': formatearHora(r.fechaFin),
+    'Carrera': r.laboratorio?.carrera?.nombre || 'General / Multidisciplinario',
+    'Laboratorio': r.laboratorio?.nombre || '',
+    'Ubicación': r.laboratorio?.ubicacion || 'Campus Central',
+    'Usuario Titular': r.usuario?.nombreCompleto || '',
+    'Correo Institucional': r.usuario?.correo || '',
+    'Cédula de Identidad': r.usuario?.ci || 'N/A',
+    'Modalidad': r.numeroComputadora ? 'Computadora Individual' : 'Laboratorio Completo',
+    'Estación PC': r.numeroComputadora ? `PC-${r.numeroComputadora}` : 'Aforo General',
+    'Estado Reserva': r.estado,
+    'Asistencia Confirmada': r.horaAsistencia ? 'SÍ' : 'NO',
+    'Hora Ingreso QR': formatearHoraExacta(r.horaAsistencia)
+  }));
+};
+
+export const exportarReporteExcel = (
   reservas: ReservaReporte[] = [],
   modoAuditoria: 'dia' | 'rango',
   fecha: string,
@@ -13,78 +53,39 @@ export const exportarDatasetPowerBI = (
     return;
   }
 
-  const formatearHora = (isoDate: string) => {
-    try {
-      const d = new Date(isoDate);
-      return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false });
-    } catch {
-      return '--:--';
-    }
-  };
+  const filas = procesarFilasReporte(reservas);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(filas);
 
-  const formatearHoraExacta = (isoDate: string | null | undefined) => {
-    if (!isoDate) return null;
-    try {
-      const d = new Date(isoDate);
-      return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    } catch {
-      return isoDate;
-    }
-  };
+  const colWidths = Object.keys(filas[0] || {}).map(k => ({ wch: Math.max(k.length + 2, 14) }));
+  ws['!cols'] = colWidths;
 
-  const encabezados = [
-    'ID_Reserva',
-    'Fecha',
-    'Hora_Inicio',
-    'Hora_Fin',
-    'Carrera_Laboratorio',
-    'Laboratorio',
-    'Ubicacion',
-    'Usuario_Titular',
-    'Correo_Usuario',
-    'Carrera_Usuario',
-    'Modalidad',
-    'Numero_Computadora',
-    'Estado_Reserva',
-    'Asistencia_Registrada',
-    'Hora_Ingreso_QR'
-  ];
+  XLSX.utils.book_append_sheet(wb, ws, 'Auditoría de Asistencias');
 
-  const filas = reservas.map(r => {
-    const fechaReserva = r.fechaInicio.slice(0, 10);
-    const horaIni = formatearHora(r.fechaInicio);
-    const horaFin = formatearHora(r.fechaFin);
-    const carreraLab = (r.laboratorio?.carrera?.nombre || 'General / Sin Asignar').replace(/"/g, '""');
-    const carreraUser = 'Sin Carrera';
-    const modalidad = r.numeroComputadora ? 'Computadora Individual' : 'Laboratorio Completo';
-    const numPc = r.numeroComputadora ? `PC-${r.numeroComputadora}` : 'N/A';
-    const asistio = r.horaAsistencia ? 'SI' : 'NO';
-    const horaCheckin = formatearHoraExacta(r.horaAsistencia) || 'N/A';
-    const labNombre = (r.laboratorio?.nombre || '').replace(/"/g, '""');
-    const labUbicacion = (r.laboratorio?.ubicacion || '').replace(/"/g, '""');
-    const usuarioNombre = (r.usuario?.nombreCompleto || '').replace(/"/g, '""');
-    const usuarioCorreo = (r.usuario?.correo || '').replace(/"/g, '""');
+  const nombreArchivo = modoAuditoria === 'rango'
+    ? `Reporte_Asistencias_${fechaInicio}_al_${fechaFin}.xlsx`
+    : `Reporte_Asistencias_${fecha}.xlsx`;
 
-    return [
-      r.id,
-      fechaReserva,
-      `"${horaIni}"`,
-      `"${horaFin}"`,
-      `"${carreraLab}"`,
-      `"${labNombre}"`,
-      `"${labUbicacion}"`,
-      `"${usuarioNombre}"`,
-      `"${usuarioCorreo}"`,
-      `"${carreraUser}"`,
-      `"${modalidad}"`,
-      `"${numPc}"`,
-      `"${r.estado}"`,
-      `"${asistio}"`,
-      `"${horaCheckin}"`
-    ].join(',');
-  });
+  XLSX.writeFile(wb, nombreArchivo);
+  toast.success('Reporte de asistencias exportado exitosamente (.xlsx)');
+};
 
-  const csvContent = '\uFEFF' + [encabezados.join(','), ...filas].join('\r\n');
+export const exportarReporteCsv = (
+  reservas: ReservaReporte[] = [],
+  modoAuditoria: 'dia' | 'rango',
+  fecha: string,
+  fechaInicio: string,
+  fechaFin: string
+) => {
+  if (!reservas || reservas.length === 0) {
+    toast.error('No hay datos disponibles para exportar en este período');
+    return;
+  }
+
+  const filas = procesarFilasReporte(reservas);
+  const ws = XLSX.utils.json_to_sheet(filas);
+  const csvContent = '\uFEFF' + XLSX.utils.sheet_to_csv(ws);
+
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -98,5 +99,7 @@ export const exportarDatasetPowerBI = (
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 
-  toast.success('Reporte de asistencias exportado exitosamente (CSV)');
+  toast.success('Reporte de asistencias exportado exitosamente (.csv)');
 };
+
+export const exportarDatasetPowerBI = exportarReporteCsv;

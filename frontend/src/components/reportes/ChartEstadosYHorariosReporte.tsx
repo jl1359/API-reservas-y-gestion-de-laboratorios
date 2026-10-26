@@ -1,4 +1,4 @@
-import { PieChart, Clock } from 'lucide-react';
+﻿import { PieChart, Clock } from 'lucide-react';
 
 interface SegmentoPastelEstado {
   estado: string;

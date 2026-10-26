@@ -64,15 +64,21 @@ export const crearReservaIndividualService = async (
     const colision = await tx.reserva.findFirst({
       where: {
         laboratorioId,
-        numeroComputadora,
+        OR: [
+          { numeroComputadora },
+          { numeroComputadora: null }
+        ],
         estado: { in: ESTADOS_ACTIVOS },
         fechaInicio: { lt: fechaFin },
         fechaFin: { gt: fechaInicio },
       },
-      select: { id: true },
+      select: { id: true, numeroComputadora: true },
     });
 
     if (colision) {
+      if (colision.numeroComputadora === null) {
+        throw new ReservaServiceError(409, 'El laboratorio completo se encuentra reservado en ese horario para una clase o actividad académica');
+      }
       throw new ReservaServiceError(409, `La computadora PC-${numeroComputadora} ya está reservada en ese horario`);
     }
 
@@ -236,9 +242,7 @@ export const listarMisReservasService = async (usuarioId: number) => {
   const reservas = await prisma.reserva.findMany({
     where: { usuarioId },
     include: {
-      laboratorio: {
-        select: { id: true, nombre: true, ubicacion: true, reservaPorComputadora: true, capacidad: true }
-      }
+      laboratorio: { select: { id: true, nombre: true, ubicacion: true, reservaPorComputadora: true, capacidad: true } }
     },
     orderBy: { fechaInicio: 'desc' }
   });
@@ -466,10 +470,7 @@ export const cancelarReservaFuerzaMayorService = async (
 
   const reservaActualizada = await prisma.reserva.update({
     where: { id: reservaId },
-    data: {
-      estado: 'Cancelada',
-      motivo: `Cancelada por fuerza mayor: ${motivo.trim()}`
-    },
+    data: { estado: 'Cancelada', motivo: `Cancelada por fuerza mayor: ${motivo.trim()}` },
     include: {
       laboratorio: { select: { id: true, nombre: true } },
       usuario: { select: { id: true, nombreCompleto: true, correo: true } }

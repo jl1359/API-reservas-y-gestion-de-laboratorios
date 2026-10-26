@@ -23,6 +23,9 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [mostrarReenvioActivacion, setMostrarReenvioActivacion] = useState(false);
+  const [correoPendienteVerificacion, setCorreoPendienteVerificacion] = useState('');
+  const [isResending, setIsResending] = useState(false);
   const navigate = useNavigate();
 
   // Modo oscuro
@@ -61,6 +64,24 @@ export default function Login() {
       setForgotEmail('');
     } catch (error) {
       toast.error('Error al solicitar recuperación');
+    }
+  };
+
+  const handleReenviarActivacion = async () => {
+    const correoDestino = (correoPendienteVerificacion || correo).trim();
+    if (!correoDestino) {
+      toast.error('Por favor, ingresa tu correo electrónico');
+      return;
+    }
+    setIsResending(true);
+    try {
+      const res = await axios.post('http://localhost:3000/api/auth/reenviar-activacion', { correo: correoDestino });
+      toast.success(res.data?.mensaje || 'Enlace reenviado. Revisa tu bandeja de entrada o spam.');
+      setMostrarReenvioActivacion(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al reenviar enlace de activación');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -103,9 +124,10 @@ export default function Login() {
           setIsLoading(false);
           return;
         }
+        const correoRegistrado = correo.trim();
         await axios.post('http://localhost:3000/api/auth/register', {
           nombreCompleto,
-          correo,
+          correo: correoRegistrado,
           password,
           ci: ci.trim(),
           telefono: telefono.trim(),
@@ -115,9 +137,20 @@ export default function Login() {
         setIsLogin(true); 
         setPassword('');
         setCi('');
+        setNombreCompleto('');
+        setCorreo(correoRegistrado);
+        setTelefono('');
+        setCarreraId('');
+        setCorreoPendienteVerificacion(correoRegistrado);
+        setMostrarReenvioActivacion(true);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Ocurrió un error en el servidor');
+      const errorMsg = error.response?.data?.error || 'Ocurrió un error en el servidor';
+      toast.error(errorMsg);
+      if (typeof errorMsg === 'string' && errorMsg.toLowerCase().includes('verificar tu correo')) {
+        setCorreoPendienteVerificacion(correo.trim());
+        setMostrarReenvioActivacion(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -175,7 +208,7 @@ export default function Login() {
           <h1 className="text-5xl font-poppins font-extrabold text-white tracking-tight mb-6 leading-tight">
             LabReserve <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
-              Sistema de Gestión
+              Sistema de Gestión y Reservas
             </span>
           </h1>
 
@@ -266,21 +299,61 @@ export default function Login() {
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Contraseña</label>
                 {isLogin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (correo) setForgotEmail(correo);
-                      setIsForgotModalOpen(true);
-                    }}
-                    className="text-xs font-semibold text-tech-blue hover:text-blue-500 hover:underline transition-colors"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMostrarReenvioActivacion(true);
+                        setCorreoPendienteVerificacion(correo);
+                      }}
+                      className="text-xs font-semibold text-amber-600 hover:text-amber-700 hover:underline transition-colors"
+                    >
+                      Activar cuenta
+                    </button>
+                    <span className="text-slate-300 dark:text-slate-600">·</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (correo) setForgotEmail(correo);
+                        setIsForgotModalOpen(true);
+                      }}
+                      className="text-xs font-semibold text-tech-blue hover:text-blue-500 hover:underline transition-colors"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
                 )}
               </div>
               <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm text-slate-900 dark:text-white focus:ring-tech-blue focus:border-tech-blue" />
             </div>
+
+            {isLogin && mostrarReenvioActivacion && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">¿No recibiste el correo de activación?</span>
+                  <button 
+                    type="button" 
+                    onClick={() => setMostrarReenvioActivacion(false)}
+                    className="text-amber-600 hover:text-amber-800 dark:hover:text-amber-100 p-0.5"
+                    title="Cerrar aviso"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+                  Si tu cuenta está pendiente o el enlace expiró, podemos reenviar el enlace a <span className="font-semibold">{correoPendienteVerificacion || correo || 'tu correo'}</span>.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleReenviarActivacion}
+                  disabled={isResending}
+                  className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs transition shadow-sm text-center disabled:opacity-50 cursor-pointer"
+                >
+                  {isResending ? 'Reenviando enlace...' : 'Reenviar enlace de activación'}
+                </button>
+              </div>
+            )}
 
             <button type="submit" disabled={isLoading} className="w-full py-3 px-4 rounded-xl shadow-sm text-sm font-bold text-white bg-umss-blue hover:bg-blue-800 disabled:opacity-50 transition-all mt-4">
               {isLoading ? 'Procesando...' : (isLogin ? 'Ingresar al Sistema' : 'Registrarse')}
@@ -293,7 +366,7 @@ export default function Login() {
                 <div className="w-full border-t border-gray-300 dark:border-slate-700"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-50 dark:bg-slate-900 text-gray-500 dark:text-slate-400">Acceso Institucional</span>
+                <span className="px-2 bg-slate-50 dark:bg-slate-900 text-gray-500 dark:text-slate-400">Acceso mediante correo Google</span>
               </div>
             </div>
 
@@ -310,9 +383,9 @@ export default function Login() {
           </div>
           
           <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
-            {isLogin ? '¿Personal nuevo? ' : '¿Ya tienes cuenta? '}
-            <button onClick={() => setIsLogin(!isLogin)} className="font-bold text-tech-blue hover:text-blue-500">
-              {isLogin ? 'Solicitar acceso' : 'Ingresar'}
+            {isLogin ? '¿No tienes una cuenta? ' : '¿Ya tienes una cuenta? '}
+            <button onClick={() => setIsLogin(!isLogin)} className="font-bold text-tech-blue hover:text-blue-500 cursor-pointer">
+              {isLogin ? 'Crear nueva cuenta' : 'Iniciar sesión'}
             </button>
           </p>
 

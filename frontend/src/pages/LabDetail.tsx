@@ -251,7 +251,11 @@ export default function LabDetail() {
       horaInicio: bloqueInicio,
       horaFin: bloqueFin
     });
-    setIsModalReservaOpen(true);
+    if (puedeReservarComputadora) {
+      setMostrarReserva(true);
+    } else {
+      setIsModalReservaOpen(true);
+    }
   };
 
   const handleAbrirReservaGeneral = () => {
@@ -308,7 +312,14 @@ export default function LabDetail() {
         <LabDetailHeader
           lab={lab}
           puedeReservarComputadora={puedeReservarComputadora}
-          onReservarComputadora={() => setMostrarReserva(true)}
+          onReservarComputadora={() => {
+            setModalInitialParams({
+              fecha: fechaSeleccionada,
+              horaInicio: '08:15',
+              horaFin: '09:45'
+            });
+            setMostrarReserva(true);
+          }}
           onReservarLaboratorio={handleAbrirReservaGeneral}
         />
 
@@ -350,7 +361,13 @@ export default function LabDetail() {
           laboratorioId={lab.id}
           laboratorioNombre={lab.nombre}
           cantidadComputadoras={cantidadComputadoras}
-          onCerrar={() => setMostrarReserva(false)}
+          initialFecha={modalInitialParams.fecha || fechaSeleccionada}
+          initialHoraInicio={modalInitialParams.horaInicio || '08:15'}
+          initialHoraFin={modalInitialParams.horaFin || '09:45'}
+          onCerrar={() => {
+            setMostrarReserva(false);
+            setModalInitialParams({});
+          }}
           onReservaCreada={() => {
             setCalendarioVersion((version) => version + 1);
             fetchReservas();

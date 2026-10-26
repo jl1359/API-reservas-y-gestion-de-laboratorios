@@ -14,6 +14,14 @@ if (!GOOGLE_CLIENT_ID) {
   console.error("ERROR CRITICO: Vite no está cargando la variable VITE_GOOGLE_CLIENT_ID del archivo .env");
 }
 
+if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('PWA ServiceWorker registration failed:', err);
+    });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || 'dummy-id'}>

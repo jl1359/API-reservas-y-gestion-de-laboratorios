@@ -5,6 +5,7 @@ import {
   AuthServiceError,
   registrarUsuarioService,
   verificarCorreoService,
+  reenviarActivacionService,
   loginService,
   forgotPasswordService,
   resetPasswordService,
@@ -43,6 +44,22 @@ export const verificarCorreo = async (req: Request, res: Response): Promise<any>
     return res.json(resultado);
   } catch (error: any) {
     return res.status(400).json({ error: 'Token de activación inválido o expirado' });
+  }
+};
+
+export const reenviarActivacion = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { correo } = req.body;
+    if (!correo) {
+      return res.status(400).json({ error: 'Debes ingresar un correo electrónico' });
+    }
+    const resultado = await reenviarActivacionService(correo);
+    return res.json(resultado);
+  } catch (error: any) {
+    if (error instanceof AuthServiceError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    return res.status(500).json({ error: 'Error al reenviar el enlace de activación' });
   }
 };
 

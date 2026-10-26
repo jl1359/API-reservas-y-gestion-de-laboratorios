@@ -27,13 +27,20 @@ export const registrarUsuarioService = async (datos: {
   const telefonoNormalizado = datos.telefono.trim();
 
   const usuarioExistente = await prisma.usuario.findUnique({ where: { correo: correoNormalizado } });
-  if (usuarioExistente) {
+  if (usuarioExistente && usuarioExistente.correoVerificado) {
     throw new AuthServiceError(400, 'El correo electrónico ya está registrado');
   }
 
   const ciExistente = await prisma.usuario.findFirst({ where: { ci: ciNormalizado } });
-  if (ciExistente) {
+  if (ciExistente && ciExistente.correoVerificado && ciExistente.id !== usuarioExistente?.id) {
     throw new AuthServiceError(400, 'La Cédula de Identidad (CI) ya se encuentra registrada en el sistema');
+  }
+
+  // Si existe un registro anterior no verificado que retenia este CI bajo otro correo, se libera
+  if (ciExistente && !ciExistente.correoVerificado && (!usuarioExistente || ciExistente.id !== usuarioExistente.id)) {
+    await prisma.notificacion.deleteMany({ where: { usuarioId: ciExistente.id } }).catch(() => null);
+    await prisma.auditoria.deleteMany({ where: { usuarioId: ciExistente.id } }).catch(() => null);
+    await prisma.usuario.delete({ where: { id: ciExistente.id } });
   }
 
   let rolEstudiante = await prisma.rol.findFirst({ where: { nombre: 'Estudiante' } });
@@ -50,6 +57,27 @@ export const registrarUsuarioService = async (datos: {
 
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash(datos.password, salt);
+
+  // Si el correo ya existia pero no habia sido verificado, actualizamos sus datos y reenviamos activacion
+  if (usuarioExistente && !usuarioExistente.correoVerificado) {
+    const usuarioActualizado = await prisma.usuario.update({
+      where: { id: usuarioExistente.id },
+      data: {
+        nombreCompleto: datos.nombreCompleto.trim(),
+        passwordHash,
+        ci: ciNormalizado,
+        telefono: telefonoNormalizado,
+        carreraId: Number(carreraFinalId),
+        rolId: rolEstudiante.id,
+        correoVerificado: false
+      }
+    });
+
+    const activacionToken = jwt.sign({ id: usuarioActualizado.id }, JWT_SECRET, { expiresIn: '1d' });
+    enviarCorreoActivacion(usuarioActualizado.correo, activacionToken).catch(e => console.error(e));
+
+    return usuarioActualizado;
+  }
 
   const nuevoUsuario = await prisma.usuario.create({
     data: {
@@ -68,6 +96,30 @@ export const registrarUsuarioService = async (datos: {
   enviarCorreoActivacion(nuevoUsuario.correo, activacionToken).catch(e => console.error(e));
 
   return nuevoUsuario;
+};
+
+export const reenviarActivacionService = async (correo: string) => {
+  if (!correo) {
+    throw new AuthServiceError(400, 'Debes ingresar un correo electrónico');
+  }
+
+  const correoNormalizado = correo.toLowerCase().trim();
+  const usuario = await prisma.usuario.findUnique({
+    where: { correo: correoNormalizado }
+  });
+
+  if (!usuario) {
+    throw new AuthServiceError(404, 'No se encontró ninguna cuenta registrada con este correo');
+  }
+
+  if (usuario.correoVerificado) {
+    return { mensaje: 'Esta cuenta ya está verificada. Puedes iniciar sesión directamente.' };
+  }
+
+  const activacionToken = jwt.sign({ id: usuario.id }, JWT_SECRET, { expiresIn: '1d' });
+  await enviarCorreoActivacion(usuario.correo, activacionToken);
+
+  return { mensaje: 'Enlace de activación reenviado con éxito. Revisa tu bandeja de entrada o spam.' };
 };
 
 export const verificarCorreoService = async (token: string) => {
