@@ -1,14 +1,8 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { Plus, Calendar, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-interface FeriadoItem {
-  id: number;
-  fecha: string;
-  motivo: string;
-  bloqueoActivo: boolean;
-}
+import { feriadosApi } from '../../api/feriados.api';
+import type { Feriado as FeriadoItem } from '../../types';
 
 interface TabFeriadosProps {
   feriadosList: FeriadoItem[];
@@ -28,16 +22,10 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
     }
     setIsSubmittingFeriado(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        'http://localhost:3000/api/feriados',
-        {
-          fecha: feriadoForm.fecha,
-          motivo: feriadoForm.motivo.trim(),
-          bloqueoActivo: true
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await feriadosApi.crear({
+        fecha: feriadoForm.fecha,
+        motivo: feriadoForm.motivo.trim()
+      });
       toast.success('Feriado o día bloqueado registrado correctamente');
       setIsFeriadoModalOpen(false);
       setFeriadoForm({ fecha: '', motivo: '' });
@@ -54,10 +42,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
       return;
     }
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:3000/api/feriados/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await feriadosApi.eliminar(id);
       toast.success('Restricción anulada. El día fue reabierto en el calendario');
       onRefresh();
     } catch (error: any) {

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { 
   ShieldCheck, 
   FlaskConical, 
@@ -16,7 +15,12 @@ import Navbar from '../components/Navbar';
 import { usuariosApi } from '../api/usuarios.api';
 import { laboratoriosApi } from '../api/laboratorios.api';
 import { sancionesApi } from '../api/sanciones.api';
-import type { Usuario, Mantenimiento, AuditoriaEvento, Rol, Sancion } from '../types';
+import { carrerasApi } from '../api/carreras.api';
+import { rolesApi } from '../api/roles.api';
+import { reservasApi } from '../api/reservas.api';
+import { feriadosApi } from '../api/feriados.api';
+import { mantenimientosApi } from '../api/mantenimientos.api';
+import type { Usuario, Mantenimiento, AuditoriaEvento, Rol, Sancion, Carrera, Feriado as FeriadoItem } from '../types';
 
 import TabLaboratorios, { type LaboratorioAdminItem } from '../components/admin/TabLaboratorios';
 import TabUsuarios, { type SolicitudRolItem } from '../components/admin/TabUsuarios';
@@ -26,18 +30,6 @@ import TabFeriados from '../components/admin/TabFeriados';
 import TabAuditoria from '../components/admin/TabAuditoria';
 import TabSanciones from '../components/admin/TabSanciones';
 import TabReportes from '../components/admin/TabReportes';
-
-interface Carrera {
-  id: number;
-  nombre: string;
-}
-
-interface FeriadoItem {
-  id: number;
-  fecha: string;
-  motivo: string;
-  bloqueoActivo: boolean;
-}
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<
@@ -59,33 +51,31 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
 
-      const [resLabs, resCarreras, resSols, resReservas, resFeriados, users, mants, audits, rolesRes, sanctions] =
+      const [labs, carrs, sols, reservas, feriados, users, mants, audits, roles, sanctions] =
         await Promise.all([
-          axios.get('http://localhost:3000/api/laboratorios?incluirTodos=true'),
-          axios.get('http://localhost:3000/api/carreras'),
-          axios.get('http://localhost:3000/api/roles/requests', { headers }).catch(() => ({ data: [] })),
-          axios.get('http://localhost:3000/api/reservas', { headers }).catch(() => ({ data: { data: [] } })),
-          axios.get('http://localhost:3000/api/feriados').catch(() => ({ data: { data: [] } })),
+          laboratoriosApi.listar({ incluirTodos: true }).catch(() => []),
+          carrerasApi.listar().catch(() => []),
+          rolesApi.listarSolicitudes().catch(() => []),
+          reservasApi.listarTodas().catch(() => []),
+          feriadosApi.listar().catch(() => []),
           usuariosApi.listar().catch(() => []),
-          laboratoriosApi.listarMantenimientos().catch(() => []),
+          mantenimientosApi.listar().catch(() => []),
           usuariosApi.obtenerAuditoriaSesiones(100).catch(() => []),
-          axios.get('http://localhost:3000/api/roles?paraAdmin=true').catch(() => ({ data: [] })),
+          rolesApi.listar(true).catch(() => []),
           sancionesApi.listarTodas().catch(() => [])
         ]);
 
-      setLaboratorios(resLabs.data?.laboratorios || resLabs.data?.data || []);
-      setCarreras(resCarreras.data || []);
-      setSolicitudes(resSols.data || []);
-      setReservasList(resReservas.data?.data || resReservas.data?.reservas || []);
-      setFeriadosList(resFeriados.data?.data || []);
-      setUsuariosList(users || []);
-      setMantenimientosList(mants || []);
-      setAuditoriaList(audits || []);
-      setRolesList(rolesRes.data || []);
-      setSancionesList(sanctions || []);
+      setLaboratorios(labs as any);
+      setCarreras(carrs);
+      setSolicitudes(sols as any);
+      setReservasList(reservas as any);
+      setFeriadosList(feriados);
+      setUsuariosList(users);
+      setMantenimientosList(mants);
+      setAuditoriaList(audits);
+      setRolesList(roles);
+      setSancionesList(sanctions);
     } catch (error) {
       toast.error('Error al cargar datos del sistema');
     } finally {
@@ -120,7 +110,7 @@ export default function AdminDashboard() {
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 text-tech-blue dark:text-blue-400 text-xs font-semibold uppercase tracking-wider mb-2">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Gestión Centralizada FCyT</span>
+              <span>Gestión de Laboratorios FCyT</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center">
               Panel de Administración

@@ -1,4 +1,4 @@
-import { Router, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import {
   crearReserva,
   listarReservasPendientes,
@@ -17,22 +17,13 @@ import {
   registrarAsistenciaManual
 } from '../controllers/reservas.controller';
 import {
-  AuthRequest,
   verificarToken,
   permitirRoles,
-  esAdminOResponsable
+  esAdminOResponsable,
+  soloEstudiantes
 } from '../middlewares/auth.middleware';
 
 const router = Router();
-
-// Middleware especifico para reservas individuales de estudiantes
-const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  if (req.user?.rol !== 'Estudiante') {
-    res.status(403).json({ error: 'La reserva individual está disponible únicamente para estudiantes' });
-    return;
-  }
-  next();
-};
 
 // Registro de reserva de laboratorio (Docente, Auxiliar, Admin)
 router.post('/', verificarToken, crearReserva);
@@ -97,7 +88,7 @@ router.put(
 // Obtencion de codigo QR especifico
 router.get('/:id/qr', verificarToken, obtenerQrReserva);
 
-// Reserva individual de computadora para estudiantes
+// Reserva individual de computadora para estudiantes (compatibilidad de ruta directa)
 router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndividual);
 
 // Consulta general de reservas del campus

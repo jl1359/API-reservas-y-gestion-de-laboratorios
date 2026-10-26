@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Users, 
@@ -9,11 +9,10 @@ import {
   ArrowRight, 
   Sparkles, 
   RotateCcw,
-  CheckCircle2,
   Building
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import axios from 'axios';
+import apiClient from '../api/client';
 import toast from 'react-hot-toast';
 
 interface Laboratorio {
@@ -39,7 +38,7 @@ export default function Home() {
       if (capacidad) params.append('capacidadRequerida', capacidad);
       if (carrera) params.append('carrera', carrera);
       
-      const response = await axios.get('http://localhost:3000/api/laboratorios?' + params.toString());
+      const response = await apiClient.get('/api/laboratorios?' + params.toString());
       setLaboratorios(response.data.laboratorios || []);
     } catch (error) {
       console.error('Error al cargar laboratorios:', error);
@@ -49,7 +48,7 @@ export default function Home() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     fetchLaboratorios();
   };

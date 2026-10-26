@@ -56,5 +56,13 @@ export const reportesApi = {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  },
+
+  descargarCsvMetricas: async (fechaInicio?: string, fechaFin?: string, laboratorioId?: number): Promise<void> => {
+    return reportesApi.descargarCsv(fechaInicio, fechaFin, laboratorioId);
+  },
+
+  descargarExcelMetricas: async (fechaInicio?: string, fechaFin?: string, laboratorioId?: number): Promise<void> => {
+    return reportesApi.descargarExcel(fechaInicio, fechaFin, laboratorioId);
   }
 };

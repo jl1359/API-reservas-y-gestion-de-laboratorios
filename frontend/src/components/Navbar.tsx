@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode, FileText, Bell, CheckCheck } from 'lucide-react';
-import axios from 'axios';
+import { usuariosApi } from '../api/usuarios.api';
+import { notificacionesApi } from '../api/notificaciones.api';
 
 import LogoIcon from './LogoIcon';
 
@@ -25,13 +26,8 @@ export default function Navbar() {
     if (!isAuthenticated) return;
     const syncUserRole = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        const res = await axios.get('http://localhost:3000/api/usuarios/perfil', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.data?.success && res.data?.data) {
-          const perfil = res.data.data;
+        const perfil = await usuariosApi.obtenerMiPerfil();
+        if (perfil) {
           const rolNombre = typeof perfil.rol === 'object' && perfil.rol !== null
             ? (perfil.rol.nombre || 'Estudiante')
             : (perfil.rol || 'Estudiante');
@@ -86,14 +82,9 @@ export default function Navbar() {
 
     const fetchNotificaciones = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:3000/api/notificaciones', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.data.success) {
-          setNotificaciones(res.data.notificaciones || []);
-          setNoLeidas(res.data.noLeidas || 0);
-        }
+        const data = await notificacionesApi.obtenerMisNotificaciones();
+        setNotificaciones((data.notificaciones as any) || []);
+        setNoLeidas(data.noLeidasCount || 0);
       } catch (e) {
         // Silencioso si la sesión expira
       }
@@ -106,10 +97,7 @@ export default function Navbar() {
 
   const handleMarcarTodasLeidas = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put('http://localhost:3000/api/notificaciones/marcar-todas', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await notificacionesApi.marcarTodasComoLeidas();
       setNoLeidas(0);
       setNotificaciones(prev => prev.map(n => ({ ...n, leido: true })));
     } catch (e) {}
@@ -117,10 +105,7 @@ export default function Navbar() {
 
   const handleMarcarLeida = async (id: number) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/notificaciones/${id}/leida`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await notificacionesApi.marcarComoLeida(id);
       setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, leido: true } : n));
       setNoLeidas(prev => Math.max(0, prev - 1));
     } catch (e) {}

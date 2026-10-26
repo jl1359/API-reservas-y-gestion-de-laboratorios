@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { X, Calendar, Clock, BookOpen, Users, FileText, CheckCircle, AlertCircle, Repeat } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { feriadosApi } from '../api/feriados.api';
+import apiClient from '../api/client';
 
 interface SolicitudReservaModalProps {
   isOpen: boolean;
@@ -48,11 +49,9 @@ export default function SolicitudReservaModal({
       if (initialFecha) setFecha(initialFecha);
       if (initialHoraInicio) setHoraInicio(initialHoraInicio);
       if (initialHoraFin) setHoraFin(initialHoraFin);
-      axios.get('http://localhost:3000/api/feriados')
-        .then(res => {
-          if (res.data.data) {
-            setFeriados(res.data.data.filter((f: any) => f.bloqueoActivo));
-          }
+      feriadosApi.listar()
+        .then(lista => {
+          setFeriados(lista.filter((f: any) => f.bloqueoActivo));
         })
         .catch(() => {});
     }
@@ -107,22 +106,16 @@ export default function SolicitudReservaModal({
         return;
       }
 
-      const res = await axios.post(
-        'http://localhost:3000/api/reservas',
-        {
-          laboratorioId: laboratorio.id,
-          fechaInicio: fechaInicioISO,
-          fechaFin: fechaFinISO,
-          materia: materia.trim(),
-          cantidadAlumnos: alumnos,
-          motivo: motivo.trim() || undefined,
-          recurrente,
-          fechaFinSemestre: fechaFinSemestreISO
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const res = await apiClient.post('/api/reservas', {
+        laboratorioId: laboratorio.id,
+        fechaInicio: fechaInicioISO,
+        fechaFin: fechaFinISO,
+        materia: materia.trim(),
+        cantidadAlumnos: alumnos,
+        motivo: motivo.trim() || undefined,
+        recurrente,
+        fechaFinSemestre: fechaFinSemestreISO
+      });
 
       if (res.data.success) {
         toast.success(res.data.mensaje || 'Reserva registrada y confirmada correctamente');
