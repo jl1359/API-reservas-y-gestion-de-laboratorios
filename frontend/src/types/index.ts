@@ -145,3 +145,31 @@ export interface ResumenMetricasAcademicas {
   laboratorios: MetricasLaboratorio[];
 }
 
+export interface Feriado {
+  id: number;
+  fecha: string;
+  motivo: string;
+  bloqueoActivo: boolean;
+}
+
+export interface SolicitudRol {
+  id: number;
+  usuarioId: number;
+  rolSolicitado: string;
+  motivo?: string;
+  estado: 'Pendiente' | 'Aprobada' | 'Rechazada';
+  fechaSolicitud: string;
+  fechaRespuesta?: string | null;
+  motivoRechazo?: string | null;
+  usuario?: Usuario;
+}
+
+export interface Notificacion {
+  id: number;
+  usuarioId: number;
+  titulo: string;
+  mensaje: string;
+  tipo: string;
+  leida: boolean;
+  createdAt: string;
+}

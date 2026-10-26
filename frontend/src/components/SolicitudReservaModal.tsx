@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { X, Calendar, Clock, BookOpen, Users, FileText, CheckCircle, AlertCircle, Repeat } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { feriadosApi } from '../api/feriados.api';
+import apiClient from '../api/client';
 
 interface SolicitudReservaModalProps {
   isOpen: boolean;
@@ -48,11 +49,9 @@ export default function SolicitudReservaModal({
       if (initialFecha) setFecha(initialFecha);
       if (initialHoraInicio) setHoraInicio(initialHoraInicio);
       if (initialHoraFin) setHoraFin(initialHoraFin);
-      axios.get('http://localhost:3000/api/feriados')
-        .then(res => {
-          if (res.data.data) {
-            setFeriados(res.data.data.filter((f: any) => f.bloqueoActivo));
-          }
+      feriadosApi.listar()
+        .then(lista => {
+          setFeriados(lista.filter((f: any) => f.bloqueoActivo));
         })
         .catch(() => {});
     }
@@ -107,22 +106,16 @@ export default function SolicitudReservaModal({
         return;
       }
 
-      const res = await axios.post(
-        'http://localhost:3000/api/reservas',
-        {
-          laboratorioId: laboratorio.id,
-          fechaInicio: fechaInicioISO,
-          fechaFin: fechaFinISO,
-          materia: materia.trim(),
-          cantidadAlumnos: alumnos,
-          motivo: motivo.trim() || undefined,
-          recurrente,
-          fechaFinSemestre: fechaFinSemestreISO
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const res = await apiClient.post('/api/reservas', {
+        laboratorioId: laboratorio.id,
+        fechaInicio: fechaInicioISO,
+        fechaFin: fechaFinISO,
+        materia: materia.trim(),
+        cantidadAlumnos: alumnos,
+        motivo: motivo.trim() || undefined,
+        recurrente,
+        fechaFinSemestre: fechaFinSemestreISO
+      });
 
       if (res.data.success) {
         toast.success(res.data.mensaje || 'Reserva registrada y confirmada correctamente');
@@ -321,7 +314,7 @@ export default function SolicitudReservaModal({
                   className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white transition"
                 />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Se reservará este mismo horario cada semana. La creación es <strong>atómica</strong>: si alguna semana choca con otra clase o feriado, se rechazará la serie completa.
+                  Reserva semanal sujeta a disponibilidad continua de fechas.
                 </p>
               </div>
             )}
@@ -331,7 +324,7 @@ export default function SolicitudReservaModal({
           <div className="flex items-start p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs">
             <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
             <span>
-              <strong>Aprobación Inmediata:</strong> La reserva quedará confirmada al instante y tu código QR de acceso estará disponible inmediatamente en tu perfil.
+              <strong>Confirmación inmediata:</strong> Tu código QR de ingreso se generará al instante.
             </span>
           </div>
 

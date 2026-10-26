@@ -263,4 +263,3 @@ export const exportarCsvMetricasAcademicas = async (req: AuthRequest, res: Respo
     res.status(500).json({ success: false, error: 'No se pudo exportar el informe CSV' });
   }
 };
-

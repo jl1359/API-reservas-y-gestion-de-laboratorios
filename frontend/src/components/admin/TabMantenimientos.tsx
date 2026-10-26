@@ -68,15 +68,15 @@ export default function TabMantenimientos({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 dark:bg-slate-900/80 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm backdrop-blur-sm">
         <div>
-          <h3 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+          <h3 className="text-lg font-heading font-bold text-slate-900 dark:text-white flex items-center">
             <Wrench className="w-5 h-5 mr-2 text-tech-blue" />
             Programación de Mantenimiento y Bloqueos
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Bloquea temporalmente el calendario de los laboratorios ante reparaciones preventivas o correctivas.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Bloqueo de horarios por mantenimiento preventivo o correctivo.
           </p>
         </div>
         <button
@@ -84,16 +84,17 @@ export default function TabMantenimientos({
             setMantenimientoForm({ laboratorioId: '', fechaInicio: '', fechaFin: '', motivo: '' });
             setIsMantenimientoModalOpen(true);
           }}
-          className="bg-tech-blue hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center shadow-sm transition-all"
+          className="inline-flex items-center bg-tech-blue hover:bg-blue-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all"
         >
-          <Plus className="w-5 h-5 mr-2" /> Programar Mantenimiento
+          <Plus className="w-4 h-4 mr-2" /> Programar Mantenimiento
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Vista de Escritorio / Tablet Grande (Tabla con scroll horizontal protegido) */}
+      <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-            <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700 text-xs">
+          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400 min-w-[720px]">
+            <thead className="bg-slate-50/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 font-heading border-b border-slate-150 dark:border-slate-800 text-xs tracking-wide">
               <tr>
                 <th className="px-6 py-4 font-bold">Laboratorio</th>
                 <th className="px-6 py-4 font-bold">Período de Bloqueo</th>
@@ -174,16 +175,95 @@ export default function TabMantenimientos({
         </div>
       </div>
 
+      {/* Vista Móvil / Tablet Pequeña (Tarjetas Táctiles) */}
+      <div className="block md:hidden space-y-3">
+        {isLoading ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200/80 dark:border-slate-800">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div>
+          </div>
+        ) : mantenimientosList.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200/80 dark:border-slate-800 text-slate-500 text-sm">
+            No hay mantenimientos activos ni programados
+          </div>
+        ) : (
+          mantenimientosList.map((m) => {
+            const inicio = new Date(m.fechaInicio);
+            const fin = new Date(m.fechaFin);
+            const ahora = new Date();
+            const enCurso = ahora >= inicio && ahora <= fin;
+
+            return (
+              <div
+                key={m.id}
+                className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+                      {m.laboratorio?.nombre || `Laboratorio #${m.laboratorioId}`}
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      {m.laboratorio?.ubicacion || 'Campus Central'}
+                    </p>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${
+                    enCurso
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                      : ahora < inicio
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                  }`}>
+                    {enCurso ? 'En Curso' : ahora < inicio ? 'Programado' : 'Concluido'}
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-150 dark:border-slate-700/60 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Inicio:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {inicio.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}{' '}
+                      {inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Fin:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {fin.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}{' '}
+                      {fin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-600 dark:text-slate-300">
+                  <span className="font-semibold text-slate-500 dark:text-slate-400">Motivo: </span>
+                  {m.motivo}
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                  <button
+                    onClick={() => handleEliminarMantenimiento(m.id, m.laboratorio?.nombre || 'este laboratorio')}
+                    className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Anular Bloqueo</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {/* Modal Programar Mantenimiento */}
       {isMantenimientoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 border border-slate-200 dark:border-slate-700 max-h-[92vh] overflow-y-auto my-auto">
-            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 max-h-[92vh] overflow-y-auto my-auto">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-150 dark:border-slate-800">
+              <h2 className="text-lg font-heading font-bold text-slate-900 dark:text-white flex items-center">
                 <Wrench className="w-5 h-5 mr-2 text-tech-blue" />
                 Programar Mantenimiento
               </h2>
-              <button onClick={() => setIsMantenimientoModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <button onClick={() => setIsMantenimientoModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -199,14 +279,14 @@ export default function TabMantenimientos({
                   onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, laboratorioId: e.target.value })}
                   className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue outline-none dark:text-white"
                 >
-                  <option value="" disabled>Seleccione un laboratorio...</option>
+                  <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Seleccione un laboratorio...</option>
                   {laboratorios.map((lab) => (
-                    <option key={lab.id} value={lab.id}>{lab.nombre} ({lab.ubicacion || 'General'})</option>
+                    <option key={lab.id} value={lab.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{lab.nombre} ({lab.ubicacion || 'General'})</option>
                   ))}
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Inicio <span className="text-red-500">*</span>

@@ -27,7 +27,6 @@ app.use('/api/laboratorios', laboratoriosRoutes);
 app.use('/api/mantenimientos', mantenimientosRoutes);
 app.use('/api/carreras', carrerasRoutes);
 app.use('/api/laboratorios', horariosRoutes); 
-app.use('/api/laboratorios', reservasRoutes);
 app.use('/api/equipamientos', equipamientoRoutes);
 app.use('/api/reservas', reservasRoutes);
 app.use('/api/reportes', reportesRoutes);

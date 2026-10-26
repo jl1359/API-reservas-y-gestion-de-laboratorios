@@ -334,4 +334,3 @@ export const aplicarSancionManualService = async (
 
   return nuevaSancion;
 };
-

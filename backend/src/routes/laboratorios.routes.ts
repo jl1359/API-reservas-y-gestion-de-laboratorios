@@ -6,13 +6,17 @@ import {
   actualizarLaboratorio,
   eliminarLaboratorio
 } from '../controllers/laboratorios.controller';
-import { verificarToken, esAdmin } from '../middlewares/auth.middleware';
+import { crearReservaIndividual } from '../controllers/reservas.controller';
+import { verificarToken, esAdmin, soloEstudiantes } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// Rutas pblicas (Bsqueda)
+// Rutas públicas (Búsqueda)
 router.get('/', listarLaboratorios);
 router.get('/:id', obtenerLaboratorioPorId);
+
+// Reserva individual de computadoras en un laboratorio (HU-28 - Estudiantes)
+router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndividual);
 
 // Rutas protegidas (Solo Administradores)
 router.post('/', verificarToken, esAdmin, crearLaboratorio);

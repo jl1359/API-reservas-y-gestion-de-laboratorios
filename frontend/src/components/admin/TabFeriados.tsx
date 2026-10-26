@@ -1,14 +1,8 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { Plus, Calendar, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-interface FeriadoItem {
-  id: number;
-  fecha: string;
-  motivo: string;
-  bloqueoActivo: boolean;
-}
+import { feriadosApi } from '../../api/feriados.api';
+import type { Feriado as FeriadoItem } from '../../types';
 
 interface TabFeriadosProps {
   feriadosList: FeriadoItem[];
@@ -28,16 +22,10 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
     }
     setIsSubmittingFeriado(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        'http://localhost:3000/api/feriados',
-        {
-          fecha: feriadoForm.fecha,
-          motivo: feriadoForm.motivo.trim(),
-          bloqueoActivo: true
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await feriadosApi.crear({
+        fecha: feriadoForm.fecha,
+        motivo: feriadoForm.motivo.trim()
+      });
       toast.success('Feriado o día bloqueado registrado correctamente');
       setIsFeriadoModalOpen(false);
       setFeriadoForm({ fecha: '', motivo: '' });
@@ -54,10 +42,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
       return;
     }
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:3000/api/feriados/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await feriadosApi.eliminar(id);
       toast.success('Restricción anulada. El día fue reabierto en el calendario');
       onRefresh();
     } catch (error: any) {
@@ -66,28 +51,30 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 dark:bg-slate-900/80 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm backdrop-blur-sm">
         <div>
-          <h3 className="text-lg font-poppins font-bold text-slate-900 dark:text-white">
+          <h3 className="text-lg font-heading font-bold text-slate-900 dark:text-white flex items-center">
+            <Calendar className="w-5 h-5 mr-2 text-tech-blue" />
             Calendario de Feriados y Días Bloqueados
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Las fechas aquí registradas inhabilitan automáticamente las reservas en la facultad durante esa jornada.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Días no laborables sin disponibilidad de reservas.
           </p>
         </div>
         <button
           onClick={() => { setFeriadoForm({ fecha: '', motivo: '' }); setIsFeriadoModalOpen(true); }}
-          className="bg-tech-blue hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center shadow-sm transition-all"
+          className="inline-flex items-center bg-tech-blue hover:bg-blue-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all"
         >
-          <Plus className="w-5 h-5 mr-2" /> Nuevo Feriado / Bloqueo
+          <Plus className="w-4 h-4 mr-2" /> Nuevo Feriado / Bloqueo
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Vista de Escritorio / Tablet Grande (Tabla con ancho mínimo protegido) */}
+      <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-            <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-300 uppercase font-poppins border-b border-slate-200 dark:border-slate-700">
+          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400 min-w-[650px]">
+            <thead className="bg-slate-50/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 font-heading border-b border-slate-150 dark:border-slate-800 text-xs tracking-wide">
               <tr>
                 <th className="px-6 py-4 font-bold">Fecha Restringida</th>
                 <th className="px-6 py-4 font-bold">Motivo Institucional</th>
@@ -158,16 +145,79 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
         </div>
       </div>
 
+      {/* Vista Móvil / Tablet Pequeña (Tarjetas Táctiles) */}
+      <div className="block md:hidden space-y-3">
+        {isLoading ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200/80 dark:border-slate-800">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tech-blue mx-auto"></div>
+          </div>
+        ) : feriadosList.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200/80 dark:border-slate-800 text-slate-500 text-sm">
+            No hay feriados o días bloqueados configurados
+          </div>
+        ) : (
+          feriadosList.map((f) => {
+            const fechaObj = new Date(f.fecha);
+            const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+              timeZone: 'UTC',
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+
+            return (
+              <div
+                key={f.id}
+                className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white capitalize text-sm flex items-center">
+                      <Calendar className="w-3.5 h-3.5 mr-1.5 text-rose-500 shrink-0" />
+                      {fechaFormateada}
+                    </p>
+                    <span className="text-[11px] font-mono text-slate-400">{f.fecha.split('T')[0]}</span>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${
+                    f.bloqueoActivo
+                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                  }`}>
+                    {f.bloqueoActivo ? 'Bloqueo Activo' : 'Inactivo'}
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-150 dark:border-slate-700/60 text-xs">
+                  <p className="text-slate-400 text-[11px] font-medium mb-0.5">Motivo Institucional:</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{f.motivo}</p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                  <button
+                    onClick={() => handleEliminarFeriado(f.id, f.motivo)}
+                    className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Anular Restricción</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {/* Modal Feriado */}
       {isFeriadoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl max-h-[92vh] overflow-y-auto my-auto animate-fadeIn">
-            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
-              <h3 className="font-poppins font-bold text-slate-900 dark:text-white flex items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl max-h-[92vh] overflow-y-auto my-auto animate-fadeIn border border-slate-200/80 dark:border-slate-800">
+            <div className="px-6 py-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/80 dark:bg-slate-950/60">
+              <h3 className="font-heading font-bold text-slate-900 dark:text-white flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-tech-blue" />
                 Registrar Feriado o Cierre
               </h3>
-              <button onClick={() => setIsFeriadoModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <button onClick={() => setIsFeriadoModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>

@@ -18,7 +18,9 @@ import {
   cancelarReservaService,
   cancelarReservaFuerzaMayorService,
   obtenerQrReservaService,
-  escanearQrService
+  escanearQrService,
+  registrarAsistenciaManualService,
+  listarReservasTurnoActualService
 } from '../services/reservas.service';
 
 export { crearReservaSchema } from '../validators/reserva.validator';
@@ -224,6 +226,48 @@ export const escanearQr = async (req: AuthRequest, res: Response): Promise<any> 
     });
   } catch (error) {
     return handleServiceError(res, error, 'Error al procesar escaneo QR');
+  }
+};
+
+/**
+ * Listar reservas del turno actual o de hoy para el control de asistencia presencial
+ * GET /api/reservas/turno-actual
+ */
+export const listarReservasTurnoActual = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { laboratorioId, q, fecha } = req.query;
+    const reservas = await listarReservasTurnoActualService({
+      laboratorioId: laboratorioId ? Number(laboratorioId) : undefined,
+      q: q ? String(q) : undefined,
+      fecha: fecha ? String(fecha) : undefined
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: reservas
+    });
+  } catch (error) {
+    return handleServiceError(res, error, 'Error al listar reservas del turno actual');
+  }
+};
+
+/**
+ * Registrar asistencia presencial manual (Contingencia sin camara / lector optico)
+ * POST /api/reservas/:id/asistencia-manual
+ */
+export const registrarAsistenciaManual = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const id = Number(req.params.id);
+    const { motivo } = req.body;
+    const reserva = await registrarAsistenciaManualService(id, req.user?.id, motivo);
+
+    return res.status(200).json({
+      success: true,
+      mensaje: 'Asistencia presencial registrada exitosamente',
+      data: reserva
+    });
+  } catch (error) {
+    return handleServiceError(res, error, 'Error al registrar asistencia manual');
   }
 };
 

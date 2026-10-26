@@ -79,3 +79,11 @@ export const esAdminOResponsable = (req: AuthRequest, res: Response, next: NextF
   }
   next();
 };
+
+export const soloEstudiantes = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.user?.rol !== 'Estudiante') {
+    res.status(403).json({ error: 'La reserva individual está disponible únicamente para estudiantes' });
+    return;
+  }
+  next();
+};

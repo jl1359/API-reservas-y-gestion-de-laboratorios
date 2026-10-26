@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { X, Download, Copy, Check, Printer, Clock, MapPin, Monitor, ShieldCheck } from 'lucide-react';
+import { X, Download, Copy, Check, FileText, Clock, MapPin, Monitor, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { imprimirBoletaOficial } from '../utils/boletaPdf';
 
 interface ModalQrProps {
   isOpen: boolean;
@@ -73,7 +74,18 @@ export default function ModalQrReserva({ isOpen, onClose, reserva }: ModalQrProp
   };
 
   const imprimirComprobante = () => {
-    window.print();
+    if (!reserva) return;
+    imprimirBoletaOficial({
+      id: reserva.id,
+      materia: reserva.materia,
+      numeroComputadora: reserva.numeroComputadora,
+      fechaInicio: reserva.fechaInicio,
+      fechaFin: reserva.fechaFin,
+      estado: reserva.estado,
+      tokenQr: reserva.tokenQr,
+      laboratorio: reserva.laboratorio,
+      usuario: (reserva as any).usuario
+    });
   };
 
   return (
@@ -99,7 +111,7 @@ export default function ModalQrReserva({ isOpen, onClose, reserva }: ModalQrProp
             Código QR de Reserva
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Presenta este código al Auxiliar en la puerta del laboratorio
+            Muestra este código en la puerta del laboratorio.
           </p>
         </div>
 
@@ -199,10 +211,11 @@ export default function ModalQrReserva({ isOpen, onClose, reserva }: ModalQrProp
 
           <button
             onClick={imprimirComprobante}
-            className="flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold py-2.5 px-4 rounded-xl transition-all text-sm"
+            className="flex items-center justify-center space-x-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold py-2.5 px-4 rounded-xl border border-rose-200 dark:border-rose-800 transition-all text-sm cursor-pointer"
+            title="Generar boleta oficial para guardar como PDF o imprimir"
           >
-            <Printer className="w-4 h-4" />
-            <span>Imprimir</span>
+            <FileText className="w-4 h-4" />
+            <span>Guardar en PDF</span>
           </button>
         </div>
 
