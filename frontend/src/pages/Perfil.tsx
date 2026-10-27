@@ -16,12 +16,30 @@ import ListaMisReservasPerfil, { type ReservaPerfil } from '../components/perfil
 import TabCuentaPerfil from '../components/perfil/TabCuentaPerfil';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usuariosApi } from '../api/usuarios.api';
 import { reservasApi } from '../api/reservas.api';
 
 export default function Perfil() {
-  const [activeTab, setActiveTab] = useState<'reservas' | 'cuenta'>('reservas');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validPerfilTabs = ['reservas', 'cuenta'] as const;
+  type PerfilTab = (typeof validPerfilTabs)[number];
+
+  const getInitialPerfilTab = (): PerfilTab => {
+    const tabUrl = searchParams.get('tab') as PerfilTab;
+    if (tabUrl && validPerfilTabs.includes(tabUrl)) return tabUrl;
+    const tabStorage = localStorage.getItem('perfil_active_tab') as PerfilTab;
+    if (tabStorage && validPerfilTabs.includes(tabStorage)) return tabStorage;
+    return 'reservas';
+  };
+
+  const [activeTab, setActiveTabState] = useState<PerfilTab>(getInitialPerfilTab);
+
+  const setActiveTab = (tab: PerfilTab) => {
+    setActiveTabState(tab);
+    setSearchParams({ tab }, { replace: true });
+    localStorage.setItem('perfil_active_tab', tab);
+  };
   const [usuario, setUsuario] = useState<any>(null);
   const [perfilNombre, setPerfilNombre] = useState('');
   const [perfilTelefono, setPerfilTelefono] = useState('');
