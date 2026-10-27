@@ -142,12 +142,12 @@ export const loginService = async (correo: string, password: string) => {
   });
 
   if (!usuario) {
-    throw new AuthServiceError(400, 'Credenciales inválidas');
+    throw new AuthServiceError(401, 'Credenciales inválidas');
   }
 
   const passwordValida = await bcrypt.compare(password, usuario.passwordHash);
   if (!passwordValida) {
-    throw new AuthServiceError(400, 'Credenciales inválidas');
+    throw new AuthServiceError(401, 'Credenciales inválidas');
   }
 
   if (!usuario.activo) {
@@ -177,13 +177,14 @@ export const forgotPasswordService = async (correo: string) => {
   const correoNormalizado = correo.toLowerCase().trim();
   const usuario = await prisma.usuario.findUnique({ where: { correo: correoNormalizado } });
 
+  // Proteccion anti-enumeracion de cuentas (OWASP): responder mensaje generico sin revelar existencia
   if (!usuario) {
-    throw new AuthServiceError(404, 'Usuario no encontrado');
+    return { mensaje: 'Si el correo existe en el sistema, se enviará un enlace de recuperación' };
   }
 
   const resetToken = jwt.sign({ id: usuario.id }, process.env.JWT_SECRET || 'secreto', { expiresIn: '15m' });
   await enviarCorreoRecuperacion(usuario.correo, resetToken);
-  return { mensaje: 'Si el correo existe, se enviará un enlace de recuperación' };
+  return { mensaje: 'Si el correo existe en el sistema, se enviará un enlace de recuperación' };
 };
 
 export const resetPasswordService = async (token: string, newPassword: string) => {

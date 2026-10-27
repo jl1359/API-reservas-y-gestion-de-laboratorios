@@ -1,6 +1,6 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../api/client';
 import { KeyRound, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -22,7 +22,7 @@ export default function ResetPassword() {
 
     setIsLoading(true);
     try {
-      await axios.post('http://localhost:3000/api/auth/reset-password', { token, nuevaContrasena });
+      await apiClient.post('/api/auth/reset-password', { token, nuevaContrasena });
       toast.success('Contraseña actualizada correctamente');
       navigate('/login');
     } catch (error: any) {

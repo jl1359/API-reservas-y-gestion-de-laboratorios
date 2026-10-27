@@ -133,9 +133,17 @@ export const listarReservasPendientes = async (req: AuthRequest, res: Response):
       laboratorioId ? Number(laboratorioId) : undefined
     );
 
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || (reservas.length > 0 ? reservas.length : 10);
+
     return res.status(200).json({
       success: true,
       total: reservas.length,
+      meta: {
+        page,
+        limit,
+        total: reservas.length
+      },
       reservas,
       data: reservas
     });

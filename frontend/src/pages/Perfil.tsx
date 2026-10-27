@@ -14,14 +14,32 @@ import ModalCancelarReserva from '../components/perfil/ModalCancelarReserva';
 import ModalCambiarPassword from '../components/perfil/ModalCambiarPassword';
 import ListaMisReservasPerfil, { type ReservaPerfil } from '../components/perfil/ListaMisReservasPerfil';
 import TabCuentaPerfil from '../components/perfil/TabCuentaPerfil';
-import axios from 'axios';
+import apiClient from '../api/client';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usuariosApi } from '../api/usuarios.api';
 import { reservasApi } from '../api/reservas.api';
 
 export default function Perfil() {
-  const [activeTab, setActiveTab] = useState<'reservas' | 'cuenta'>('reservas');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validPerfilTabs = ['reservas', 'cuenta'] as const;
+  type PerfilTab = (typeof validPerfilTabs)[number];
+
+  const getInitialPerfilTab = (): PerfilTab => {
+    const tabUrl = searchParams.get('tab') as PerfilTab;
+    if (tabUrl && validPerfilTabs.includes(tabUrl)) return tabUrl;
+    const tabStorage = localStorage.getItem('perfil_active_tab') as PerfilTab;
+    if (tabStorage && validPerfilTabs.includes(tabStorage)) return tabStorage;
+    return 'reservas';
+  };
+
+  const [activeTab, setActiveTabState] = useState<PerfilTab>(getInitialPerfilTab);
+
+  const setActiveTab = (tab: PerfilTab) => {
+    setActiveTabState(tab);
+    setSearchParams({ tab }, { replace: true });
+    localStorage.setItem('perfil_active_tab', tab);
+  };
   const [usuario, setUsuario] = useState<any>(null);
   const [perfilNombre, setPerfilNombre] = useState('');
   const [perfilTelefono, setPerfilTelefono] = useState('');
@@ -50,11 +68,7 @@ export default function Perfil() {
   const fetchMisReservas = async () => {
     try {
       setIsLoadingReservas(true);
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      const res = await axios.get('http://localhost:3000/api/reservas/mis-reservas', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiClient.get('/api/reservas/mis-reservas');
       setMisReservas(res.data.reservas || res.data.data || []);
     } catch (error) {
       console.error('Error al cargar mis reservas', error);
@@ -84,10 +98,7 @@ export default function Perfil() {
 
     const fetchSancionEstado = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:3000/api/sanciones/mi-estado', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await apiClient.get('/api/sanciones/mi-estado');
         if (res.data.success && res.data.data.estaSancionado) {
           setSancionActiva(res.data.data.sancionActiva);
         } else {
@@ -100,7 +111,7 @@ export default function Perfil() {
 
     const fetchRoles = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/api/roles');
+        const res = await apiClient.get('/api/roles');
         const rolesData = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setRoles(rolesData);
         if (rolesData.length > 0) {
@@ -113,7 +124,7 @@ export default function Perfil() {
 
     const fetchCarreras = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/api/carreras');
+        const res = await apiClient.get('/api/carreras');
         setCarreras(res.data || []);
       } catch (err) {
         console.error('Error al cargar carreras', err);
@@ -170,10 +181,7 @@ export default function Perfil() {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/roles/request', { motivo, rolSolicitado: rolSeleccionado }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiClient.post('/api/roles/request', { motivo, rolSolicitado: rolSeleccionado });
       toast.success('Solicitud enviada correctamente al Administrador');
       setMotivo('');
     } catch (error: any) {
@@ -205,10 +213,7 @@ export default function Perfil() {
   const eliminarCuenta = async () => {
     if (!window.confirm('¿ESTÁS SEGURO? Esta acción es irreversible y eliminará todos tus datos.')) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete('http://localhost:3000/api/auth/eliminar-cuenta', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiClient.delete('/api/auth/eliminar-cuenta');
       toast.success('Cuenta eliminada exitosamente');
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
@@ -293,13 +298,13 @@ export default function Perfil() {
         )}
 
         {/* Selector de Pestañas */}
-        <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-700 mb-8">
+        <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-800 mb-8">
           <button
             onClick={() => setActiveTab('reservas')}
-            className={`pb-4 px-4 font-bold text-sm sm:text-base border-b-2 transition-colors flex items-center space-x-2 ${
+            className={`pb-4 px-4 font-bold text-sm sm:text-base border-b-2 transition-all flex items-center space-x-2 ${
               activeTab === 'reservas'
-                ? 'border-tech-blue text-tech-blue dark:text-blue-400'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                ? 'border-tech-blue text-tech-blue dark:border-blue-400 dark:text-blue-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <Calendar className="w-4 h-4" />
@@ -308,10 +313,10 @@ export default function Perfil() {
 
           <button
             onClick={() => setActiveTab('cuenta')}
-            className={`pb-4 px-4 font-bold text-sm sm:text-base border-b-2 transition-colors flex items-center space-x-2 ${
+            className={`pb-4 px-4 font-bold text-sm sm:text-base border-b-2 transition-all flex items-center space-x-2 ${
               activeTab === 'cuenta'
-                ? 'border-tech-blue text-tech-blue dark:text-blue-400'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                ? 'border-tech-blue text-tech-blue dark:border-blue-400 dark:text-blue-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <Shield className="w-4 h-4" />

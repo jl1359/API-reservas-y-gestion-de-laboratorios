@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode, FileText, Bell, CheckCheck, Download } from 'lucide-react';
 import { usuariosApi } from '../api/usuarios.api';
 import { notificacionesApi } from '../api/notificaciones.api';
@@ -8,10 +8,36 @@ import LogoIcon from './LogoIcon';
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const isAuthenticated = !!localStorage.getItem('token');
   const [userRole, setUserRole] = useState<string>(() => localStorage.getItem('userRole') || '');
   const puedeEscanear = ['Admin', 'Administrador', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole);
   const puedeVerReportes = ['Admin', 'Administrador', 'Responsable de Laboratorio'].includes(userRole);
+
+  const isTabActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/' || location.pathname.startsWith('/laboratorio/');
+    }
+    return location.pathname === path || location.pathname.startsWith(path);
+  };
+
+  const getNavLinkClass = (path: string) => {
+    const active = isTabActive(path);
+    return `px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-150 flex items-center space-x-1.5 ${
+      active
+        ? 'text-tech-blue dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/15 font-bold shadow-xs'
+        : 'text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/40'
+    }`;
+  };
+
+  const getMobileNavLinkClass = (path: string) => {
+    const active = isTabActive(path);
+    return `block px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center space-x-2.5 ${
+      active
+        ? 'bg-blue-500/10 dark:bg-blue-500/15 text-tech-blue dark:text-blue-400 font-bold'
+        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium'
+    }`;
+  };
   
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -189,39 +215,34 @@ export default function Navbar() {
 
         {/* Desktop Menu */}
         {isAuthenticated && (
-          <div className="hidden md:flex space-x-6 lg:space-x-8 items-center flex-1 justify-center">
-            <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-medium transition-colors">
-              Inicio
+          <div className="hidden md:flex space-x-1 lg:space-x-2 items-center flex-1 justify-center">
+            <Link to="/" className={getNavLinkClass('/')}>
+              <span>Inicio</span>
             </Link>
-            <Link to="/perfil" className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-medium transition-colors">
-              Mi Perfil
+            <Link to="/perfil" className={getNavLinkClass('/perfil')}>
+              <span>Mi Perfil</span>
             </Link>
             
             {/* Acceso directo a Escanear QR para personal autorizado */}
             {puedeEscanear && (
-              <Link 
-                to="/escanear-qr" 
-                className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-semibold flex items-center space-x-1 transition-colors"
-              >
-                <QrCode className="w-4 h-4 text-tech-blue" />
+              <Link to="/escanear-qr" className={getNavLinkClass('/escanear-qr')}>
+                <QrCode className={`w-4 h-4 transition-colors ${isTabActive('/escanear-qr') ? 'text-tech-blue dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
                 <span>Escanear QR</span>
               </Link>
             )}
 
             {/* Acceso a Reportes de Asistencias */}
             {puedeVerReportes && (
-              <Link 
-                to="/reportes" 
-                className="text-slate-600 dark:text-slate-300 hover:text-tech-blue dark:hover:text-blue-400 font-semibold flex items-center space-x-1 transition-colors"
-              >
-                <FileText className="w-4 h-4 text-tech-blue" />
+              <Link to="/reportes" className={getNavLinkClass('/reportes')}>
+                <FileText className={`w-4 h-4 transition-colors ${isTabActive('/reportes') ? 'text-tech-blue dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
                 <span>Reportes</span>
               </Link>
             )}
 
             {(userRole === 'Admin' || userRole === 'Administrador') && (
-              <Link to="/admin" className="text-tech-blue dark:text-blue-400 font-bold flex items-center">
-                <Shield className="w-4 h-4 mr-1" /> Panel Administrador
+              <Link to="/admin" className={getNavLinkClass('/admin')}>
+                <Shield className={`w-4 h-4 transition-colors ${isTabActive('/admin') ? 'text-tech-blue dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                <span>Panel Administrador</span>
               </Link>
             )}
           </div>
@@ -355,28 +376,29 @@ export default function Navbar() {
 
       {/* Menú Móvil Desplegable */}
       {isMobileMenuOpen && isAuthenticated && (
-        <div className="md:hidden pt-4 pb-2 border-t border-slate-100 dark:border-slate-800 mt-4 space-y-2">
-          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-medium">
-            Inicio
+        <div className="md:hidden pt-4 pb-2 border-t border-slate-100 dark:border-slate-800 mt-4 space-y-1.5">
+          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={getMobileNavLinkClass('/')}>
+            <span>Inicio</span>
           </Link>
-          <Link to="/perfil" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-medium">
-            Mi Perfil
+          <Link to="/perfil" onClick={() => setIsMobileMenuOpen(false)} className={getMobileNavLinkClass('/perfil')}>
+            <span>Mi Perfil</span>
           </Link>
           {puedeEscanear && (
-            <Link to="/escanear-qr" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2">
-              <QrCode className="w-4 h-4" />
+            <Link to="/escanear-qr" onClick={() => setIsMobileMenuOpen(false)} className={getMobileNavLinkClass('/escanear-qr')}>
+              <QrCode className={`w-4 h-4 ${isTabActive('/escanear-qr') ? 'text-tech-blue dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
               <span>Escanear QR</span>
             </Link>
           )}
           {puedeVerReportes && (
-            <Link to="/reportes" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2">
-              <FileText className="w-4 h-4" />
+            <Link to="/reportes" onClick={() => setIsMobileMenuOpen(false)} className={getMobileNavLinkClass('/reportes')}>
+              <FileText className={`w-4 h-4 ${isTabActive('/reportes') ? 'text-tech-blue dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
               <span>Reportes de Asistencias</span>
             </Link>
           )}
           {(userRole === 'Admin' || userRole === 'Administrador') && (
-            <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-tech-blue dark:text-blue-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl">
-              Panel Administrador
+            <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className={getMobileNavLinkClass('/admin')}>
+              <Shield className={`w-4 h-4 ${isTabActive('/admin') ? 'text-tech-blue dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
+              <span>Panel Administrador</span>
             </Link>
           )}
           {isInstallable && (

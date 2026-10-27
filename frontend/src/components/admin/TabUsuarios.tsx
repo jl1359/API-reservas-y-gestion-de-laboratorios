@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/client';
 import { Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usuariosApi } from '../../api/usuarios.api';
@@ -102,11 +102,7 @@ export default function TabUsuarios({
   const handleAprobarSolicitud = async (id: number, nombre: string, rol: string) => {
     if (!window.confirm(`¿Confirmas aprobar la promoción de rol a "${rol}" para ${nombre}?`)) return;
     try {
-      await axios.put(
-        `http://localhost:3000/api/roles/manage/${id}`,
-        { accion: 'Aprobar' },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
+      await apiClient.put(`/api/roles/manage/${id}`, { accion: 'Aprobar' });
       toast.success(`Solicitud aprobada y rol "${rol}" asignado a ${nombre}`);
       onRefresh();
     } catch (error: any) {
@@ -128,11 +124,10 @@ export default function TabUsuarios({
     }
     setIsSubmittingRechazoSolicitud(true);
     try {
-      await axios.put(
-        `http://localhost:3000/api/roles/manage/${solicitudARechazar.id}`,
-        { accion: 'Rechazar', motivoRechazo: motivoRechazoSolicitud.trim() },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
+      await apiClient.put(`/api/roles/manage/${solicitudARechazar.id}`, {
+        accion: 'Rechazar',
+        motivoRechazo: motivoRechazoSolicitud.trim()
+      });
       toast.success('Solicitud rechazada con registro formal de motivo');
       setIsRechazarSolicitudModalOpen(false);
       setSolicitudARechazar(null);

@@ -1,6 +1,6 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../api/client';
 import { MailCheck, XCircle, Loader2 } from 'lucide-react';
 
 export default function VerifyEmail() {
@@ -11,7 +11,7 @@ export default function VerifyEmail() {
   useEffect(() => {
     const verifyToken = async () => {
       try {
-        await axios.get(`http://localhost:3000/api/auth/verificar-correo/${token}`);
+        await apiClient.get(`/api/auth/verificar-correo/${token}`);
         setStatus('success');
         setMessage('¡Tu correo electrónico ha sido verificado con éxito!');
       } catch (error: any) {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/client';
 import { Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { reservasApi } from '../../api/reservas.api';
@@ -50,12 +50,7 @@ export default function TabReservas({
   const handleAprobarReserva = async (id: number) => {
     if (!window.confirm('¿Confirmar aprobación de esta reserva de laboratorio? Se emitirá el código QR de acceso.')) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `http://localhost:3000/api/reservas/${id}/gestionar`,
-        { accion: 'Aprobar' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiClient.put(`/api/reservas/${id}/gestionar`, { accion: 'Aprobar' });
       toast.success('Reserva aprobada exitosamente y token QR emitido');
       onRefresh();
     } catch (error: any) {
@@ -76,12 +71,10 @@ export default function TabReservas({
 
     setIsSubmittingRechazo(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `http://localhost:3000/api/reservas/${reservaARechazar.id}/gestionar`,
-        { accion: 'Rechazar', motivoRechazo: motivoRechazo.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiClient.put(`/api/reservas/${reservaARechazar.id}/gestionar`, {
+        accion: 'Rechazar',
+        motivoRechazo: motivoRechazo.trim()
+      });
       toast.success('Reserva rechazada y horario liberado para nuevas reservas');
       setIsRechazarModalOpen(false);
       setReservaARechazar(null);
