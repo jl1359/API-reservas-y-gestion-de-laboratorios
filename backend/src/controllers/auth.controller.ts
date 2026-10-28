@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
-import { registroSchema } from '../validators/usuario.validator';
+import { registroSchema, loginSchema } from '../validators/usuario.validator';
 import {
   AuthServiceError,
   registrarUsuarioService,
@@ -65,11 +65,12 @@ export const reenviarActivacion = async (req: Request, res: Response): Promise<a
 
 export const login = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { correo, password } = req.body;
-    if (!correo || !password) {
+    const validacion = loginSchema.safeParse(req.body);
+    if (!validacion.success) {
       return res.status(400).json({ error: 'Credenciales inválidas' });
     }
 
+    const { correo, password } = validacion.data;
     const resultado = await loginService(correo, password);
     return res.json({
       mensaje: 'Login exitoso',

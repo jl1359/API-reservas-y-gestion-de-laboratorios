@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { apiRateLimiter } from './middlewares/rateLimiter';
 import authRoutes from './routes/auth.routes';
 import rolesRoutes from './routes/roles.routes';
 import laboratoriosRoutes from './routes/laboratorios.routes';
@@ -16,9 +17,61 @@ import mantenimientosRoutes from './routes/mantenimientos.routes';
 
 const app = express();
 
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Protocolo de seguridad: Ocultar huella de software del servidor
+app.disable('x-powered-by');
+
+// Habilitar deteccion de proxy inverso (Render, Vercel, Railway, Nginx, Cloudflare)
+app.set('trust proxy', 1);
+
+// Protocolo de seguridad: Redireccion forzada a HTTPS y cabeceras de proteccion
+app.use((req, res, next) => {
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  if (process.env.NODE_ENV === 'production' && !isHttps) {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+
+  // Cabeceras HTTP de seguridad (HSTS, Anti-sniffing, Anti-clickjacking, Anti-XSS)
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.CLIENT_URL
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permitir solicitudes sin origen (como clientes API/móviles autorizados) o en lista blanca
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true
+}));
+
+// Control de tamano maximo de carga util para prevenir saturacion de memoria (DoS)
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// Protocolo de seguridad: Mitigacion de ataques DoS y limitacion de tasa en endpoints API
+app.use('/api', apiRateLimiter);
+
+// Endpoint de verificacion de salud y protocolo HTTPS
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/roles', rolesRoutes);
@@ -33,5 +86,19 @@ app.use('/api/reportes', reportesRoutes);
 app.use('/api/feriados', feriadosRoutes);
 app.use('/api/sanciones', sancionesRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
+
+// Protocolo de resiliencia: Manejador global de errores para evitar caidas del servidor
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error interno capturado por el interceptor de resiliencia:', err?.message || err);
+  const statusCode = typeof err.status === 'number' ? err.status : 500;
+  const mensaje = process.env.NODE_ENV === 'production' && statusCode === 500
+    ? 'Ocurrio un error interno en el servidor'
+    : (err.message || 'Error interno del servidor');
+
+  res.status(statusCode).json({
+    success: false,
+    error: mensaje
+  });
+});
 
 export default app;

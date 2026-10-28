@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
-import axios from 'axios';
+import apiClient from '../api/client';
 import {
   Camera,
   QrCode,
@@ -149,12 +149,9 @@ export default function EscanearQr() {
 
     setIsProcessing(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        'http://localhost:3000/api/reservas/escanear-qr',
-        { tokenQr: tokenParaValidar.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await apiClient.post('/api/reservas/escanear-qr', {
+        tokenQr: tokenParaValidar.trim()
+      });
 
       if (res.data.success) {
         emitirSonido('exito');
@@ -211,15 +208,13 @@ export default function EscanearQr() {
   const cargarReservasTurno = async () => {
     setCargandoTurno(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
       const params: any = {};
       if (filtroLab !== 'todos') params.laboratorioId = filtroLab;
       if (busquedaTurno.trim()) params.q = busquedaTurno.trim();
 
       const [resReservas, resLabs] = await Promise.all([
-        axios.get('http://localhost:3000/api/reservas/turno-actual', { headers, params }),
-        laboratorios.length === 0 ? axios.get('http://localhost:3000/api/laboratorios') : Promise.resolve({ data: { laboratorios } })
+        apiClient.get('/api/reservas/turno-actual', { params }),
+        laboratorios.length === 0 ? apiClient.get('/api/laboratorios') : Promise.resolve({ data: { laboratorios } })
       ]);
 
       if (resReservas.data?.success) {
@@ -246,12 +241,9 @@ export default function EscanearQr() {
     if (marcandoId) return;
     setMarcandoId(reserva.id);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `http://localhost:3000/api/reservas/${reserva.id}/asistencia-manual`,
-        { motivo: 'Registro manual de asistencia en puerta' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await apiClient.post(`/api/reservas/${reserva.id}/asistencia-manual`, {
+        motivo: 'Registro manual de asistencia en puerta'
+      });
 
       if (res.data?.success) {
         emitirSonido('exito');

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   ShieldCheck, 
   FlaskConical, 
@@ -32,9 +33,25 @@ import TabSanciones from '../components/admin/TabSanciones';
 import TabReportes from '../components/admin/TabReportes';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<
-    'laboratorios' | 'usuarios' | 'reservas' | 'mantenimientos' | 'feriados' | 'auditoria' | 'sanciones' | 'reportes'
-  >('laboratorios');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validTabs = ['laboratorios', 'usuarios', 'reservas', 'mantenimientos', 'feriados', 'auditoria', 'sanciones', 'reportes'] as const;
+  type AdminTab = (typeof validTabs)[number];
+
+  const getInitialTab = (): AdminTab => {
+    const tabUrl = searchParams.get('tab') as AdminTab;
+    if (tabUrl && validTabs.includes(tabUrl)) return tabUrl;
+    const tabStorage = localStorage.getItem('admin_active_tab') as AdminTab;
+    if (tabStorage && validTabs.includes(tabStorage)) return tabStorage;
+    return 'laboratorios';
+  };
+
+  const [activeTab, setActiveTabState] = useState<AdminTab>(getInitialTab);
+
+  const setActiveTab = (tab: AdminTab) => {
+    setActiveTabState(tab);
+    setSearchParams({ tab }, { replace: true });
+    localStorage.setItem('admin_active_tab', tab);
+  };
 
   const [laboratorios, setLaboratorios] = useState<LaboratorioAdminItem[]>([]);
   const [carreras, setCarreras] = useState<Carrera[]>([]);

@@ -25,3 +25,8 @@ export const actualizarPerfilSchema = z.object({
   telefono: z.string().regex(/^[0-9+ -]{7,20}$/, 'Formato de teléfono inválido').optional().nullable(),
   carreraId: z.coerce.number().optional().nullable()
 });
+
+export const loginSchema = z.object({
+  correo: z.string().email('Formato de correo electrónico inválido'),
+  password: z.string().min(1, 'La contraseña es obligatoria')
+});
