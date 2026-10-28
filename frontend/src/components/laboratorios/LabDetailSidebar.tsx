@@ -49,7 +49,7 @@ export default function LabDetailSidebar({
         )}
       </div>
 
-      {/* Ubicacion y Mapa Interactivo del Campus FCyT (HU-31) */}
+      {/* Ubicacion y Mapa Interactivo del Campus FCyT */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-xs border border-slate-200/80 dark:border-slate-800/80 space-y-3.5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-poppins font-bold text-slate-900 dark:text-white flex items-center">

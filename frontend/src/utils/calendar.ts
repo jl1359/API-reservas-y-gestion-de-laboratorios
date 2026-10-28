@@ -1,5 +1,5 @@
 /**
- * Utilidades de Interoperabilidad de Calendarios (HU-32)
+ * Utilidades de Interoperabilidad de Calendarios
  * Generador de archivos estándar iCalendar (.ics) y enlaces dinámicos a Google Calendar.
  */
 

@@ -13,7 +13,7 @@ const router = Router();
 // Catálogo base de equipamientos
 router.get('/', verificarToken, listarEquipamientosBase);
 
-// Alta de nuevo tipo de equipamiento (HU-33)
+// Alta de nuevo tipo de equipamiento
 router.post('/', verificarToken, esAdmin, crearEquipamiento);
 
 // Vincular equipamiento con cantidad a un laboratorio

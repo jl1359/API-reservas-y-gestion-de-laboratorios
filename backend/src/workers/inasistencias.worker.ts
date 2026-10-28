@@ -1,7 +1,7 @@
 import { procesarInasistenciasPendientes } from '../services/sanciones.service';
 
 /**
- * Worker Autónomo de Barrido de Inasistencias (HU-35)
+ * Worker Autónomo de Barrido de Inasistencias
  * Ejecuta periódicamente la verificación de reservas vencidas sin QR validado
  * tras la ventana de tolerancia de 15 minutos, aplicando la sanción de 24h.
  */

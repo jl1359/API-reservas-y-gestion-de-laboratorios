@@ -15,7 +15,7 @@ const router = Router();
 router.get('/', listarLaboratorios);
 router.get('/:id', obtenerLaboratorioPorId);
 
-// Reserva individual de computadoras en un laboratorio (HU-28 - Estudiantes)
+// Reserva individual de computadoras en un laboratorio por parte de estudiantes
 router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndividual);
 
 // Rutas protegidas (Solo Administradores)
