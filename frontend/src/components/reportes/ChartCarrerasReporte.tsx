@@ -43,10 +43,10 @@ export default function ChartCarrerasReporte({
           <GraduationCap className="w-4 h-4 text-tech-blue" />
           <div>
             <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-              Demanda y Ocupación por Carreras Académicas
+              Uso de Laboratorios por Carrera
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Volumen de reservas y tasa de uso comparativo entre las carreras universitarias
+              Cantidad de reservas y uso comparativo por carrera
             </p>
           </div>
         </div>

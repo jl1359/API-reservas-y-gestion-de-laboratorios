@@ -123,18 +123,8 @@ export default function SolicitudReservaModal({
         onClose();
       }
     } catch (error: any) {
-      const code = error.response?.data?.code || error.response?.data?.codigo;
       const msg = error.response?.data?.error || 'Error al procesar la reserva';
-      if (code === 'RESERVA_SOLAPADA') {
-        toast.error(`Colisión de Horario: ${msg}`, { duration: 5000 });
-      } else if (code === 'FERIADO_BLOQUEADO') {
-        toast.error(`Feriado Institucional: ${msg}`, { duration: 5000 });
-      } else if (code === 'PRIVILEGIOS_SUSPENDIDOS_SANCION') {
-        toast.error(`Privilegios Suspendidos: ${msg}`, { duration: 6000 });
-      } else {
-        toast.error(msg);
-      }
-
+      toast.error(msg, { duration: 5000 });
     } finally {
       setIsSubmitting(false);
     }
@@ -209,7 +199,7 @@ export default function SolicitudReservaModal({
               <div className="mt-2 p-2.5 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs rounded-xl flex items-center animate-fade-in">
                 <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
                 <span>
-                  <strong>Día Bloqueado / Feriado:</strong> {feriadoSeleccionado.motivo}. La facultad suspende actividades institucionales en esta fecha.
+                  <strong>Día no laborable o feriado:</strong> {feriadoSeleccionado.motivo}. No hay actividades programadas en esta fecha.
                 </span>
               </div>
             )}

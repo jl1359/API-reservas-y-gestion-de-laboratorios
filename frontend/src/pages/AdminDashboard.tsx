@@ -133,7 +133,7 @@ export default function AdminDashboard() {
               Panel de Administración
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Control de laboratorios, inventario, autorizaciones de rol, régimen disciplinario y reportes institucionales.
+              Gestión de espacios, reservas, usuarios, sanciones y reportes de uso.
             </p>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function AdminDashboard() {
             <option value="feriados" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Feriados ({feriadosList.length})</option>
             <option value="auditoria" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Auditoría</option>
             <option value="sanciones" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Sanciones {sancionesActivasCount > 0 ? `(${sancionesActivasCount} activas)` : ''}</option>
-            <option value="reportes" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Reportes / KPIs</option>
+            <option value="reportes" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Reportes</option>
           </select>
         </div>
 

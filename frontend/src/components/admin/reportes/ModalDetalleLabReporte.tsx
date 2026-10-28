@@ -50,7 +50,7 @@ export default function ModalDetalleLabReporte({ lab, onClose }: ModalDetalleLab
           {/* Cuadrícula de Métricas Principales */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-              <p className="text-[10px] uppercase font-bold text-slate-400">Práctica Efectiva</p>
+              <p className="text-[10px] uppercase font-bold text-slate-400">Horas de Uso</p>
               <p className="text-lg font-bold font-poppins text-tech-blue mt-1">
                 {lab.horasUsoEfectivo} hrs
               </p>
@@ -64,7 +64,7 @@ export default function ModalDetalleLabReporte({ lab, onClose }: ModalDetalleLab
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-              <p className="text-[10px] uppercase font-bold text-slate-400">Estudiantes</p>
+              <p className="text-[10px] uppercase font-bold text-slate-400">Estudiantes Asistentes</p>
               <p className="text-lg font-bold font-poppins text-indigo-600 dark:text-indigo-400 mt-1">
                 {lab.alumnosBeneficiados}
               </p>
@@ -78,10 +78,10 @@ export default function ModalDetalleLabReporte({ lab, onClose }: ModalDetalleLab
             </div>
           </div>
 
-          {/* Aprovechamiento de Aforo y Tasa de Asistencia */}
+          {/* Porcentaje de Asistencia */}
           <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 space-y-2">
             <div className="flex items-center justify-between text-xs font-semibold">
-              <span className="text-slate-700 dark:text-slate-300">Tasa de Asistencia Efectiva:</span>
+              <span className="text-slate-700 dark:text-slate-300">Porcentaje de Asistencia:</span>
               <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                 lab.tasaAsistencia >= 80
                   ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
@@ -155,7 +155,7 @@ export default function ModalDetalleLabReporte({ lab, onClose }: ModalDetalleLab
             className="inline-flex items-center space-x-1.5 text-xs font-bold text-tech-blue hover:underline"
           >
             <FileText className="w-4 h-4" />
-            <span>Auditar asistencias individuales de este laboratorio</span>
+            <span>Ver asistencias registradas en este laboratorio</span>
           </Link>
 
           <button
@@ -163,7 +163,7 @@ export default function ModalDetalleLabReporte({ lab, onClose }: ModalDetalleLab
             onClick={onClose}
             className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition"
           >
-            Cerrar Ficha
+            Cerrar
           </button>
         </div>
 

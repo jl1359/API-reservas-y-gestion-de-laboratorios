@@ -157,7 +157,7 @@ export default function Perfil() {
     e.preventDefault();
     if (!reservaACancelar) return;
     if (motivoCancelacion.trim().length < 5) {
-      return toast.error('Ingresa una justificación formal de al menos 5 caracteres');
+      return toast.error('Por favor, ingresa el motivo de la cancelación (mínimo 5 caracteres)');
     }
     setIsSubmittingCancelacion(true);
     try {
@@ -176,8 +176,8 @@ export default function Perfil() {
 
   const solicitarRol = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!motivo.trim()) return toast.error('Debes escribir un motivo');
-    if (!rolSeleccionado) return toast.error('Debes seleccionar un rol');
+    if (!motivo.trim()) return toast.error('Por favor, escribe el motivo de tu solicitud');
+    if (!rolSeleccionado) return toast.error('Por favor, selecciona el rol que deseas solicitar');
 
     setIsSubmitting(true);
     try {
@@ -211,15 +211,15 @@ export default function Perfil() {
   };
 
   const eliminarCuenta = async () => {
-    if (!window.confirm('¿ESTÁS SEGURO? Esta acción es irreversible y eliminará todos tus datos.')) return;
+    if (!window.confirm('¿Confirmas que deseas desactivar tu cuenta? Esta acción no se puede deshacer.')) return;
     try {
       await apiClient.delete('/api/auth/eliminar-cuenta');
-      toast.success('Cuenta eliminada exitosamente');
+      toast.success('Cuenta desactivada exitosamente');
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
       navigate('/login');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Error al eliminar la cuenta');
+      toast.error(error.response?.data?.error || 'Error al desactivar la cuenta');
     }
   };
 
@@ -277,17 +277,17 @@ export default function Perfil() {
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  Sanción Disciplinaria Activa (24 Horas)
+                  Suspensión Activa de Reservas
                 </span>
                 <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                  Caduca en: {sancionActiva.horasRestantes ?? 0}h {sancionActiva.minutosRestantes ?? 0}m
+                  Finaliza en: {sancionActiva.horasRestantes ?? 0}h {sancionActiva.minutosRestantes ?? 0}m
                 </span>
               </div>
               <h2 className="text-lg font-poppins font-bold text-rose-900 dark:text-rose-200">
-                Cuenta suspendida temporalmente
+                Permiso de reserva suspendido temporalmente
               </h2>
               <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">
-                Sanción por inasistencia previa sin aviso. Podrás volver a reservar el{' '}
+                Suspensión por inasistencia previa. Podrás volver a reservar el{' '}
                 <span className="font-bold underline">{sancionActiva.fechaFin ? new Date(sancionActiva.fechaFin).toLocaleString('es-ES') : ''}</span>.
               </p>
               <p className="text-xs text-rose-600 dark:text-rose-400 mt-2 italic bg-rose-100/60 dark:bg-rose-900/30 p-2.5 rounded-xl border border-rose-200 dark:border-rose-800/40">

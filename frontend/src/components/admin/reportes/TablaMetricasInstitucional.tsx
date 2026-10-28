@@ -16,7 +16,7 @@ export default function TablaMetricasInstitucional({
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div className="p-4 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
         <h4 className="font-poppins font-bold text-slate-900 dark:text-white text-sm">
-          Consolidado Institucional por Espacio Académico
+          Resumen de Uso por Laboratorio
         </h4>
         <span className="text-xs text-slate-500 dark:text-slate-400">
           Laboratorios evaluados: <strong>{metricasData?.laboratorios?.length || 0}</strong>
@@ -32,7 +32,7 @@ export default function TablaMetricasInstitucional({
               <th className="px-4 py-3.5 font-bold">Total Reservas</th>
               <th className="px-4 py-3.5 font-bold">Horas Uso</th>
               <th className="px-4 py-3.5 font-bold">Asistencia</th>
-              <th className="px-4 py-3.5 font-bold">Estudiantes</th>
+              <th className="px-4 py-3.5 font-bold">Estudiantes Asistentes</th>
               <th className="px-5 py-3.5 font-bold text-center">Detalle</th>
             </tr>
           </thead>
@@ -91,7 +91,7 @@ export default function TablaMetricasInstitucional({
                       className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-tech-blue hover:text-white bg-blue-50 dark:bg-blue-900/30 hover:bg-tech-blue dark:hover:bg-tech-blue rounded-lg border border-blue-200 dark:border-blue-800 transition"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Ver Ficha</span>
+                      <span>Ver Detalle</span>
                     </button>
                   </td>
                 </tr>

@@ -71,12 +71,12 @@ export default function TabUsuarios({
     e.preventDefault();
     if (!usuarioASuspender) return;
     if (motivoSuspension.trim().length < 5) {
-      return toast.error('Ingresa una justificación formal de al menos 5 caracteres');
+      return toast.error('Ingresa el motivo de suspensión (mínimo 5 caracteres)');
     }
     setIsSubmittingSuspension(true);
     try {
       await usuariosApi.cambiarEstado(usuarioASuspender.id, false, motivoSuspension.trim());
-      toast.success(`Cuenta de ${usuarioASuspender.nombreCompleto} suspendida y notificada exitosamente`);
+      toast.success(`Cuenta suspendida correctamente`);
       setIsSuspenderModalOpen(false);
       setUsuarioASuspender(null);
       setMotivoSuspension('');
@@ -89,10 +89,10 @@ export default function TabUsuarios({
   };
 
   const handleHabilitarCuenta = async (usuario: Usuario) => {
-    if (!window.confirm(`¿Confirmas reactivar y habilitar nuevamente el acceso de ${usuario.nombreCompleto}?`)) return;
+    if (!window.confirm(`¿Confirmas reactivar el acceso de ${usuario.nombreCompleto}?`)) return;
     try {
       await usuariosApi.cambiarEstado(usuario.id, true);
-      toast.success(`Cuenta de ${usuario.nombreCompleto} habilitada nuevamente`);
+      toast.success(`Cuenta reactivada correctamente`);
       onRefresh();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al habilitar cuenta');
@@ -120,7 +120,7 @@ export default function TabUsuarios({
     e.preventDefault();
     if (!solicitudARechazar) return;
     if (motivoRechazoSolicitud.trim().length < 5) {
-      return toast.error('Ingresa una justificación formal de al menos 5 caracteres');
+      return toast.error('Ingresa el motivo del rechazo (mínimo 5 caracteres)');
     }
     setIsSubmittingRechazoSolicitud(true);
     try {
@@ -128,7 +128,7 @@ export default function TabUsuarios({
         accion: 'Rechazar',
         motivoRechazo: motivoRechazoSolicitud.trim()
       });
-      toast.success('Solicitud rechazada con registro formal de motivo');
+      toast.success('Solicitud rechazada correctamente');
       setIsRechazarSolicitudModalOpen(false);
       setSolicitudARechazar(null);
       setMotivoRechazoSolicitud('');

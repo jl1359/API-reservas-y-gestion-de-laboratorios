@@ -71,7 +71,7 @@ export const cambiarRolUsuarioService = async (
   }
 
   if (usuario.rol.nombre === 'Admin' || usuario.rol.nombre === 'Administrador') {
-    throw new Error('No está permitido modificar el rol de una cuenta de Administrador institucional');
+    throw new Error('No está permitido modificar el rol de una cuenta de Administrador');
   }
 
   const nuevoRol = await prisma.rol.findUnique({
@@ -85,7 +85,7 @@ export const cambiarRolUsuarioService = async (
   const rolAnterior = usuario.rol.nombre;
 
   if (usuario.rolId === nuevoRolId) {
-    throw new Error(`El usuario ya posee el rol '${nuevoRol.nombre}'`);
+    throw new Error(`El usuario ya tiene asignado el rol '${nuevoRol.nombre}'`);
   }
 
   const usuarioActualizado = await prisma.usuario.update({
@@ -110,7 +110,7 @@ export const cambiarRolUsuarioService = async (
   await prisma.notificacion.create({
     data: {
       usuarioId: usuario.id,
-      mensaje: `Tu rol en el sistema ha sido actualizado a '${nuevoRol.nombre}' por la administración universitaria.${detalleMotivo}`
+      mensaje: `Tu rol en el sistema ha sido actualizado a '${nuevoRol.nombre}'.${detalleMotivo}`
     }
   }).catch(() => null);
 
@@ -124,7 +124,7 @@ export const cambiarEstadoUsuarioService = async (
   motivo?: string
 ) => {
   if (adminId === usuarioId) {
-    throw new Error('No puedes suspender tu propia cuenta de administrador');
+    throw new Error('No puedes suspender tu propia cuenta de Administrador');
   }
 
   const usuario = await prisma.usuario.findUnique({
@@ -137,7 +137,7 @@ export const cambiarEstadoUsuarioService = async (
   }
 
   if (usuario.rol.nombre === 'Admin' || usuario.rol.nombre === 'Administrador') {
-    throw new Error('No está permitido suspender una cuenta de Administrador institucional');
+    throw new Error('No está permitido suspender una cuenta de Administrador');
   }
 
   const actualizado = await prisma.usuario.update({
@@ -162,7 +162,7 @@ export const cambiarEstadoUsuarioService = async (
     await prisma.notificacion.create({
       data: {
         usuarioId,
-        mensaje: `Aviso Institucional: Tu cuenta ha sido suspendida temporalmente por la administración.${motivoTexto}`
+        mensaje: `Aviso: Tu cuenta ha sido suspendida temporalmente por la administración.${motivoTexto}`
       }
     }).catch(() => null);
   }

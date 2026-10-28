@@ -19,7 +19,7 @@ export const obtenerQrReservaService = async (id: number, usuarioId?: number, us
   const esPersonal = userRol && rolesAutorizados.includes(userRol);
 
   if (!esPropietario && !esPersonal) {
-    throw new ReservaServiceError(403, 'Acceso denegado: No tienes permisos para consultar el código QR de esta reserva');
+    throw new ReservaServiceError(403, 'No tienes permisos para consultar el código QR de esta reserva');
   }
 
   if (reserva.estado !== 'Aprobada') {
@@ -51,7 +51,7 @@ export const obtenerQrReservaService = async (id: number, usuarioId?: number, us
 
 export const escanearQrService = async (tokenQr: string, operadorId?: number, forzarValidacionTiempo?: boolean) => {
   if (!tokenQr || !tokenQr.trim()) {
-    throw new ReservaServiceError(400, 'Acceso Denegado: Se requiere un token o identificador de reserva válido', 'QR_REQUERIDO');
+    throw new ReservaServiceError(400, 'Ingresa un código QR o documento de identidad válido', 'QR_REQUERIDO');
   }
 
   const tokenLimpio = tokenQr.trim();
@@ -99,11 +99,11 @@ export const escanearQrService = async (tokenQr: string, operadorId?: number, fo
   }
 
   if (!reserva) {
-    throw new ReservaServiceError(404, 'Acceso Denegado / Registro no encontrado: El codigo o CI no corresponde a ninguna reserva activa registrada', 'QR_INVALIDO');
+    throw new ReservaServiceError(404, 'No se encontró ninguna reserva activa con este código o documento de identidad', 'QR_INVALIDO');
   }
 
   if (reserva.estado === 'Asistió' || reserva.horaAsistencia !== null) {
-    throw new ReservaServiceError(400, 'Acceso Denegado: Esta reserva ya tiene asistencia sellada previamente', 'QR_YA_UTILIZADO', {
+    throw new ReservaServiceError(400, 'Esta reserva ya tiene registrada su asistencia', 'QR_YA_UTILIZADO', {
       horaAsistenciaRegistrada: reserva.horaAsistencia,
       reservaId: reserva.id,
       usuario: reserva.usuario?.nombreCompleto
@@ -111,15 +111,15 @@ export const escanearQrService = async (tokenQr: string, operadorId?: number, fo
   }
 
   if (reserva.estado === 'Cancelada') {
-    throw new ReservaServiceError(400, 'Acceso Denegado: La reserva fue cancelada previamente', 'RESERVA_CANCELADA');
+    throw new ReservaServiceError(400, 'Esta reserva fue cancelada previamente', 'RESERVA_CANCELADA');
   }
 
   if (reserva.estado === 'Ausente') {
-    throw new ReservaServiceError(400, 'Acceso Denegado: La reserva expiro y fue marcada como ausente por inasistencia', 'RESERVA_EXPIRADA_AUSENTE');
+    throw new ReservaServiceError(400, 'La reserva expiró y fue marcada como ausente por inasistencia', 'RESERVA_EXPIRADA_AUSENTE');
   }
 
   if (reserva.estado !== 'Aprobada') {
-    throw new ReservaServiceError(400, `Acceso Denegado: La reserva se encuentra en estado '${reserva.estado}'`, 'RESERVA_NO_APROBADA');
+    throw new ReservaServiceError(400, `La reserva se encuentra en estado '${reserva.estado}'`, 'RESERVA_NO_APROBADA');
   }
 
   const ahora = new Date();
@@ -128,11 +128,14 @@ export const escanearQrService = async (tokenQr: string, operadorId?: number, fo
   const tiempoMinimoIngreso = new Date(fechaInicio.getTime() - 30 * 60 * 1000);
 
   if (forzarValidacionTiempo !== false) {
+    const horaInicioStr = fechaInicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const horaFinStr = fechaFin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
     if (ahora.getTime() < tiempoMinimoIngreso.getTime()) {
-      throw new ReservaServiceError(400, `Acceso Denegado / A destiempo: Aun no es la hora de ingreso para esta reserva. Inicia a las ${fechaInicio.toISOString()}`, 'HORARIO_ANTICIPADO');
+      throw new ReservaServiceError(400, `Aún no es la hora de ingreso para esta reserva. Inicia a las ${horaInicioStr}`, 'HORARIO_ANTICIPADO');
     }
     if (ahora.getTime() > fechaFin.getTime()) {
-      throw new ReservaServiceError(400, `Acceso Denegado / A destiempo: El horario de la reserva ya ha finalizado a las ${fechaFin.toISOString()}`, 'HORARIO_EXPIRADO');
+      throw new ReservaServiceError(400, `El horario de la reserva ya finalizó a las ${horaFinStr}`, 'HORARIO_EXPIRADO');
     }
   }
 
@@ -151,7 +154,7 @@ export const escanearQrService = async (tokenQr: string, operadorId?: number, fo
   await prisma.auditoria.create({
     data: {
       usuarioId: operadorId || null,
-      accion: `Validacion de ingreso exitosa (QR/Contingencia): Reserva #${reserva.id} (${reserva.laboratorio.nombre}) de ${reserva.usuario?.nombreCompleto || 'Usuario'} (CI: ${reserva.usuario?.ci || 'S/N'})`
+      accion: `Validación de ingreso exitosa: Reserva #${reserva.id} (${reserva.laboratorio.nombre}) de ${reserva.usuario?.nombreCompleto || 'Usuario'} (CI: ${reserva.usuario?.ci || 'S/N'})`
     }
   }).catch(() => null);
 

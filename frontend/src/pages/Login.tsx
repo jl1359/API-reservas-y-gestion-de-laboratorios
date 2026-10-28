@@ -60,11 +60,11 @@ export default function Login() {
     if (!forgotEmail) return;
     try {
       await apiClient.post('/api/auth/forgot-password', { correo: forgotEmail });
-      toast.success('Si el correo existe, se enviará un enlace de recuperación');
+      toast.success('Enlace de recuperación enviado. Revisa tu bandeja de entrada o spam.');
       setIsForgotModalOpen(false);
       setForgotEmail('');
     } catch (error) {
-      toast.error('Error al solicitar recuperación');
+      toast.error('No se pudo enviar la solicitud. Inténtalo nuevamente.');
     }
   };
 
@@ -134,7 +134,7 @@ export default function Login() {
           telefono: telefono.trim(),
           carreraId: Number(carreraId)
         });
-        toast.success('Cuenta creada exitosamente. Revisa tu correo.');
+        toast.success('Cuenta registrada con éxito. Revisa tu correo para activarla.');
         setIsLogin(true); 
         setPassword('');
         setCi('');
@@ -146,7 +146,7 @@ export default function Login() {
         setMostrarReenvioActivacion(true);
       }
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || 'Ocurrió un error en el servidor';
+      const errorMsg = error.response?.data?.error || 'No pudimos procesar la solicitud. Inténtalo de nuevo.';
       toast.error(errorMsg);
       if (typeof errorMsg === 'string' && errorMsg.toLowerCase().includes('verificar tu correo')) {
         setCorreoPendienteVerificacion(correo.trim());
@@ -168,7 +168,7 @@ export default function Login() {
       toast.success(res.data.mensaje || 'Sesión iniciada con Google');
       navigate('/');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Fallo la autenticación con Google');
+      toast.error(error.response?.data?.error || 'No se pudo iniciar sesión con Google');
     } finally {
       setIsLoading(false);
     }
@@ -427,7 +427,7 @@ export default function Login() {
               </div>
               <div>
                 <h2 className="text-xl font-bold font-poppins text-slate-900 dark:text-white">Recuperar Contraseña</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Restablecimiento seguro de credenciales</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Recupera el acceso a tu cuenta</p>
               </div>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">

@@ -14,10 +14,10 @@ export default function GraficoMetricaAsistencia({
     <div className="bg-slate-50/60 dark:bg-slate-900/40 rounded-2xl p-5 border border-slate-200/60 dark:border-slate-700/60">
       <div className="mb-4">
         <h5 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-          Tasa de Cumplimiento de Asistencia Presencial Efectiva
+          Porcentaje de Asistencia por Laboratorio
         </h5>
         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-          Aprovechamiento global del campus: <strong>{metricasData.tasaAsistenciaPromedio}%</strong>
+          Asistencia promedio del campus: <strong>{metricasData.tasaAsistenciaPromedio}%</strong>
         </p>
       </div>
 

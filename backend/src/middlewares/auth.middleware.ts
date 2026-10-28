@@ -10,7 +10,7 @@ export const verificarToken = async (req: AuthRequest, res: Response, next: Next
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'No se proporcionó un token de acceso válido' });
+      res.status(401).json({ error: 'Debes iniciar sesión para continuar' });
       return;
     }
 
@@ -43,14 +43,14 @@ export const verificarToken = async (req: AuthRequest, res: Response, next: Next
     };
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Token inválido o expirado' });
+    res.status(401).json({ error: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.' });
   }
 };
 
 export const esAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const rol = req.user?.rol;
   if (rol !== 'Admin' && rol !== 'Administrador') {
-    res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de Administrador' });
+    res.status(403).json({ error: 'Esta acción requiere permisos de Administrador' });
     return;
   }
   next();
@@ -63,7 +63,7 @@ export const permitirRoles = (...rolesPermitidos: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user || !rolesNormalizados.includes(req.user.rol)) {
       res.status(403).json({
-        error: `Acceso denegado: Se requiere uno de los siguientes roles autorizados: ${rolesPermitidos.join(', ')}`
+        error: `No cuentas con los permisos requeridos para esta sección.`
       });
       return;
     }
@@ -74,7 +74,7 @@ export const permitirRoles = (...rolesPermitidos: string[]) => {
 export const esAdminOResponsable = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const rol = req.user?.rol;
   if (rol !== 'Admin' && rol !== 'Administrador' && rol !== 'Responsable de Laboratorio') {
-    res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de Administrador o Responsable de Laboratorio' });
+    res.status(403).json({ error: 'Esta acción requiere permisos de Administrador o Responsable de Laboratorio' });
     return;
   }
   next();

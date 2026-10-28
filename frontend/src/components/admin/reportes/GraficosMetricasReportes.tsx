@@ -132,7 +132,7 @@ export default function GraficosMetricasReportes({
         <div>
           <h4 className="font-heading font-bold text-slate-900 dark:text-white text-base flex items-center">
             <BarChart3 className="w-4 h-4 mr-2 text-tech-blue" />
-            Analítica Focalizada por Métrica
+            Estadísticas y Gráficos de Uso
           </h4>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Haz clic en cualquier laboratorio para inspeccionar su reporte detallado
@@ -177,7 +177,7 @@ export default function GraficosMetricasReportes({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Estudiantes</span>
+            <span>Estudiantes Asistentes</span>
           </button>
 
           <button
@@ -190,7 +190,7 @@ export default function GraficosMetricasReportes({
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Aprovechamiento (%)</span>
+            <span>% de Asistencia</span>
           </button>
         </div>
       </div>
@@ -199,7 +199,7 @@ export default function GraficosMetricasReportes({
         {/* GRAFICO A: HORAS DE USO */}
         {tabGrafico === 'horas' && (
           <GraficoPastelBarrasMetrica
-            titulo="Distribución de Horas de Práctica Efectiva"
+            titulo="Distribución de Horas de Uso por Laboratorio"
             subtitulo={`Total campus: ${metricasData.totalHorasCampus} hrs`}
             totalCentro={metricasData.totalHorasCampus}
             etiquetaCentro="Horas Totales"
@@ -222,7 +222,7 @@ export default function GraficosMetricasReportes({
         {/* GRAFICO B: TOTAL DE RESERVAS */}
         {tabGrafico === 'reservas' && (
           <GraficoPastelBarrasMetrica
-            titulo="Frecuencia de Uso y Reservas Solicitadas"
+            titulo="Cantidad de Reservas por Laboratorio"
             subtitulo={`Total acumulado: ${metricasData.totalReservasCampus} reservas`}
             totalCentro={metricasData.totalReservasCampus}
             etiquetaCentro="Reservas"
@@ -245,7 +245,7 @@ export default function GraficosMetricasReportes({
         {/* GRAFICO C: ESTUDIANTES */}
         {tabGrafico === 'estudiantes' && (
           <GraficoPastelBarrasMetrica
-            titulo="Estudiantes Beneficiados por Laboratorio"
+            titulo="Estudiantes que Asistieron por Laboratorio"
             subtitulo={`Total campus: ${metricasData.totalAlumnosBeneficiados} estudiantes`}
             totalCentro={metricasData.totalAlumnosBeneficiados}
             etiquetaCentro="Estudiantes"
@@ -265,7 +265,7 @@ export default function GraficosMetricasReportes({
           />
         )}
 
-        {/* GRAFICO D: APROVECHAMIENTO / ASISTENCIA */}
+        {/* GRAFICO D: PORCENTAJE DE ASISTENCIA */}
         {tabGrafico === 'asistencia' && (
           <GraficoMetricaAsistencia
             metricasData={metricasData}

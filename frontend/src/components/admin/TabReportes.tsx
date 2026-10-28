@@ -130,10 +130,10 @@ export default function TabReportes({ laboratorios }: TabReportesProps) {
         <div>
           <h3 className="text-lg font-heading font-bold text-slate-900 dark:text-white flex items-center">
             <TrendingUp className="w-5 h-5 mr-2 text-tech-blue" />
-            Métricas de Ocupación e Informes Académicos
+            Reportes y Estadísticas de Uso
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Consolidado institucional de horas lectivas, tasas de aprovechamiento y acreditación universitaria.
+            Resumen de horas de uso, reservas realizadas y estudiantes que asistieron a los laboratorios.
           </p>
         </div>
 
@@ -143,13 +143,13 @@ export default function TabReportes({ laboratorios }: TabReportesProps) {
             className="flex-1 sm:flex-initial justify-center px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center shadow-xs active:scale-[0.98] whitespace-nowrap"
           >
             <FileText className="w-4 h-4 mr-1.5 text-tech-blue" />
-            Auditoría Diaria
+            Registro de Asistencias
           </Link>
           <button
             onClick={handleDescargarCsvMetricas}
             disabled={isDownloadingCsv || isLoadingMetricas}
             className="flex-1 sm:flex-initial justify-center px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all flex items-center shadow-sm shadow-emerald-600/20 active:scale-[0.98] disabled:opacity-50 whitespace-nowrap"
-            title="Descargar archivo CSV compatible con Excel con todas las métricas de ocupación"
+            title="Descargar archivo CSV con el resumen de reservas y uso"
           >
             <Download className="w-4 h-4 mr-1.5" />
             {isDownloadingCsv ? 'Generando...' : 'Exportar CSV'}
@@ -158,7 +158,7 @@ export default function TabReportes({ laboratorios }: TabReportesProps) {
             onClick={handleDescargarExcelMetricas}
             disabled={isDownloadingCsv || isLoadingMetricas}
             className="flex-1 sm:flex-initial justify-center px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all flex items-center shadow-sm shadow-blue-600/20 active:scale-[0.98] disabled:opacity-50 whitespace-nowrap"
-            title="Descargar archivo Excel con formato de acreditación académica"
+            title="Descargar resumen de métricas en formato Excel"
           >
             <Download className="w-4 h-4 mr-1.5" />
             {isDownloadingCsv ? 'Generando...' : 'Exportar Excel'}
@@ -283,7 +283,7 @@ export default function TabReportes({ laboratorios }: TabReportesProps) {
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
-            <span>Dashboard Gráfico</span>
+            <span>Gráficos</span>
           </button>
 
           <button
@@ -296,7 +296,7 @@ export default function TabReportes({ laboratorios }: TabReportesProps) {
             }`}
           >
             <Table className="w-3.5 h-3.5" />
-            <span>Tabla de Métricas</span>
+            <span>Tabla Resumen</span>
           </button>
         </div>
       </div>

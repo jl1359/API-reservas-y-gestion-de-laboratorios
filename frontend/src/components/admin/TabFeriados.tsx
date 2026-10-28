@@ -18,7 +18,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
   const handleCrearFeriado = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!feriadoForm.fecha || !feriadoForm.motivo.trim()) {
-      return toast.error('La fecha y el motivo institucional son obligatorios');
+      return toast.error('La fecha y el motivo son obligatorios');
     }
     setIsSubmittingFeriado(true);
     try {
@@ -43,10 +43,10 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
     }
     try {
       await feriadosApi.eliminar(id);
-      toast.success('Restricción anulada. El día fue reabierto en el calendario');
+      toast.success('Bloqueo eliminado. El día vuelve a estar disponible para reservas');
       onRefresh();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Error al eliminar restricción');
+      toast.error(error.response?.data?.error || 'Error al eliminar bloqueo');
     }
   };
 
@@ -76,8 +76,8 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400 min-w-[650px]">
             <thead className="bg-slate-50/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 font-heading border-b border-slate-150 dark:border-slate-800 text-xs tracking-wide">
               <tr>
-                <th className="px-6 py-4 font-bold">Fecha Restringida</th>
-                <th className="px-6 py-4 font-bold">Motivo Institucional</th>
+                <th className="px-6 py-4 font-bold">Fecha Bloqueada</th>
+                <th className="px-6 py-4 font-bold">Motivo</th>
                 <th className="px-6 py-4 font-bold">Estado</th>
                 <th className="px-6 py-4 font-bold text-right">Acción</th>
               </tr>
@@ -130,7 +130,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleEliminarFeriado(f.id, f.motivo)}
-                          title="Anular restricción y reabrir fecha"
+                          title="Desbloquear fecha"
                           className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-lg shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -189,7 +189,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-150 dark:border-slate-700/60 text-xs">
-                  <p className="text-slate-400 text-[11px] font-medium mb-0.5">Motivo Institucional:</p>
+                  <p className="text-slate-400 text-[11px] font-medium mb-0.5">Motivo:</p>
                   <p className="font-semibold text-slate-800 dark:text-slate-200">{f.motivo}</p>
                 </div>
 
@@ -199,7 +199,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
                     className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl transition-colors flex items-center justify-center gap-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Anular Restricción</span>
+                    <span>Desbloquear</span>
                   </button>
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default function TabFeriados({ feriadosList, isLoading, onRefresh }: TabF
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                  Motivo Institucional / Causa *
+                  Motivo del Bloqueo *
                 </label>
                 <input
                   type="text"

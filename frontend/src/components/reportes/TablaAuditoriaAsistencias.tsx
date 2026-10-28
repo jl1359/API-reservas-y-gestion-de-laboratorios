@@ -123,12 +123,12 @@ export default function TablaAuditoriaAsistencias({
       <div className="p-5 border-b border-slate-100 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h2 className="font-poppins font-bold text-slate-900 dark:text-white text-lg">
-            Detalle de Asistencias y Auditoría de Reservas
+            Detalle de Asistencias y Reservas
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {modoAuditoria === 'rango' 
-              ? `Trazabilidad entre ${formatearFecha(fechaInicio)} y ${formatearFecha(fechaFin)}`
-              : `Trazabilidad para el día ${formatearFecha(fecha)}`}
+              ? `Registros entre ${formatearFecha(fechaInicio)} y ${formatearFecha(fechaFin)}`
+              : `Registros para el día ${formatearFecha(fecha)}`}
             {carreraId ? ` • Filtrado por carrera: ${nombreCarreraFiltro}` : ''}
           </p>
         </div>
@@ -140,7 +140,7 @@ export default function TablaAuditoriaAsistencias({
       {isLoading ? (
         <div className="py-20 flex flex-col items-center justify-center space-y-3">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-tech-blue"></div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Generando reporte de auditoría...</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Cargando reporte de asistencias...</p>
         </div>
       ) : reservas.length === 0 ? (
         <div className="py-16 px-4 text-center">
@@ -162,7 +162,7 @@ export default function TablaAuditoriaAsistencias({
               <tr>
                 <th scope="col" className="px-5 py-3.5">Fecha y Horario</th>
                 <th scope="col" className="px-5 py-3.5">Carrera / Laboratorio</th>
-                <th scope="col" className="px-5 py-3.5">Usuario Titular</th>
+                <th scope="col" className="px-5 py-3.5">Docente / Usuario</th>
                 <th scope="col" className="px-5 py-3.5">Modalidad</th>
                 <th scope="col" className="px-5 py-3.5">Estado</th>
                 <th scope="col" className="px-5 py-3.5">Ingreso / Asistencia</th>

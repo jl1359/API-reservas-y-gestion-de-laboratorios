@@ -30,14 +30,14 @@ export default function TabSanciones({
   const [motivoPerdon, setMotivoPerdon] = useState('');
   const [isSubmittingPerdon, setIsSubmittingPerdon] = useState(false);
 
-  // Proceso de barrido automático
+  // Proceso de procesamiento automático
   const [isProcesandoInasistencias, setIsProcesandoInasistencias] = useState(false);
 
   const handleEjecutarInasistencias = async () => {
     setIsProcesandoInasistencias(true);
     try {
       const res = await sancionesApi.procesarInasistencias();
-      toast.success(res.mensaje || 'Barrido de inasistencias ejecutado');
+      toast.success(res.mensaje || 'Proceso de inasistencias completado');
       onRefresh();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al procesar inasistencias');
@@ -49,7 +49,7 @@ export default function TabSanciones({
   const handleCrearSancionManual = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualSancionForm.usuarioId || !manualSancionForm.motivo.trim()) {
-      return toast.error('El usuario y la justificación son obligatorios');
+      return toast.error('El usuario y el motivo son obligatorios');
     }
 
     setIsSubmittingManualSancion(true);
@@ -59,12 +59,12 @@ export default function TabSanciones({
         motivo: manualSancionForm.motivo.trim(),
         horasDuracion: Number(manualSancionForm.horasDuracion) || 24
       });
-      toast.success('Sanción disciplinaria aplicada exitosamente');
+      toast.success('Suspensión aplicada exitosamente');
       setIsManualSancionModalOpen(false);
       setManualSancionForm({ usuarioId: '', horasDuracion: '24', motivo: '' });
       onRefresh();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Error al aplicar sanción');
+      toast.error(error.response?.data?.error || 'Error al aplicar suspensión');
     } finally {
       setIsSubmittingManualSancion(false);
     }
@@ -82,13 +82,13 @@ export default function TabSanciones({
     setIsSubmittingPerdon(true);
     try {
       await sancionesApi.perdonarSancion(sancionAPerdonar.id, motivoPerdon.trim() || undefined);
-      toast.success(`Sanción levantada para ${sancionAPerdonar.usuario?.nombreCompleto || 'Usuario'}`);
+      toast.success(`Suspensión levantada para ${sancionAPerdonar.usuario?.nombreCompleto || 'Usuario'}`);
       setIsPerdonarModalOpen(false);
       setSancionAPerdonar(null);
       setMotivoPerdon('');
       onRefresh();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Error al perdonar sanción');
+      toast.error(error.response?.data?.error || 'Error al levantar suspensión');
     } finally {
       setIsSubmittingPerdon(false);
     }
@@ -100,10 +100,10 @@ export default function TabSanciones({
         <div>
           <h3 className="text-lg font-heading font-bold text-slate-900 dark:text-white flex items-center">
             <Ban className="w-5 h-5 mr-2 text-rose-600" />
-            Régimen Disciplinario y Sanciones
+            Control de Sanciones y Suspensiones
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Gestión y levantamiento de sanciones por inasistencia.
+            Gestión y levantamiento de suspensiones por inasistencia.
           </p>
         </div>
 
@@ -112,10 +112,10 @@ export default function TabSanciones({
             onClick={handleEjecutarInasistencias}
             disabled={isProcesandoInasistencias}
             className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center shadow-xs active:scale-[0.98] disabled:opacity-50"
-            title="Detectar reservas sin check-in tras el tiempo de tolerancia y suspender por 24 horas"
+            title="Detectar reservas sin ingreso tras el tiempo de tolerancia y suspender por 24 horas"
           >
             <Clock className="w-4 h-4 mr-1.5 text-amber-500" />
-            {isProcesandoInasistencias ? 'Procesando...' : 'Barrer Inasistencias'}
+            {isProcesandoInasistencias ? 'Procesando...' : 'Procesar Inasistencias'}
           </button>
           <button
             onClick={() => {
@@ -125,7 +125,7 @@ export default function TabSanciones({
             className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all flex items-center shadow-sm shadow-rose-600/20 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            Aplicar Sanción Manual
+            Aplicar Suspensión
           </button>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function TabSanciones({
               <tr>
                 <th className="px-6 py-4 font-bold">Usuario Sancionado</th>
                 <th className="px-6 py-4 font-bold">Causa / Justificación</th>
-                <th className="px-6 py-4 font-bold">Período de Penalización</th>
+                <th className="px-6 py-4 font-bold">Período de Suspensión</th>
                 <th className="px-6 py-4 font-bold">Estado</th>
                 <th className="px-6 py-4 font-bold text-right">Acción</th>
               </tr>
@@ -224,9 +224,9 @@ export default function TabSanciones({
                             <button
                               onClick={() => handleAbrirPerdonar(s)}
                               className="px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl transition shadow-xs"
-                              title="Levantar sanción y restaurar privilegios de reserva"
+                              title="Levantar suspensión y permitir reservas"
                             >
-                              Levantar Sanción
+                              Levantar Suspensión
                             </button>
                           ) : (
                             <span className="text-xs text-slate-400 italic">Sin acciones</span>
@@ -316,7 +316,7 @@ export default function TabSanciones({
                         className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Levantar Sanción</span>
+                        <span>Levantar Suspensión</span>
                       </button>
                     </div>
                   )}
@@ -333,7 +333,7 @@ export default function TabSanciones({
             <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
               <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
                 <Ban className="w-5 h-5 mr-2 text-rose-600" />
-                Aplicar Sanción Manual
+                Aplicar Suspensión
               </h2>
               <button onClick={() => setIsManualSancionModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
                 <X className="w-5 h-5" />
@@ -343,7 +343,7 @@ export default function TabSanciones({
             <form onSubmit={handleCrearSancionManual} className="mt-4 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Usuario a Sancionar <span className="text-red-500">*</span>
+                  Usuario a Suspender <span className="text-red-500">*</span>
                 </label>
                 <select
                   required
@@ -379,14 +379,14 @@ export default function TabSanciones({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Motivo / Falta Disciplinaria <span className="text-red-500">*</span>
+                  Motivo de la Suspensión <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   required
                   rows={3}
                   value={manualSancionForm.motivo}
                   onChange={(e) => setManualSancionForm({ ...manualSancionForm, motivo: e.target.value })}
-                  placeholder="Detalla el motivo institucional..."
+                  placeholder="Detalla el motivo..."
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none dark:text-white resize-none"
                 />
               </div>
@@ -405,7 +405,7 @@ export default function TabSanciones({
                   disabled={isSubmittingManualSancion}
                   className="px-5 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl shadow transition flex items-center"
                 >
-                  {isSubmittingManualSancion ? 'Aplicando...' : 'Aplicar Sanción'}
+                  {isSubmittingManualSancion ? 'Aplicando...' : 'Aplicar Suspensión'}
                 </button>
               </div>
             </form>
@@ -420,7 +420,7 @@ export default function TabSanciones({
             <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-700">
               <h2 className="text-lg font-poppins font-bold text-slate-900 dark:text-white flex items-center">
                 <CheckCircle className="w-5 h-5 mr-2 text-emerald-600" />
-                Levantar Sanción Disciplinaria
+                Levantar Suspensión
               </h2>
               <button onClick={() => setIsPerdonarModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
                 <X className="w-5 h-5" />
@@ -442,13 +442,13 @@ export default function TabSanciones({
                   rows={3}
                   value={motivoPerdon}
                   onChange={(e) => setMotivoPerdon(e.target.value)}
-                  placeholder="Ej. Presentó certificado médico en decanato, corte de energía en el laboratorio..."
+                  placeholder="Ej. Justificación médica presentada, error de registro..."
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white resize-none"
                 />
               </div>
 
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs">
-                Al confirmar, el usuario recuperará inmediatamente el privilegio de solicitar y reservar laboratorios.
+                Al confirmar, el usuario podrá volver a solicitar y reservar laboratorios inmediatamente.
               </div>
 
               <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
