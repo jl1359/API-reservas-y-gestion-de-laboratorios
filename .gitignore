@@ -22,6 +22,9 @@ logs
 *.log
 npm-debug.log*
 
+# Documentacion externa
+docs/
+
 # AI Agent & IDE configs
 .agents/
 skills-lock.json
