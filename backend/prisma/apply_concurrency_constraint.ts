@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 /**
- * Script de migración física en PostgreSQL para HU-15 (Motor de Concurrencia):
+ * Script de migración física en PostgreSQL para el control de concurrencia de reservas:
  * 1. Habilita la extensión btree_gist en PostgreSQL.
  * 2. Aplica restricción CHECK para validar que fecha_fin > fecha_inicio.
  * 3. Aplica restricción de exclusión EXCLUDE USING gist sobre laboratorio_id,
@@ -11,12 +11,12 @@ const prisma = new PrismaClient();
  *    solapamientos en reservas 'Pendiente', 'Aprobada' y 'Confirmada'.
  */
 export async function aplicarRestriccionConcurrencia() {
-  console.log('--- APLICANDO EXTENSIÓN Y RESTRICCIÓN FÍSICA EN POSTGRESQL (HU-15) ---');
+  console.log('--- APLICANDO EXTENSIÓN Y RESTRICCIÓN FÍSICA DE CONCURRENCIA EN POSTGRESQL ---');
   try {
     // 1. Habilitar extensión btree_gist
     console.log('1. Creando extensión btree_gist si no existe...');
     await prisma.$executeRawUnsafe(`CREATE EXTENSION IF NOT EXISTS btree_gist;`);
-    console.log('✓ Extensión btree_gist activa.');
+    console.log('OK: Extension btree_gist activa.');
 
     // 2. Limpiar restricciones previas si existen
     console.log('2. Limpiando restricciones anteriores de reservas si existen...');
@@ -30,7 +30,7 @@ export async function aplicarRestriccionConcurrencia() {
       ADD CONSTRAINT reservas_rango_valido
       CHECK (fecha_fin > fecha_inicio);
     `);
-    console.log('✓ Restricción reservas_rango_valido creada.');
+    console.log('OK: Restriccion reservas_rango_valido creada.');
 
     // 4. Crear restricción de exclusión física EXCLUDE USING gist
     console.log('4. Creando constraint de exclusión matemática reservas_sin_solapamiento...');
@@ -43,8 +43,8 @@ export async function aplicarRestriccionConcurrencia() {
         tsrange(fecha_inicio, fecha_fin, '[)') WITH &&
       ) WHERE (estado IN ('Pendiente', 'Aprobada', 'Confirmada'));
     `);
-    console.log('✓ Restricción reservas_sin_solapamiento (EXCLUDE USING gist) creada con éxito.');
-    console.log('--- MOTOR DE CONCURRENCIA HU-15 APLICADO EXITOSAMENTE ---');
+    console.log('OK: Restriccion reservas_sin_solapamiento (EXCLUDE USING gist) creada con exito.');
+    console.log('--- MOTOR DE CONCURRENCIA APLICADO EXITOSAMENTE ---');
   } catch (error) {
     console.error('Error al aplicar la restricción en PostgreSQL:', error);
     throw error;

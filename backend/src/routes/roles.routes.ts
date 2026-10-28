@@ -4,7 +4,7 @@ import { verificarToken, esAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// HU-27: Rutas para solicitudes de rol
+// Rutas para solicitudes de rol
 // Cualquier usuario logueado puede pedir un rol
 router.post('/request', verificarToken, solicitarRol);
 

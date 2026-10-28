@@ -1,5 +1,5 @@
 /**
- * Generador de Comprobante Oficial de Reserva (HU-34)
+ * Generador de Comprobante Oficial de Reserva en PDF
  * Genera una ventana con vista previa oficial, botones de descarga en PDF / impresión y membrete FCyT.
  */
 

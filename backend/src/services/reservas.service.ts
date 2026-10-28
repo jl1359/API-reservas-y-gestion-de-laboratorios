@@ -25,7 +25,7 @@ export {
 } from './asistencia.service';
 
 /**
- * HU-28: Reserva individual de computadora por parte de un estudiante
+ * Reserva individual de computadora por parte de un estudiante
  */
 export const crearReservaIndividualService = async (
   laboratorioId: number,

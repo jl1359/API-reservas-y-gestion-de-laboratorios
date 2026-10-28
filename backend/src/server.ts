@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
   console.log(`Servidor Backend corriendo en el puerto ${PORT}`);
 
-  // HU-35: Iniciar proceso autonomo desatendido en segundo plano
+  // Iniciar proceso autonomo de verificacion de inasistencias en segundo plano
   iniciarWorkerInasistencias(5);
 });
 
