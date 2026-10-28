@@ -73,7 +73,7 @@ export const imprimirReporteAuditoriaPdf = (
     <html lang="es">
     <head>
       <meta charset="utf-8">
-      <title>Reporte Oficial de Auditoría y Asistencias · FCyT UMSS</title>
+      <title>Reporte de Asistencias · FCyT UMSS</title>
       <style>
         * { box-sizing: border-box; }
         body {
@@ -276,8 +276,8 @@ export const imprimirReporteAuditoriaPdf = (
         <div class="header">
           <div class="institucion">Universidad Mayor de San Simón</div>
           <div class="facultad">Facultad de Ciencias y Tecnología &bull; LabReserve Campus</div>
-          <div class="titulo">Informe Oficial de Auditoría y Asistencias</div>
-          <div class="subtitulo">Registro institucional de control de ocupación, asistencia y trazabilidad</div>
+          <div class="titulo">Reporte de Asistencias a Laboratorios</div>
+          <div class="subtitulo">Registro de reservas, asistencias y uso de espacios</div>
         </div>
 
         <div class="meta-box">
@@ -302,7 +302,7 @@ export const imprimirReporteAuditoriaPdf = (
           </div>
           <div class="kpi-card">
             <div class="kpi-num" style="color: #0284c7;">${tasaAsistencia}%</div>
-            <div class="kpi-label">Tasa de Asistencia</div>
+            <div class="kpi-label">Porcentaje de Asistencia</div>
           </div>
         </div>
 
@@ -312,7 +312,7 @@ export const imprimirReporteAuditoriaPdf = (
               <th style="width: 30px; text-align: center;">#</th>
               <th style="width: 120px;">Fecha y Horario</th>
               <th>Laboratorio</th>
-              <th>Usuario Solicitante</th>
+              <th>Docente / Usuario</th>
               <th style="text-align: center; width: 80px;">C.I.</th>
               <th>Materia / Práctica</th>
               <th style="text-align: center; width: 60px;">Espacio</th>
@@ -328,7 +328,7 @@ export const imprimirReporteAuditoriaPdf = (
           <div>
             <div class="linea-firma"></div>
             <strong>Responsable de Laboratorio</strong><br>
-            <span>Verificación y Auditoría FCyT</span>
+            <span>Control de Laboratorios FCyT</span>
           </div>
           <div>
             <div class="linea-firma"></div>

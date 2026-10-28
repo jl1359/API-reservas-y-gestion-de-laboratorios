@@ -195,7 +195,7 @@ export default function LabDetailCalendar({
             <div className="mt-3.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center space-x-2 text-xs text-amber-700 dark:text-amber-300">
               <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
               <span>
-                <strong>Feriado Institucional:</strong> {feriadoDelDia.motivo}. El campus permanece cerrado.
+                <strong>Día no laborable o feriado:</strong> {feriadoDelDia.motivo}. No hay atención en el campus.
               </span>
             </div>
           )}
@@ -205,7 +205,7 @@ export default function LabDetailCalendar({
             <div className="mt-3.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center space-x-2 text-xs text-amber-700 dark:text-amber-300">
               <Wrench className="w-4 h-4 shrink-0 text-amber-500" />
               <span>
-                <strong>Mantenimiento Técnico:</strong> {mantenimientoDelDia.motivo}. Actividades suspendidas.
+                <strong>Mantenimiento programado:</strong> {mantenimientoDelDia.motivo}. No hay atención en el laboratorio.
               </span>
             </div>
           )}

@@ -157,7 +157,7 @@ export default function ReporteAsistencias() {
       const res = await apiClient.get('/api/reportes/asistencias', { params });
       setReporte(res.data);
       if (mostrarFeedback) {
-        toast.success('Reporte de auditoría actualizado');
+        toast.success('Reporte de asistencias actualizado');
       }
     } catch (err: any) {
       console.error('Error al consultar reporte:', err);
@@ -218,10 +218,10 @@ export default function ReporteAsistencias() {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-poppins font-bold text-slate-900 dark:text-white">
-                  Auditoría y Reportes de Asistencias
+                  Reporte de Asistencias
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                  Control de asistencia QR, comparativa por carreras académicas y trazabilidad temporal
+                  Registro de asistencia por código QR y comparativa por carreras y laboratorios
                 </p>
               </div>
             </div>
@@ -297,7 +297,7 @@ export default function ReporteAsistencias() {
               </div>
               <div>
                 <span className="font-semibold text-slate-800 dark:text-white">
-                  Auditoría enfocada en: <strong>{nombreCarreraFiltro || 'Carrera seleccionada'}</strong>
+                  Filtrando por carrera: <strong>{nombreCarreraFiltro || 'Carrera seleccionada'}</strong>
                 </span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Las métricas y los gráficos muestran exclusivamente los laboratorios y reservas de esta carrera.
@@ -421,7 +421,7 @@ export default function ReporteAsistencias() {
                   paletaColores={PALETA_COLORES}
                   onSelectCarrera={(cId, nombre) => {
                     setCarreraId(String(cId));
-                    toast.success(`Filtrando auditoría por: ${nombre}`);
+                    toast.success(`Filtrando por carrera: ${nombre}`);
                   }}
                 />
               )}

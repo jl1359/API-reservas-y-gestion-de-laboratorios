@@ -153,7 +153,7 @@ export default function TabLaboratorios({
       setIsModalOpen(false);
       onRefresh();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data?.error || `Error al ${modalMode} laboratorio`);
+      toast.error(error.response?.data?.message || error.response?.data?.error || `Error al ${modalMode === 'crear' ? 'crear' : 'actualizar'} el laboratorio`);
     }
   };
 
@@ -161,10 +161,10 @@ export default function TabLaboratorios({
     if (!window.confirm('¿Estás seguro de dar de baja este laboratorio?')) return;
     try {
       await apiClient.delete(`/api/laboratorios/${id}`);
-      toast.success('Laboratorio eliminado');
+      toast.success('Laboratorio eliminado correctamente');
       onRefresh();
     } catch (error: any) {
-      toast.error('Error al eliminar');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'No se pudo eliminar el laboratorio');
     }
   };
 

@@ -19,9 +19,9 @@ export interface EstadoSancionUsuario {
 }
 
 /**
- * Bloqueo punitivo de transacciones por inasistencia.
- * Verifica si un usuario cuenta con una sanción activa en la base de datos.
- * Además, actualiza automáticamente las sanciones que ya hayan cumplido sus 24 horas a 'Expirada'.
+ * Bloqueo de reservas por inasistencia.
+ * Verifica si un usuario cuenta con una suspensión activa en la base de datos.
+ * Además, actualiza automáticamente las suspensiones que ya hayan cumplido sus 24 horas a 'Expirada'.
  */
 export const verificarSancionActiva = async (usuarioId: number): Promise<EstadoSancionUsuario> => {
   const ahora = new Date();
@@ -30,7 +30,6 @@ export const verificarSancionActiva = async (usuarioId: number): Promise<EstadoS
   await procesarInasistenciasPendientes().catch(() => {});
 
   // 1. Auto-expirar sanciones pasadas que sigan figurando como 'Activa'
-
   await prisma.sancion.updateMany({
     where: {
       usuarioId,
@@ -72,8 +71,8 @@ export const verificarSancionActiva = async (usuarioId: number): Promise<EstadoS
 };
 
 /**
- * Aplicación de castigo temporal estricto.
- * Aplica una sanción de exactamente 24 horas al usuario de una reserva específica.
+ * Aplicación de suspensión temporal por inasistencia.
+ * Aplica una suspensión de 24 horas al usuario de una reserva específica.
  */
 export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPersonalizado?: string) => {
   const reserva = await prisma.reserva.findUnique({
@@ -92,7 +91,7 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
   const fechaFinCalculada = new Date(ahora.getTime() + DURACION_SANCION_MS);
 
   const motivoFinal = motivoPersonalizado || 
-    `Inasistencia a reserva #${reserva.id} en ${reserva.laboratorio.nombre}: No se registró ingreso (QR) tras finalizar el tiempo de tolerancia (Sanción 24h).`;
+    `Inasistencia a reserva #${reserva.id} en ${reserva.laboratorio.nombre}: No se registró ingreso tras el tiempo de tolerancia (Suspensión de 24 horas).`;
 
   // Marcar reserva como Ausente
   await prisma.reserva.update({
@@ -100,7 +99,7 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
     data: { estado: 'Ausente' }
   });
 
-  // Inyectar sanción matemática estricta de 24 horas
+  // Crear sanción de 24 horas
   const nuevaSancion = await prisma.sancion.create({
     data: {
       usuarioId: reserva.usuarioId,
@@ -117,7 +116,7 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
     await prisma.notificacion.create({
       data: {
         usuarioId: reserva.usuarioId,
-        mensaje: `Has recibido una sanción disciplinaria por inasistencia. Tus privilegios de reserva están suspendidos por 24 horas hasta ${fechaFinCalculada.toLocaleString('es-ES')}.`
+        mensaje: `Se ha aplicado una suspensión temporal de reservas por 24 horas hasta ${fechaFinCalculada.toLocaleString('es-ES')}.`
       }
     });
   } catch (errNotif) {
@@ -129,7 +128,7 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
     await prisma.auditoria.create({
       data: {
         usuarioId: reserva.usuarioId,
-        accion: `Sanción disciplinaria aplicada: 24 horas de suspensión por inasistencia a reserva #${reserva.id}`
+        accion: `Suspensión temporal aplicada: 24 horas de suspensión por inasistencia a reserva #${reserva.id}`
       }
     });
   } catch (errAudit) {
@@ -234,7 +233,7 @@ export const listarTodasLasSancionesService = async (estado?: string) => {
 };
 
 /**
- * Levantar o perdonar manualmente una sanción disciplinaria por parte del Administrador.
+ * Levantar o perdonar manualmente una suspensión por parte del Administrador.
  */
 export const perdonarSancionService = async (sancionId: number, adminId?: number, motivoPerdon?: string) => {
   const sancion = await prisma.sancion.findUnique({
@@ -246,7 +245,7 @@ export const perdonarSancionService = async (sancionId: number, adminId?: number
     throw new Error('Sanción no encontrada');
   }
 
-  const justificacion = motivoPerdon || 'Sanción revocada por el Administrador ante justificación válida.';
+  const justificacion = motivoPerdon || 'Suspensión revocada por el Administrador ante justificación válida.';
 
   const sancionActualizada = await prisma.sancion.update({
     where: { id: sancionId },
@@ -258,7 +257,7 @@ export const perdonarSancionService = async (sancionId: number, adminId?: number
     await prisma.notificacion.create({
       data: {
         usuarioId: sancion.usuarioId,
-        mensaje: `Tu sanción disciplinaria #${sancion.id} ha sido levantada por la Administración. Motivo: "${justificacion}". Tus privilegios para solicitar laboratorios han sido restablecidos.`
+        mensaje: `Tu suspensión #${sancion.id} ha sido levantada por la Administración. Motivo: "${justificacion}". Ya puedes realizar nuevas reservas.`
       }
     });
   } catch (errNotif) {
@@ -270,7 +269,7 @@ export const perdonarSancionService = async (sancionId: number, adminId?: number
     await prisma.auditoria.create({
       data: {
         usuarioId: adminId || null,
-        accion: `Sanción #${sancionId} de ${sancion.usuario.nombreCompleto} levantada/perdonada. Motivo: ${justificacion}`
+        accion: `Suspensión #${sancionId} de ${sancion.usuario.nombreCompleto} levantada. Motivo: ${justificacion}`
       }
     });
   } catch (errAudit) {
@@ -281,7 +280,7 @@ export const perdonarSancionService = async (sancionId: number, adminId?: number
 };
 
 /**
- * Aplicar sanción disciplinaria manual por parte del Administrador.
+ * Aplicar suspensión manual por parte del Administrador.
  */
 export const aplicarSancionManualService = async (
   usuarioId: number,
@@ -305,7 +304,7 @@ export const aplicarSancionManualService = async (
     data: {
       usuarioId,
       reservaId: null,
-      motivo: `[Sanción Manual - Admin]: ${motivo}`,
+      motivo: `[Suspensión Manual]: ${motivo}`,
       fechaInicio: ahora,
       fechaFin,
       estado: 'Activa'
@@ -317,7 +316,7 @@ export const aplicarSancionManualService = async (
     await prisma.notificacion.create({
       data: {
         usuarioId,
-        mensaje: `Se te ha aplicado una sanción disciplinaria manual por ${horasDuracion} hora(s) hasta ${fechaFin.toLocaleString('es-ES')}. Causa: ${motivo}`
+        mensaje: `Se ha aplicado una suspensión temporal de reservas por ${horasDuracion} hora(s) hasta ${fechaFin.toLocaleString('es-ES')}. Motivo: ${motivo}`
       }
     });
   } catch (e) {}
@@ -327,7 +326,7 @@ export const aplicarSancionManualService = async (
     await prisma.auditoria.create({
       data: {
         usuarioId: adminId || null,
-        accion: `Sanción manual de ${horasDuracion}h aplicada al usuario ${usuario.nombreCompleto} (${usuario.correo}). Causa: ${motivo}`
+        accion: `Suspensión manual de ${horasDuracion}h aplicada al usuario ${usuario.nombreCompleto} (${usuario.correo}). Motivo: ${motivo}`
       }
     });
   } catch (e) {}

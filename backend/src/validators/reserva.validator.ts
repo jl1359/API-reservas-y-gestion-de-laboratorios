@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 export const crearReservaSchema = z.object({
   laboratorioId: z.coerce.number().int().positive('ID de laboratorio inválido'),
-  fechaInicio: z.string().min(1, 'fechaInicio es obligatoria'),
-  fechaFin: z.string().min(1, 'fechaFin es obligatoria'),
+  fechaInicio: z.string().min(1, 'La fecha y hora de inicio son obligatorias'),
+  fechaFin: z.string().min(1, 'La fecha y hora de fin son obligatorias'),
   materia: z.string().min(1, 'El nombre de la materia es obligatorio').max(150),
   cantidadAlumnos: z.coerce.number().int().positive('La cantidad de alumnos debe ser un número entero mayor a 0'),
   motivo: z.string().optional(),
@@ -13,7 +13,7 @@ export const crearReservaSchema = z.object({
 });
 
 export const crearReservaIndividualSchema = z.object({
-  numeroComputadora: z.coerce.number().int().positive('Debes seleccionar explícitamente una computadora válida'),
+  numeroComputadora: z.coerce.number().int().positive('Debes seleccionar una computadora'),
   fechaInicio: z.string().min(1, 'La fecha de inicio es obligatoria'),
   fechaFin: z.string().min(1, 'La fecha de fin es obligatoria'),
   motivo: z.string().max(255, 'El motivo no puede superar los 255 caracteres').optional().default('')

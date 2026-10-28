@@ -49,15 +49,15 @@ export const reportesApi = {
       'Horas de Uso Efectivo': lab.horasUsoEfectivo,
       'Asistidas': lab.reservasAsistidas,
       'Ausentes': lab.reservasAusentes,
-      'Tasa de Asistencia (%)': `${lab.tasaAsistencia}%`,
-      'Estudiantes Beneficiados': lab.alumnosBeneficiados,
+      'Porcentaje de Asistencia (%)': `${lab.tasaAsistencia}%`,
+      'Estudiantes Asistentes': lab.alumnosBeneficiados,
     }));
 
     const resumen = [
       { 'Métrica General': 'Total Reservas en Campus', 'Valor': metricas.totalReservasCampus },
       { 'Métrica General': 'Total Horas de Uso en Campus', 'Valor': metricas.totalHorasCampus },
-      { 'Métrica General': 'Tasa de Asistencia Promedio', 'Valor': `${metricas.tasaAsistenciaPromedio}%` },
-      { 'Métrica General': 'Total Estudiantes Beneficiados', 'Valor': metricas.totalAlumnosBeneficiados },
+      { 'Métrica General': 'Porcentaje de Asistencia Promedio', 'Valor': `${metricas.tasaAsistenciaPromedio}%` },
+      { 'Métrica General': 'Total Estudiantes Asistentes', 'Valor': metricas.totalAlumnosBeneficiados },
       { 'Métrica General': 'Laboratorio Más Solicitado', 'Valor': metricas.laboratorioMasDemandado },
     ];
 

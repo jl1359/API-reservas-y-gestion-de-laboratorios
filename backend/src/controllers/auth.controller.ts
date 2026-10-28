@@ -33,7 +33,7 @@ export const register = async (req: Request, res: Response): Promise<any> => {
       return res.status(error.status).json({ error: error.message });
     }
     console.error('Error en register:', error);
-    return res.status(500).json({ error: 'Error interno del servidor al registrar' });
+    return res.status(500).json({ error: 'No se pudo completar el registro. Inténtalo de nuevo.' });
   }
 };
 
@@ -43,7 +43,7 @@ export const verificarCorreo = async (req: Request, res: Response): Promise<any>
     const resultado = await verificarCorreoService(token as string);
     return res.json(resultado);
   } catch (error: any) {
-    return res.status(400).json({ error: 'Token de activación inválido o expirado' });
+    return res.status(400).json({ error: 'El enlace de activación no es válido o ha expirado. Solicita uno nuevo.' });
   }
 };
 
@@ -59,7 +59,7 @@ export const reenviarActivacion = async (req: Request, res: Response): Promise<a
     if (error instanceof AuthServiceError) {
       return res.status(error.status).json({ error: error.message });
     }
-    return res.status(500).json({ error: 'Error al reenviar el enlace de activación' });
+    return res.status(500).json({ error: 'No se pudo reenviar el enlace de activación. Inténtalo más tarde.' });
   }
 };
 
@@ -67,7 +67,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
   try {
     const validacion = loginSchema.safeParse(req.body);
     if (!validacion.success) {
-      return res.status(400).json({ error: 'Credenciales inválidas' });
+      return res.status(400).json({ error: 'Correo o contraseña incorrectos' });
     }
 
     const { correo, password } = validacion.data;
@@ -80,7 +80,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
     if (error instanceof AuthServiceError) {
       return res.status(error.status).json({ error: error.message });
     }
-    return res.status(500).json({ error: 'Error interno del servidor al iniciar sesión' });
+    return res.status(500).json({ error: 'No se pudo iniciar sesión. Inténtalo nuevamente.' });
   }
 };
 
@@ -88,7 +88,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<any> 
   try {
     const { correo } = req.body;
     if (!correo) {
-      return res.status(400).json({ error: 'Correo obligatorio' });
+      return res.status(400).json({ error: 'Debes ingresar tu correo electrónico' });
     }
     const resultado = await forgotPasswordService(correo);
     return res.json(resultado);
@@ -96,7 +96,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<any> 
     if (error instanceof AuthServiceError) {
       return res.status(error.status).json({ error: error.message });
     }
-    return res.status(500).json({ error: 'Error al enviar el correo' });
+    return res.status(500).json({ error: 'No se pudo enviar el correo de recuperación' });
   }
 };
 
@@ -104,12 +104,12 @@ export const resetPassword = async (req: Request, res: Response): Promise<any> =
   try {
     const { token, newPassword } = req.body;
     if (!token || !newPassword) {
-      return res.status(400).json({ error: 'Token y nueva contraseña obligatorios' });
+      return res.status(400).json({ error: 'El enlace de recuperación y la nueva contraseña son obligatorios' });
     }
     const resultado = await resetPasswordService(token, newPassword);
     return res.json(resultado);
   } catch (error: any) {
-    return res.status(400).json({ error: 'Token inválido o expirado' });
+    return res.status(400).json({ error: 'El enlace de recuperación no es válido o ha expirado' });
   }
 };
 
@@ -117,7 +117,7 @@ export const loginConGoogle = async (req: Request, res: Response): Promise<any> 
   try {
     const { token } = req.body;
     if (!token) {
-      return res.status(400).json({ error: 'Token de Google requerido' });
+      return res.status(400).json({ error: 'No se recibió la confirmación de Google. Inténtalo de nuevo.' });
     }
 
     const resultado = await loginConGoogleService(token);
@@ -129,14 +129,14 @@ export const loginConGoogle = async (req: Request, res: Response): Promise<any> 
     if (error instanceof AuthServiceError) {
       return res.status(error.status).json({ error: error.message });
     }
-    return res.status(500).json({ error: 'Error al autenticar con Google' });
+    return res.status(500).json({ error: 'No se pudo autenticar con Google. Inténtalo de nuevo.' });
   }
 };
 
 export const desactivarCuenta = async (req: Request, res: Response): Promise<any> => {
   try {
     const usuarioId = (req as any).user?.id;
-    if (!usuarioId) return res.status(401).json({ error: 'No autenticado' });
+    if (!usuarioId) return res.status(401).json({ error: 'Debes iniciar sesión para continuar' });
 
     const resultado = await desactivarCuentaService(usuarioId);
     return res.json(resultado);
@@ -149,7 +149,7 @@ export const cambiarPassword = async (req: AuthRequest, res: Response): Promise<
   try {
     const usuarioId = req.user?.id;
     if (!usuarioId) {
-      return res.status(401).json({ error: 'No autenticado' });
+      return res.status(401).json({ error: 'Debes iniciar sesión para continuar' });
     }
 
     const { passwordActual, nuevaPassword } = req.body;

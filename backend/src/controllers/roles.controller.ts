@@ -11,7 +11,7 @@ export const solicitarRol = async (req: AuthRequest, res: Response): Promise<any
     const { rolSolicitado, motivo } = req.body;
 
     if (rolSolicitado === 'Admin' || rolSolicitado === 'Administrador') {
-      return res.status(403).json({ error: 'Brecha de seguridad detectada: No se puede solicitar permisos de Administrador' });
+      return res.status(403).json({ error: 'No está permitido solicitar el rol de Administrador por este formulario' });
     }
 
     if (!usuarioId) {
@@ -92,14 +92,14 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
     if (accion === 'Rechazar') {
       const motivo = motivoRechazo && typeof motivoRechazo === 'string' && motivoRechazo.trim() !== ''
         ? motivoRechazo.trim()
-        : 'La solicitud no cumple con los antecedentes y requisitos académicos necesarios';
+        : 'La solicitud no cumple con los requisitos necesarios para este rol';
 
       await prisma.solicitudRol.update({
         where: { id: Number(id) },
         data: { estado: 'Rechazada' },
       });
 
-      // Notificación formal al usuario
+      // Notificación al usuario
       await prisma.notificacion.create({
         data: {
           usuarioId: solicitud.usuarioId,
@@ -107,7 +107,7 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
         }
       }).catch(() => null);
 
-      // Bitácora inmutable de auditoría
+      // Bitácora de auditoría
       await prisma.auditoria.create({
         data: {
           usuarioId: req.user?.id || null,
@@ -115,14 +115,14 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
         }
       }).catch(() => null);
 
-      return res.json({ mensaje: 'Solicitud rechazada formalmente y notificada al usuario' });
+      return res.json({ mensaje: 'Solicitud rechazada correctamente' });
     }
 
     if (accion === 'Aprobar') {
       // 1. Encontrar el ID del nuevo rol
       const nuevoRol = await prisma.rol.findFirst({ where: { nombre: solicitud.rolSolicitado } });
       if (!nuevoRol) {
-        return res.status(400).json({ error: 'Error interno: el rol ya no existe' });
+        return res.status(400).json({ error: 'El rol solicitado ya no se encuentra disponible' });
       }
 
       // 2. Actualizar el rol del usuario en la BD
@@ -149,11 +149,11 @@ export const gestionarSolicitud = async (req: AuthRequest, res: Response): Promi
       await prisma.auditoria.create({
         data: {
           usuarioId: req.user?.id || null,
-          accion: `Aprobación de Rol: Usuario #${solicitud.usuarioId} ascendido exitosamente al rol '${solicitud.rolSolicitado}'.`
+          accion: `Aprobación de Rol: Usuario #${solicitud.usuarioId} asignado al rol '${solicitud.rolSolicitado}'.`
         }
       }).catch(() => null);
 
-      return res.json({ mensaje: 'Rol actualizado y solicitud aprobada' });
+      return res.json({ mensaje: 'Solicitud aprobada y rol actualizado correctamente' });
     }
 
     return res.status(400).json({ error: 'Acción no válida' });

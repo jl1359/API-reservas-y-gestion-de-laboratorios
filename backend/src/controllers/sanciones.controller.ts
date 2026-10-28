@@ -137,7 +137,7 @@ export const perdonarSancion = async (req: AuthRequest, res: Response): Promise<
 
     return res.status(200).json({
       success: true,
-      mensaje: 'Sanción disciplinaria levantada exitosamente. El usuario ya puede realizar reservas.',
+      mensaje: 'Suspensión levantada correctamente. El usuario ya puede realizar reservas.',
       data: sancionActualizada
     });
   } catch (error: any) {
@@ -165,7 +165,7 @@ export const aplicarSancionManual = async (req: AuthRequest, res: Response): Pro
 
     return res.status(201).json({
       success: true,
-      mensaje: `Sanción disciplinaria de ${horasDuracion} horas aplicada con éxito.`,
+      mensaje: `Suspensión de ${horasDuracion} horas aplicada correctamente.`,
       data: nuevaSancion
     });
   } catch (error: any) {

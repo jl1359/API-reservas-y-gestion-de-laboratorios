@@ -274,14 +274,14 @@ export const imprimirBoletaOficial = (reserva: {
       </div>
 
       <div class="aviso">
-        <strong>Reglamento de Uso y Régimen Disciplinario:</strong><br>
+        <strong>Reglamento y Normas de Uso:</strong><br>
         1. La tolerancia máxima para el escaneo del código QR es de 15 minutos tras la hora de inicio pactada.<br>
-        2. Superado dicho plazo sin validación, la reserva conmutará automáticamente a estado <strong>Ausente (No-Show)</strong> y el sistema suspenderá los privilegios de reserva por 24 horas.<br>
-        3. Si no va a utilizar el espacio, cancele la reserva con debida anticipación desde la plataforma para liberar el horario a otros docentes y estudiantes.
+        2. Superado dicho plazo sin validación, la reserva cambiará a estado <strong>Ausente (No-Show)</strong> y el sistema suspenderá la posibilidad de reservar por 24 horas.<br>
+        3. Si no va a utilizar el espacio, cancele la reserva con anticipación desde la plataforma para liberar el horario a otros docentes y estudiantes.
       </div>
 
       <div class="footer">
-        Documento emitido electrónicamente por el Sistema Institucional LabReserve FCyT - UMSS.<br>
+        Documento emitido por el sistema LabReserve FCyT - UMSS.<br>
         Hash de integridad: SHA256-${reserva.tokenQr ? reserva.tokenQr.substring(0, 24) : 'VALID'}-VERIFIED &bull; Cochabamba, Bolivia
       </div>
     </body>

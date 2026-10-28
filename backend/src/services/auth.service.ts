@@ -142,16 +142,16 @@ export const loginService = async (correo: string, password: string) => {
   });
 
   if (!usuario) {
-    throw new AuthServiceError(401, 'Credenciales inválidas');
+    throw new AuthServiceError(401, 'Correo o contraseña incorrectos');
   }
 
   const passwordValida = await bcrypt.compare(password, usuario.passwordHash);
   if (!passwordValida) {
-    throw new AuthServiceError(401, 'Credenciales inválidas');
+    throw new AuthServiceError(401, 'Correo o contraseña incorrectos');
   }
 
   if (!usuario.activo) {
-    throw new AuthServiceError(403, 'Tu cuenta está inactiva');
+    throw new AuthServiceError(403, 'Tu cuenta se encuentra desactivada. Contacta al administrador.');
   }
 
   if (!usuario.correoVerificado) {
@@ -179,12 +179,12 @@ export const forgotPasswordService = async (correo: string) => {
 
   // Proteccion anti-enumeracion de cuentas (OWASP): responder mensaje generico sin revelar existencia
   if (!usuario) {
-    return { mensaje: 'Si el correo existe en el sistema, se enviará un enlace de recuperación' };
+    return { mensaje: 'Enlace de recuperación enviado. Revisa tu bandeja de entrada o spam.' };
   }
 
   const resetToken = jwt.sign({ id: usuario.id }, process.env.JWT_SECRET || 'secreto', { expiresIn: '15m' });
   await enviarCorreoRecuperacion(usuario.correo, resetToken);
-  return { mensaje: 'Si el correo existe en el sistema, se enviará un enlace de recuperación' };
+  return { mensaje: 'Enlace de recuperación enviado. Revisa tu bandeja de entrada o spam.' };
 };
 
 export const resetPasswordService = async (token: string, newPassword: string) => {
@@ -203,7 +203,7 @@ export const loginConGoogleService = async (token: string) => {
 
   const payload = ticket.getPayload();
   if (!payload || !payload.email) {
-    throw new AuthServiceError(400, 'Token de Google inválido o correo no disponible');
+    throw new AuthServiceError(400, 'No se pudo verificar la cuenta de Google o no se obtuvo el correo.');
   }
 
   const correoNormalizado = payload.email.toLowerCase().trim();
@@ -233,7 +233,7 @@ export const loginConGoogleService = async (token: string) => {
   }
 
   if (!usuario.activo) {
-    throw new AuthServiceError(403, 'Cuenta suspendida');
+    throw new AuthServiceError(403, 'Tu cuenta se encuentra suspendida.');
   }
 
   const jwtToken = jwt.sign({ id: usuario.id, rol: usuario.rol.nombre }, JWT_SECRET, { expiresIn: '8h' });
@@ -261,8 +261,8 @@ export const cambiarPasswordService = async (usuarioId: number, passwordActual: 
     throw new AuthServiceError(400, 'Debes proporcionar tu contraseña actual y la nueva contraseña');
   }
 
-  if (nuevaPassword.length < 8) {
-    throw new AuthServiceError(400, 'La nueva contraseña debe tener al menos 8 caracteres');
+  if (nuevaPassword.length < 6) {
+    throw new AuthServiceError(400, 'La nueva contraseña debe tener al menos 6 caracteres');
   }
 
   const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
