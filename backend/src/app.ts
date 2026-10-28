@@ -51,7 +51,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       callback(null, true);
     } else {
-      callback(null, true);
+      callback(null, false);
     }
   },
   credentials: true

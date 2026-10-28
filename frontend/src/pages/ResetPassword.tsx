@@ -22,7 +22,7 @@ export default function ResetPassword() {
 
     setIsLoading(true);
     try {
-      await apiClient.post('/api/auth/reset-password', { token, nuevaContrasena });
+      await apiClient.post('/api/auth/reset-password', { token, newPassword: nuevaContrasena });
       toast.success('Contraseña actualizada correctamente');
       navigate('/login');
     } catch (error: any) {
