@@ -35,7 +35,8 @@ export default function ModalEquipamientoLab({
   const [isEquipLoading, setIsEquipLoading] = useState(false);
   const [mostrarCrearEquip, setMostrarCrearEquip] = useState(false);
   const [nuevoEquipNombre, setNuevoEquipNombre] = useState('');
-  const [nuevoEquipTipo, setNuevoEquipTipo] = useState('Computo');
+  const [nuevoEquipTipo, setNuevoEquipTipo] = useState('Computo y Software');
+  const [tipoPersonalizado, setTipoPersonalizado] = useState('');
   const [guardandoEquipBase, setGuardandoEquipBase] = useState(false);
   const [editingEquipId, setEditingEquipId] = useState<number | null>(null);
   const [editingCantidad, setEditingCantidad] = useState<string>('1');
@@ -74,13 +75,18 @@ export default function ModalEquipamientoLab({
     }
     try {
       setGuardandoEquipBase(true);
+      let categoriaFinal = nuevoEquipTipo.trim();
+      if (categoriaFinal === 'Otro') {
+        categoriaFinal = tipoPersonalizado.trim() || 'General';
+      }
       const res = await apiClient.post('/api/equipamientos', {
         nombre: nuevoEquipNombre.trim(),
-        tipo: 'General'
+        tipo: categoriaFinal
       });
-      toast.success(`"${nuevoEquipNombre.trim()}" registrado en el catálogo`);
+      toast.success(`"${nuevoEquipNombre.trim()}" registrado como [${categoriaFinal}] en el catálogo`);
       setNuevoEquipNombre('');
-      setNuevoEquipTipo('Computo');
+      setNuevoEquipTipo('Computo y Software');
+      setTipoPersonalizado('');
       setMostrarCrearEquip(false);
 
       const resBase = await apiClient.get('/api/equipamientos');
@@ -230,6 +236,21 @@ export default function ModalEquipamientoLab({
                         </select>
                       </div>
                     </div>
+                    {nuevoEquipTipo === 'Otro' && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                          Nombre de la categoría personalizada
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ej: Robótica, Vidriería, Neumática..."
+                          value={tipoPersonalizado}
+                          onChange={(e) => setTipoPersonalizado(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-tech-blue"
+                          autoFocus
+                        />
+                      </div>
+                    )}
                     <div className="flex justify-end gap-2 pt-1">
                       <button
                         type="button"
