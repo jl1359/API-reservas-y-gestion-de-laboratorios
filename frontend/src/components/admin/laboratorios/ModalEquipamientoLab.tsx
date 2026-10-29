@@ -35,6 +35,7 @@ export default function ModalEquipamientoLab({
   const [isEquipLoading, setIsEquipLoading] = useState(false);
   const [mostrarCrearEquip, setMostrarCrearEquip] = useState(false);
   const [nuevoEquipNombre, setNuevoEquipNombre] = useState('');
+  const [nuevoEquipTipo, setNuevoEquipTipo] = useState('Computo');
   const [guardandoEquipBase, setGuardandoEquipBase] = useState(false);
   const [editingEquipId, setEditingEquipId] = useState<number | null>(null);
   const [editingCantidad, setEditingCantidad] = useState<string>('1');
@@ -79,6 +80,7 @@ export default function ModalEquipamientoLab({
       });
       toast.success(`"${nuevoEquipNombre.trim()}" registrado en el catálogo`);
       setNuevoEquipNombre('');
+      setNuevoEquipTipo('Computo');
       setMostrarCrearEquip(false);
 
       const resBase = await apiClient.get('/api/equipamientos');
@@ -192,23 +194,56 @@ export default function ModalEquipamientoLab({
                 </div>
 
                 {mostrarCrearEquip && (
-                  <form onSubmit={handleCrearEquipamientoBase} className="mb-4 p-3 bg-blue-50/60 dark:bg-slate-900/80 rounded-xl border border-blue-200 dark:border-blue-900/40 space-y-2">
-                    <p className="text-xs font-bold text-slate-800 dark:text-white">Nuevo nombre de equipamiento</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Nombre del equipamiento (ej. Microscopio, Impresora 3D)"
-                        value={nuevoEquipNombre}
-                        onChange={(e) => setNuevoEquipNombre(e.target.value)}
-                        className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white outline-none"
-                        autoFocus
-                      />
+                  <form onSubmit={handleCrearEquipamientoBase} className="mb-4 p-3.5 bg-blue-50/60 dark:bg-slate-900/80 rounded-xl border border-blue-200 dark:border-blue-900/40 space-y-3">
+                    <p className="text-xs font-bold text-slate-800 dark:text-white">Registrar nuevo equipo en catálogo</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                          Nombre del equipo
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ej: Impresora 3D, Cámara"
+                          value={nuevoEquipNombre}
+                          onChange={(e) => setNuevoEquipNombre(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-tech-blue"
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                          Categoría / Tipo
+                        </label>
+                        <select
+                          value={nuevoEquipTipo}
+                          onChange={(e) => setNuevoEquipTipo(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-tech-blue"
+                        >
+                          <option value="Computo">Cómputo</option>
+                          <option value="Redes">Redes</option>
+                          <option value="Audiovisual">Audiovisual</option>
+                          <option value="Mobiliario">Mobiliario</option>
+                          <option value="Optica y Biologia">Óptica y Biología</option>
+                          <option value="Instrumentacion Electronica">Instrumentación Electrónica</option>
+                          <option value="Maquinaria y Herramientas">Maquinaria y Herramientas</option>
+                          <option value="General">General</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setMostrarCrearEquip(false)}
+                        className="px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-colors"
+                      >
+                        Cancelar
+                      </button>
                       <button
                         type="submit"
                         disabled={guardandoEquipBase}
-                        className="px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+                        className="px-3.5 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
                       >
-                        {guardandoEquipBase ? 'Guardando...' : 'Guardar'}
+                        {guardandoEquipBase ? 'Guardando...' : 'Guardar en Catálogo'}
                       </button>
                     </div>
                   </form>
@@ -228,7 +263,7 @@ export default function ModalEquipamientoLab({
                       <option value="" disabled>Seleccione un equipo...</option>
                       {equiposBase.map((eq) => (
                         <option key={eq.id} value={eq.id}>
-                          {eq.nombre}
+                          {eq.nombre} — [{eq.tipo || 'General'}]
                         </option>
                       ))}
                     </select>
@@ -271,6 +306,11 @@ export default function ModalEquipamientoLab({
                             <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
                               {eq.equipamiento.nombre}
                             </p>
+                            {eq.equipamiento.tipo && (
+                              <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 mt-0.5">
+                                {eq.equipamiento.tipo}
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center space-x-1.5">
