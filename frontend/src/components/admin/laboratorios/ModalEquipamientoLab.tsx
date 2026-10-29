@@ -225,14 +225,20 @@ export default function ModalEquipamientoLab({
                           onChange={(e) => setNuevoEquipTipo(e.target.value)}
                           className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-tech-blue"
                         >
-                          <option value="Computo">Cómputo</option>
-                          <option value="Redes">Redes</option>
-                          <option value="Audiovisual">Audiovisual</option>
-                          <option value="Mobiliario">Mobiliario</option>
-                          <option value="Optica y Biologia">Óptica y Biología</option>
+                          <option value="Computo y Software">Cómputo y Software</option>
+                          <option value="Redes y Telecomunicaciones">Redes y Telecomunicaciones</option>
+                          <option value="Audiovisual y Multimedia">Audiovisual y Multimedia</option>
+                          <option value="Mobiliario y Docencia">Mobiliario y Docencia</option>
                           <option value="Instrumentacion Electronica">Instrumentación Electrónica</option>
+                          <option value="Optica y Biologia">Óptica y Biología</option>
+                          <option value="Quimica y Analisis">Química y Análisis Instrumental</option>
+                          <option value="Geotecnia y Materiales">Geotecnia, Suelos y Materiales</option>
+                          <option value="Topografia y Geodesia">Topografía y Geodesia</option>
                           <option value="Maquinaria y Herramientas">Maquinaria y Herramientas</option>
+                          <option value="Termica y Fluidos">Térmica, Fluidos y Automotriz</option>
+                          <option value="Seguridad y Bioseguridad">Seguridad y Bioseguridad</option>
                           <option value="General">General</option>
+                          <option value="Otro">Otro (Personalizado...)</option>
                         </select>
                       </div>
                     </div>
