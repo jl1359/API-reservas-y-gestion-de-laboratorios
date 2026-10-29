@@ -242,7 +242,7 @@ export default function Login() {
             {isLogin ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-8">
-            {isLogin ? 'Ingresa tus credenciales para acceder al sistema.' : 'Completa los datos para tener acceso al sistema de reservas.'}
+            {isLogin ? 'Ingresa tus datos para acceder al sistema.' : 'Completa los datos para tener acceso al sistema de reservas.'}
           </p>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
