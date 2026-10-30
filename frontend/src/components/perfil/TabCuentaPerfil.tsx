@@ -1,4 +1,5 @@
 import React from 'react';
+import PushNotificationToggle from '../PushNotificationToggle';
 import {
   User,
   Shield,
@@ -249,6 +250,9 @@ export default function TabCuentaPerfil({
           </div>
         )}
       </div>
+
+      {/* Notificaciones en Dispositivo (Celular / Desktop) */}
+      <PushNotificationToggle variant="card" />
 
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 dark:border-slate-800/80">
         <h3 className="text-xl font-heading font-bold text-slate-900 dark:text-white mb-2 flex items-center">

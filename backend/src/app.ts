@@ -14,6 +14,7 @@ import sancionesRoutes from './routes/sanciones.routes';
 import notificacionesRoutes from './routes/notificaciones.routes';
 import usuariosRoutes from './routes/usuarios.routes';
 import mantenimientosRoutes from './routes/mantenimientos.routes';
+import pushRoutes from './routes/push.routes';
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.use('/api/reportes', reportesRoutes);
 app.use('/api/feriados', feriadosRoutes);
 app.use('/api/sanciones', sancionesRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
+app.use('/api/push', pushRoutes);
 
 // Protocolo de resiliencia: Manejador global de errores para evitar caidas del servidor
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

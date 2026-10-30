@@ -53,7 +53,8 @@ model Usuario {
   reservas       Reserva[]
   notificaciones Notificacion[]
 
-  sanciones    Sancion[]
+  sanciones          Sancion[]
+  suscripcionesPush  SuscripcionPush[]
 
   @@map("usuarios")
 }
@@ -217,3 +218,18 @@ model Feriado {
 
   @@map("feriados")
 }
+
+model SuscripcionPush {
+  id             Int      @id @default(autoincrement())
+  usuarioId      Int      @map("usuario_id")
+  endpoint       String   @unique @db.Text
+  p256dh         String   @db.Text
+  auth           String   @db.Text
+  fechaCreacion  DateTime @default(now()) @map("fecha_creacion")
+
+  usuario        Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("suscripciones_push")
+}
+

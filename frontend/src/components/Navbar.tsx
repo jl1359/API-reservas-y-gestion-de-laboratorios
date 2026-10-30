@@ -5,6 +5,7 @@ import { usuariosApi } from '../api/usuarios.api';
 import { notificacionesApi } from '../api/notificaciones.api';
 
 import LogoIcon from './LogoIcon';
+import PushNotificationToggle from './PushNotificationToggle';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -343,6 +344,9 @@ export default function Navbar() {
                       ))
                     )}
                   </div>
+
+                  {/* Toggle para Notificaciones Push en Celular / Dispositivo */}
+                  <PushNotificationToggle variant="compact" />
                 </div>
               )}
             </div>

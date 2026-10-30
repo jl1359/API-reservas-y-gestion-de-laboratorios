@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma';
+import webpush from '../config/webpush.config';
 
 export const listarMisNotificacionesService = async (usuarioId: number) => {
   const [notificaciones, noLeidas] = await Promise.all([
@@ -39,6 +40,50 @@ export const marcarTodasComoLeidasService = async (usuarioId: number) => {
   });
 };
 
+export const enviarPushAUsuario = async (
+  usuarioId: number,
+  titulo: string,
+  mensaje: string,
+  url: string = '/mis-reservas'
+) => {
+  try {
+    const suscripciones = await (prisma as any).suscripcionPush.findMany({
+      where: { usuarioId }
+    });
+
+    if (!suscripciones || suscripciones.length === 0) return;
+
+    const payload = JSON.stringify({
+      title: titulo,
+      body: mensaje,
+      url
+    });
+
+    await Promise.all(
+      suscripciones.map(async (sub: any) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth
+              }
+            },
+            payload
+          );
+        } catch (err: any) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            await (prisma as any).suscripcionPush.delete({ where: { id: sub.id } }).catch(() => null);
+          }
+        }
+      })
+    );
+  } catch (error) {
+    console.warn('Advertencia al enviar web push a usuario:', error);
+  }
+};
+
 export const emitirNotificacionEstadoReserva = async (
   usuarioId: number,
   reservaId: number,
@@ -75,6 +120,13 @@ export const emitirNotificacionEstadoReserva = async (
         mensaje
       }
     });
+
+    await enviarPushAUsuario(
+      usuarioId,
+      `LabReserve - Reserva ${nuevoEstado}`,
+      mensaje,
+      '/mis-reservas'
+    );
   } catch (error) {
     console.warn('Advertencia al emitir notificación de cambio de estado:', error);
   }
