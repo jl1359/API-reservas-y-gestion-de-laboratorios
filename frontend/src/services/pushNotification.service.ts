@@ -54,24 +54,24 @@ export const verificarSuscripcionActiva = async (): Promise<boolean> => {
 
 export const suscribirNotificacionesPush = async (): Promise<{ ok: boolean; mensaje: string }> => {
   if (!esPushSoportado()) {
-    return { ok: false, mensaje: 'Tu navegador no soporta notificaciones push en segundo plano' };
+    return { ok: false, mensaje: 'Tu navegador no permite notificaciones en la barra de estado' };
   }
 
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      return { ok: false, mensaje: 'No se otorgaron permisos para enviar notificaciones' };
+      return { ok: false, mensaje: 'Debes conceder permisos de notificación en tu navegador para recibir avisos' };
     }
 
     const { data } = await apiClient.get('/api/push/public-key');
     const publicKey = data?.publicKey;
     if (!publicKey) {
-      return { ok: false, mensaje: 'No se pudo obtener la clave del servidor push' };
+      return { ok: false, mensaje: 'El servicio de notificaciones está iniciando. Reintenta en unos segundos' };
     }
 
     const registration = await obtenerServiceWorkerRegistration();
     if (!registration) {
-      return { ok: false, mensaje: 'No se pudo iniciar el servicio de segundo plano' };
+      return { ok: false, mensaje: 'No se pudo iniciar el servicio en segundo plano' };
     }
 
     let subscription = await registration.pushManager.getSubscription();
@@ -90,12 +90,18 @@ export const suscribirNotificacionesPush = async (): Promise<{ ok: boolean; mens
       keys: subJson.keys
     });
 
-    return { ok: true, mensaje: 'Notificaciones push activadas correctamente en este dispositivo' };
+    return { ok: true, mensaje: 'Notificaciones activadas con éxito en tu celular' };
   } catch (error: any) {
     console.error('Error al suscribir a notificaciones push:', error);
+    let mensajeHumano = 'No se pudo activar las notificaciones. Intenta nuevamente';
+    if (error.response?.status === 404) {
+      mensajeHumano = 'El servidor está completando la actualización. Intenta en un momento';
+    } else if (error.response?.data?.error) {
+      mensajeHumano = error.response.data.error;
+    }
     return {
       ok: false,
-      mensaje: error.response?.data?.error || error.message || 'Error al activar notificaciones push'
+      mensaje: mensajeHumano
     };
   }
 };
@@ -105,7 +111,7 @@ export const desuscribirNotificacionesPush = async (): Promise<{ ok: boolean; me
 
   try {
     const registration = await obtenerServiceWorkerRegistration();
-    if (!registration) return { ok: false, mensaje: 'ServiceWorker no disponible' };
+    if (!registration) return { ok: false, mensaje: 'Servicio no disponible' };
 
     const subscription = await registration.pushManager.getSubscription();
     if (subscription) {
@@ -113,7 +119,7 @@ export const desuscribirNotificacionesPush = async (): Promise<{ ok: boolean; me
       await subscription.unsubscribe();
       await apiClient.delete('/api/push/desuscribir', { data: { endpoint } }).catch(() => null);
     }
-    return { ok: true, mensaje: 'Notificaciones push desactivadas en este dispositivo' };
+    return { ok: true, mensaje: 'Notificaciones desactivadas en este celular' };
   } catch (error: any) {
     console.error('Error al desuscribir notificaciones push:', error);
     return { ok: false, mensaje: 'Error al desactivar notificaciones' };
@@ -123,11 +129,17 @@ export const desuscribirNotificacionesPush = async (): Promise<{ ok: boolean; me
 export const enviarPushDePrueba = async (): Promise<{ ok: boolean; mensaje: string }> => {
   try {
     const { data } = await apiClient.post('/api/push/probar');
-    return { ok: true, mensaje: data?.mensaje || 'Notificación de prueba enviada al dispositivo' };
+    return { ok: true, mensaje: data?.mensaje || 'Notificación de prueba enviada a tu barra de notificaciones' };
   } catch (error: any) {
+    let mensajeHumano = 'No se pudo enviar la prueba. Intenta en unos instantes';
+    if (error.response?.status === 404) {
+      mensajeHumano = 'El servidor está completando la actualización. Intenta en un momento';
+    } else if (error.response?.data?.error) {
+      mensajeHumano = error.response.data.error;
+    }
     return {
       ok: false,
-      mensaje: error.response?.data?.error || 'Error al enviar notificación de prueba'
+      mensaje: mensajeHumano
     };
   }
 };
