@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import apiClient from '../api/client';
-import { KeyRound, ArrowRight } from 'lucide-react';
+import { KeyRound, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ResetPassword() {
@@ -9,6 +9,8 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [confirmar, setConfirmar] = useState('');
+  const [mostrarNueva, setMostrarNueva] = useState(false);
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,27 +55,43 @@ export default function ResetPassword() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Nueva Contraseña</label>
-              <div className="mt-1">
+              <div className="mt-1 relative">
                 <input
-                  type="password"
+                  type={mostrarNueva ? 'text' : 'password'}
                   required
                   value={nuevaContrasena}
                   onChange={(e) => setNuevaContrasena(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-tech-blue focus:border-tech-blue sm:text-sm bg-slate-50 dark:bg-slate-900 dark:text-white"
+                  className="appearance-none block w-full pl-4 pr-11 py-3 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-tech-blue focus:border-tech-blue sm:text-sm bg-slate-50 dark:bg-slate-900 dark:text-white"
                 />
+                <button
+                  type="button"
+                  onClick={() => setMostrarNueva(!mostrarNueva)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title={mostrarNueva ? 'Ocultar' : 'Mostrar'}
+                >
+                  {mostrarNueva ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Confirmar Contraseña</label>
-              <div className="mt-1">
+              <div className="mt-1 relative">
                 <input
-                  type="password"
+                  type={mostrarConfirmar ? 'text' : 'password'}
                   required
                   value={confirmar}
                   onChange={(e) => setConfirmar(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-tech-blue focus:border-tech-blue sm:text-sm bg-slate-50 dark:bg-slate-900 dark:text-white"
+                  className="appearance-none block w-full pl-4 pr-11 py-3 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-tech-blue focus:border-tech-blue sm:text-sm bg-slate-50 dark:bg-slate-900 dark:text-white"
                 />
+                <button
+                  type="button"
+                  onClick={() => setMostrarConfirmar(!mostrarConfirmar)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title={mostrarConfirmar ? 'Ocultar' : 'Mostrar'}
+                >
+                  {mostrarConfirmar ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 
