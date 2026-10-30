@@ -255,7 +255,7 @@ export default function TabCuentaPerfil({
           <Key className="w-5 h-5 mr-2 text-tech-blue" /> Seguridad
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          Actualiza tu clave de acceso periódicamente.
+          Actualiza tu contraseña periódicamente para mantener tu cuenta segura.
         </p>
         <button
           onClick={onAbrirPasswordModal}
