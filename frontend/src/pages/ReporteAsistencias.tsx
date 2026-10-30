@@ -198,10 +198,10 @@ export default function ReporteAsistencias() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-inter transition-colors duration-200 w-full max-w-full overflow-x-hidden">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full max-w-full overflow-x-hidden">
         {/* Cabecera y Navegación de Regreso */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>

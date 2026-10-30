@@ -132,7 +132,9 @@ export default function ChartEstadosYHorariosReporte({
             </span>
           </div>
 
-          <div className="h-44 flex items-end justify-between gap-2 pt-6 pb-2 border-b border-slate-200 dark:border-slate-700">
+          <div className="w-full overflow-x-auto pb-1 scrollbar-thin">
+            <div className="min-w-[480px] sm:min-w-full">
+              <div className="h-44 flex items-end justify-between gap-2 pt-6 pb-2 border-b border-slate-200 dark:border-slate-700">
             {distribucionHoraria.franjas.map((f, i) => {
               const alturaPct = Math.round((f.cantidad / distribucionHoraria.maximo) * 100);
               const tieneReservas = f.cantidad > 0;
@@ -170,6 +172,8 @@ export default function ChartEstadosYHorariosReporte({
                 </span>
               </div>
             ))}
+          </div>
+            </div>
           </div>
         </div>
       )}
