@@ -24,7 +24,7 @@ npm-debug.log*
 
 # Documentacion y reportes externos
 docs/
-reportes/
+/reportes/
 backend/scripts/
 
 # AI Agent & IDE configs
