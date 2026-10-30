@@ -3,7 +3,6 @@ import {
   BellRing,
   BellOff,
   Smartphone,
-  Send,
   CheckCircle,
   AlertCircle,
   Loader2
@@ -12,8 +11,7 @@ import {
   esPushSoportado,
   verificarSuscripcionActiva,
   suscribirNotificacionesPush,
-  desuscribirNotificacionesPush,
-  enviarPushDePrueba
+  desuscribirNotificacionesPush
 } from '../services/pushNotification.service';
 
 interface PushNotificationToggleProps {
@@ -49,7 +47,7 @@ export const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
     setTimeout(() => {
       setMensaje(null);
       setTipoMensaje(null);
-    }, 5000);
+    }, 4000);
   };
 
   const handleActivar = async () => {
@@ -60,7 +58,7 @@ export const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
       if (res.ok) {
         setActivo(true);
         onStateChange?.(true);
-        notificarTemporal(res.mensaje, 'exito');
+        notificarTemporal('Avisos activados correctamente en este celular', 'exito');
       } else {
         notificarTemporal(res.mensaje, 'error');
       }
@@ -79,7 +77,7 @@ export const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
       if (res.ok) {
         setActivo(false);
         onStateChange?.(false);
-        notificarTemporal('Notificaciones desactivadas en este celular', 'exito');
+        notificarTemporal('Avisos desactivados en este celular', 'exito');
       } else {
         notificarTemporal(res.mensaje, 'error');
       }
@@ -90,30 +88,9 @@ export const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
     }
   };
 
-  const handleProbar = async () => {
-    setCargando(true);
-    try {
-      const res = await enviarPushDePrueba();
-      if (res.ok) {
-        notificarTemporal('Prueba enviada. Revisa la barra superior de tu celular', 'exito');
-      } else {
-        notificarTemporal(res.mensaje, 'error');
-      }
-    } catch (err: any) {
-      notificarTemporal('Error al enviar la prueba', 'error');
-    } finally {
-      setCargando(false);
-    }
-  };
-
   if (!soportado) {
     if (variant === 'compact') {
-      return (
-        <div className="px-3 py-2 text-[11px] text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center gap-1.5">
-          <BellOff className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>Tu navegador actual no permite alertas en la barra del celular</span>
-        </div>
-      );
+      return null;
     }
 
     return (
@@ -122,13 +99,13 @@ export const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
           <Smartphone className="w-5 h-5 mr-2 text-slate-400" /> Avisos en el Celular
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Tu navegador no admite notificaciones en la barra de estado. Para recibirlas, te recomendamos usar Google Chrome o Microsoft Edge.
+          Tu navegador actual no admite notificaciones en la barra de estado. Para recibirlas, te recomendamos ingresar desde Google Chrome o Microsoft Edge.
         </p>
       </div>
     );
   }
 
-  // Variante Compacta (Para el menú de Notificaciones en la barra superior)
+  // Variante Compacta (Para el desplegable de Notificaciones en la barra superior)
   if (variant === 'compact') {
     return (
       <div className="p-3 bg-slate-50/90 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800/80 rounded-b-2xl">
@@ -160,48 +137,35 @@ export const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
             : 'Recibe alertas directas en la barra de tu teléfono aun con la aplicación cerrada.'}
         </p>
 
-        <div className="flex items-center gap-2">
-          {activo ? (
-            <>
-              <button
-                type="button"
-                onClick={handleProbar}
-                disabled={cargando}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 bg-tech-blue hover:bg-blue-600 text-white text-[11px] font-semibold py-1.5 px-3 rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
-              >
-                {cargando ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Send className="w-3 h-3" />
-                )}
-                <span>Enviar prueba a mi celular</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDesactivar}
-                disabled={cargando}
-                className="text-[11px] text-slate-400 hover:text-rose-500 py-1.5 px-2 rounded-lg transition-colors cursor-pointer"
-              >
-                Desactivar
-              </button>
-            </>
-          ) : (
+        {activo ? (
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5" /> Alertas del sistema activas
+            </span>
             <button
               type="button"
-              onClick={handleActivar}
+              onClick={handleDesactivar}
               disabled={cargando}
-              className="w-full inline-flex items-center justify-center gap-1.5 bg-tech-blue hover:bg-blue-600 text-white text-[11px] font-semibold py-2 px-3 rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+              className="text-[11px] text-slate-400 hover:text-rose-500 font-medium transition-colors cursor-pointer disabled:opacity-50"
             >
-              {cargando ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <BellRing className="w-3.5 h-3.5" />
-              )}
-              <span>Activar notificaciones en mi celular</span>
+              {cargando ? 'Desactivando...' : 'Desactivar'}
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleActivar}
+            disabled={cargando}
+            className="w-full inline-flex items-center justify-center gap-1.5 bg-tech-blue hover:bg-blue-600 text-white text-[11px] font-semibold py-2 px-3 rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+          >
+            {cargando ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <BellRing className="w-3.5 h-3.5" />
+            )}
+            <span>Activar notificaciones en mi celular</span>
+          </button>
+        )}
 
         {mensaje && (
           <div
@@ -248,33 +212,17 @@ export const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
         Recibe avisos inmediatos en la barra superior de tu celular cuando se apruebe una reserva, recibas tu código QR de ingreso o se registre tu asistencia, incluso con la aplicación cerrada.
       </p>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div>
         {activo ? (
-          <>
-            <button
-              type="button"
-              onClick={handleProbar}
-              disabled={cargando}
-              className="inline-flex items-center gap-2 bg-tech-blue hover:bg-blue-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all disabled:opacity-50 cursor-pointer"
-            >
-              {cargando ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              <span>Enviar prueba a mi celular</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDesactivar}
-              disabled={cargando}
-              className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-4 py-2.5 rounded-xl font-medium text-sm transition-all cursor-pointer"
-            >
-              <BellOff className="w-4 h-4" />
-              <span>Desactivar</span>
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={handleDesactivar}
+            disabled={cargando}
+            className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl font-medium text-sm transition-all cursor-pointer disabled:opacity-50"
+          >
+            <BellOff className="w-4 h-4 text-slate-400" />
+            <span>{cargando ? 'Desactivando...' : 'Desactivar notificaciones en este celular'}</span>
+          </button>
         ) : (
           <button
             type="button"
