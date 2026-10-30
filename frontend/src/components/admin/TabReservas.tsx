@@ -116,7 +116,11 @@ export default function TabReservas({
 
   // Filtrado reactivo de reservas
   const reservasFiltradas = reservasList.filter((res) => {
-    const cumpleEstado = filtroEstado === 'Todas' || res.estado === filtroEstado;
+    const cumpleEstado =
+      filtroEstado === 'Todas' ||
+      (filtroEstado === 'Completada' && (res.estado === 'Completada' || res.estado === 'Asistió')) ||
+      (filtroEstado === 'Cancelada' && (res.estado === 'Cancelada' || res.estado === 'Cancelada (Fuerza Mayor)')) ||
+      res.estado === filtroEstado;
     const q = busqueda.toLowerCase().trim();
     if (!q) return cumpleEstado;
 
@@ -137,7 +141,7 @@ export default function TabReservas({
   });
 
   const conteoAprobadas = reservasList.filter((r) => r.estado === 'Aprobada').length;
-  const conteoCompletadas = reservasList.filter((r) => r.estado === 'Completada').length;
+  const conteoCompletadas = reservasList.filter((r) => r.estado === 'Completada' || r.estado === 'Asistió').length;
   const conteoPendientes = reservasList.filter((r) => r.estado === 'Pendiente').length;
   const conteoCanceladas = reservasList.filter((r) => r.estado === 'Cancelada' || r.estado === 'Cancelada (Fuerza Mayor)').length;
   const conteoAusentes = reservasList.filter((r) => r.estado === 'Ausente').length;

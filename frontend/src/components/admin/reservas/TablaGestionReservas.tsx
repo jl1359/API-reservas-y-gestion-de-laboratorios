@@ -34,9 +34,10 @@ export default function TablaGestionReservas({
           </span>
         );
       case 'Completada':
+      case 'Asistió':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-            <CheckCircle className="w-3 h-3 mr-1 text-blue-600" /> Completada
+            <CheckCircle className="w-3 h-3 mr-1 text-blue-600 dark:text-blue-400" /> {estado}
           </span>
         );
       case 'Pendiente':
