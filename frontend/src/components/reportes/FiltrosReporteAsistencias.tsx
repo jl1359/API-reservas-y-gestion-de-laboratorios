@@ -81,57 +81,50 @@ export default function FiltrosReporteAsistencias({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${
+        modoAuditoria === 'dia' ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'
+      }`}>
         {modoAuditoria === 'dia' ? (
           <div>
             <label htmlFor="fecha-reporte" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
               Fecha de Consulta *
             </label>
-            <div className="relative">
-              <input
-                id="fecha-reporte"
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-tech-blue/30 focus:border-tech-blue transition-all"
-              />
-              <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5 pointer-events-none" />
-            </div>
+            <input
+              id="fecha-reporte"
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-tech-blue/30 focus:border-tech-blue transition-all"
+            />
           </div>
         ) : (
-          <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <>
             <div>
               <label htmlFor="fecha-inicio" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
                 Fecha Desde *
               </label>
-              <div className="relative">
-                <input
-                  id="fecha-inicio"
-                  type="date"
-                  value={fechaInicio}
-                  onChange={(e) => setFechaInicio(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-tech-blue/30 focus:border-tech-blue transition-all"
-                />
-                <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5 pointer-events-none" />
-              </div>
+              <input
+                id="fecha-inicio"
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-tech-blue/30 focus:border-tech-blue transition-all"
+              />
             </div>
 
             <div>
               <label htmlFor="fecha-fin" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
                 Fecha Hasta *
               </label>
-              <div className="relative">
-                <input
-                  id="fecha-fin"
-                  type="date"
-                  value={fechaFin}
-                  onChange={(e) => setFechaFin(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-tech-blue/30 focus:border-tech-blue transition-all"
-                />
-                <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5 pointer-events-none" />
-              </div>
+              <input
+                id="fecha-fin"
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-tech-blue/30 focus:border-tech-blue transition-all"
+              />
             </div>
-          </div>
+          </>
         )}
 
         <div>
