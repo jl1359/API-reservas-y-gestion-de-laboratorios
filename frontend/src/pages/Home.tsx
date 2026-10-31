@@ -109,12 +109,12 @@ export default function Home() {
             {/* Capacidad */}
             <div className="flex-1 w-full px-5 py-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 rounded-2xl transition-colors border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800">
               <label className="flex items-center text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                <Users className="w-3.5 h-3.5 mr-1.5 text-tech-blue" /> Capacidad Requerida
+                <Users className="w-3.5 h-3.5 mr-1.5 text-tech-blue" /> Cantidad de Estudiantes
               </label>
               <input 
                 type="number" 
                 min="1" 
-                placeholder="Ej. 25 estudiantes..." 
+                placeholder="Ej. 30 alumnos..." 
                 value={filtroCapacidad} 
                 onChange={e => setFiltroCapacidad(e.target.value)} 
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(e); }}

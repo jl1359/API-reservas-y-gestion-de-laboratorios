@@ -102,14 +102,13 @@ export const obtenerMetricasOcupacionAcademicas = async (
         aprobadas++;
       }
 
-      // Cálculo de horas para reservas efectivas (Asistió o Aprobada)
-      if (r.horaAsistencia !== null || r.estado === 'Asistió' || r.estado === 'Aprobada') {
+      // Cálculo de horas y estudiantes para reservas donde efectivamente se asistió
+      if (r.horaAsistencia !== null || r.estado === 'Asistió') {
         const diffMs = new Date(r.fechaFin).getTime() - new Date(r.fechaInicio).getTime();
         const diffHoras = Math.max(0, diffMs / (1000 * 60 * 60));
         horasUso += diffHoras;
+        alumnosLab += r.cantidadAlumnos || 1;
       }
-
-      alumnosLab += r.cantidadAlumnos || 1;
     }
 
     const evaluadas = asistidas + ausentes;

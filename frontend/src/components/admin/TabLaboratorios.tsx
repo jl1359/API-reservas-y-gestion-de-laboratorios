@@ -12,7 +12,7 @@ import apiClient from '../../api/client';
 import { laboratoriosApi } from '../../api/laboratorios.api';
 import ModalLaboratorioForm, { type LaboratorioFormData } from './laboratorios/ModalLaboratorioForm';
 import ModalEquipamientoLab from './laboratorios/ModalEquipamientoLab';
-import ModalHorariosLab, { type DiaSchedule } from './laboratorios/ModalHorariosLab';
+import ModalHorariosLab, { type DiaSchedule, mapearHorariosApiASchedule, defaultSchedule } from './laboratorios/ModalHorariosLab';
 
 interface Carrera {
   id: number;
@@ -40,15 +40,7 @@ interface TabLaboratoriosProps {
   onRefresh: () => void;
 }
 
-const defaultSchedule: DiaSchedule[] = [
-  { dia: 'Lunes', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
-  { dia: 'Martes', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
-  { dia: 'Miércoles', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
-  { dia: 'Jueves', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
-  { dia: 'Viernes', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
-  { dia: 'Sábado', activo: false, horaApertura: '08:00', horaCierre: '13:00' },
-  { dia: 'Domingo', activo: false, horaApertura: '08:00', horaCierre: '13:00' }
-];
+
 
 export default function TabLaboratorios({
   laboratorios,
@@ -174,11 +166,19 @@ export default function TabLaboratorios({
     setIsEquipModalOpen(true);
   };
 
-  const handleOpenSchedule = (lab: LaboratorioAdminItem) => {
+  const handleOpenSchedule = async (lab: LaboratorioAdminItem) => {
     setSelectedLabId(lab.id);
     setSelectedLabName(lab.nombre);
     setScheduleForm([...defaultSchedule]);
     setIsScheduleModalOpen(true);
+    try {
+      const res = await apiClient.get(`/api/laboratorios/${lab.id}/calendario`);
+      if (res.data?.horarios) {
+        setScheduleForm(mapearHorariosApiASchedule(res.data.horarios, defaultSchedule));
+      }
+    } catch {
+      // Mantiene el horario por defecto si no pudo cargar
+    }
   };
 
   const handleToggleDay = (index: number) => {

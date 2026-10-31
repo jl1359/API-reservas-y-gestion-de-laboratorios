@@ -7,6 +7,57 @@ export interface DiaSchedule {
   horaCierre: string;
 }
 
+export const defaultSchedule: DiaSchedule[] = [
+  { dia: 'Lunes', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
+  { dia: 'Martes', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
+  { dia: 'Miércoles', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
+  { dia: 'Jueves', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
+  { dia: 'Viernes', activo: true, horaApertura: '08:00', horaCierre: '18:00' },
+  { dia: 'Sábado', activo: false, horaApertura: '08:00', horaCierre: '13:00' },
+  { dia: 'Domingo', activo: false, horaApertura: '08:00', horaCierre: '13:00' }
+];
+
+export const formatIsoToTimeStr = (isoString?: string | Date): string => {
+  if (!isoString) return '08:00';
+  if (typeof isoString === 'string' && /^\d{2}:\d{2}$/.test(isoString)) {
+    return isoString;
+  }
+  try {
+    const d = new Date(isoString);
+    const h = String(d.getUTCHours()).padStart(2, '0');
+    const m = String(d.getUTCMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  } catch {
+    return '08:00';
+  }
+};
+
+export const mapearHorariosApiASchedule = (
+  horariosApi: any[],
+  baseSchedule: DiaSchedule[]
+): DiaSchedule[] => {
+  if (!Array.isArray(horariosApi) || horariosApi.length === 0) {
+    return baseSchedule.map((d) => ({ ...d }));
+  }
+  return baseSchedule.map((defDia) => {
+    const match = horariosApi.find(
+      (h: any) => h.dia && h.dia.toLowerCase().trim() === defDia.dia.toLowerCase().trim()
+    );
+    if (match) {
+      return {
+        dia: defDia.dia,
+        activo: true,
+        horaApertura: formatIsoToTimeStr(match.horaApertura),
+        horaCierre: formatIsoToTimeStr(match.horaCierre)
+      };
+    }
+    return {
+      ...defDia,
+      activo: false
+    };
+  });
+};
+
 interface ModalHorariosLabProps {
   isOpen: boolean;
   onClose: () => void;
