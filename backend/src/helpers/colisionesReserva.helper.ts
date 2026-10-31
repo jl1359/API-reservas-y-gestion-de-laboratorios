@@ -67,9 +67,21 @@ export async function validarFeriadosYMantenimientos(
     const diaL = String(bloque.inicio.getDate()).padStart(2, '0');
     const inicioLocalStr = `${anioL}-${mesL}-${diaL}`;
 
+    let inicioBoliviaStr = inicioLocalStr;
+    try {
+      inicioBoliviaStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/La_Paz',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(bloque.inicio);
+    } catch {
+      // Usar fecha local en contingencia
+    }
+
     const feriadoCoincidente = feriados.find(f => {
       const fStr = f.fecha.toISOString().split('T')[0];
-      return fStr === inicioUTCStr || fStr === inicioLocalStr;
+      return fStr === inicioUTCStr || fStr === inicioLocalStr || fStr === inicioBoliviaStr;
     });
 
     if (feriadoCoincidente) {

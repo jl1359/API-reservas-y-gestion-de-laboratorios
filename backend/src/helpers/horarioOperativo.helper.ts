@@ -20,17 +20,29 @@ export function validarHorarioOperativo(horarios: any[], inicio: Date, fin: Date
   const diaSemanaLocal = DIAS_SEMANA[inicio.getDay()];
   const diaSemanaUTC = DIAS_SEMANA[inicio.getUTCDay()];
 
+  let diaSemanaBolivia = diaSemanaLocal;
+  try {
+    const diaBo = new Intl.DateTimeFormat('es-BO', {
+      timeZone: 'America/La_Paz',
+      weekday: 'long'
+    }).format(inicio);
+    diaSemanaBolivia = diaBo.charAt(0).toUpperCase() + diaBo.slice(1);
+  } catch {
+    // Si no esta disponible Intl, se preserva diaSemanaLocal
+  }
+
   const horarioDia = horarios.find(h => {
     const d = (h.dia || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const dLocal = diaSemanaLocal.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const dUTC = diaSemanaUTC.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    return d === dLocal || d === dUTC;
+    const dBolivia = diaSemanaBolivia.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    return d === dLocal || d === dUTC || d === dBolivia;
   });
 
   if (!horarioDia) {
     return {
       valido: false,
-      error: `El laboratorio no abre los días ${diaSemanaLocal}. Seleccione un día operativo.`
+      error: `El laboratorio no abre los días ${diaSemanaBolivia || diaSemanaLocal}. Seleccione un día operativo.`
     };
   }
 
@@ -43,10 +55,38 @@ export function validarHorarioOperativo(horarios: any[], inicio: Date, fin: Date
     const utcIniMins = inicio.getUTCHours() * 60 + inicio.getUTCMinutes();
     const utcFinMins = fin.getUTCHours() * 60 + fin.getUTCMinutes();
 
+    let boliviaIniMins = localIniMins;
+    let boliviaFinMins = localFinMins;
+    try {
+      const boIniParts = new Intl.DateTimeFormat('es-BO', {
+        timeZone: 'America/La_Paz',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(inicio);
+      const boFinParts = new Intl.DateTimeFormat('es-BO', {
+        timeZone: 'America/La_Paz',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(fin);
+
+      const boIniH = parseInt(boIniParts.find(p => p.type === 'hour')?.value || '0', 10);
+      const boIniM = parseInt(boIniParts.find(p => p.type === 'minute')?.value || '0', 10);
+      const boFinH = parseInt(boFinParts.find(p => p.type === 'hour')?.value || '0', 10);
+      const boFinM = parseInt(boFinParts.find(p => p.type === 'minute')?.value || '0', 10);
+
+      boliviaIniMins = boIniH * 60 + boIniM;
+      boliviaFinMins = boFinH * 60 + boFinM;
+    } catch {
+      // Usar calculo local en contingencia
+    }
+
     const cumpleLocal = localIniMins >= apMins && localFinMins <= ciMins;
     const cumpleUTC = utcIniMins >= apMins && utcFinMins <= ciMins;
+    const cumpleBolivia = boliviaIniMins >= apMins && boliviaFinMins <= ciMins;
 
-    if (!cumpleLocal && !cumpleUTC) {
+    if (!cumpleLocal && !cumpleUTC && !cumpleBolivia) {
       const apStr = `${String(Math.floor(apMins / 60)).padStart(2, '0')}:${String(apMins % 60).padStart(2, '0')}`;
       const ciStr = `${String(Math.floor(ciMins / 60)).padStart(2, '0')}:${String(ciMins % 60).padStart(2, '0')}`;
       return {
