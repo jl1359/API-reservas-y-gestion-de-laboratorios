@@ -32,6 +32,9 @@ export const formatIsoToTimeStr = (isoString?: string | Date): string => {
   }
 };
 
+const normalizarDia = (texto: string) =>
+  (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
 export const mapearHorariosApiASchedule = (
   horariosApi: any[],
   baseSchedule: DiaSchedule[]
@@ -41,7 +44,7 @@ export const mapearHorariosApiASchedule = (
   }
   return baseSchedule.map((defDia) => {
     const match = horariosApi.find(
-      (h: any) => h.dia && h.dia.toLowerCase().trim() === defDia.dia.toLowerCase().trim()
+      (h: any) => h.dia && normalizarDia(h.dia) === normalizarDia(defDia.dia)
     );
     if (match) {
       return {
