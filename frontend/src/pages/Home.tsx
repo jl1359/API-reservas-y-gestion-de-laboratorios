@@ -78,10 +78,10 @@ export default function Home() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-poppins font-bold text-slate-900 dark:text-white tracking-tight mb-3">
-            Reserva de Laboratorios Académicos
+            Reserva de Laboratorios
           </h1>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
-            Consulta en tiempo real la disponibilidad de aulas completas y estaciones de computación en el campus universitario.
+            Consulta la disponibilidad de espacios y reserva tu laboratorio o computadora en tiempo real.
           </p>
         </div>
       </div>
