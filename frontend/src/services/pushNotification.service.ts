@@ -90,7 +90,7 @@ export const suscribirNotificacionesPush = async (): Promise<{ ok: boolean; mens
       keys: subJson.keys
     });
 
-    return { ok: true, mensaje: 'Notificaciones activadas con éxito en tu celular' };
+    return { ok: true, mensaje: 'Notificaciones activadas con éxito en este dispositivo' };
   } catch (error: any) {
     console.error('Error al suscribir a notificaciones push:', error);
     let mensajeHumano = 'No se pudo activar las notificaciones. Intenta nuevamente';
@@ -119,7 +119,7 @@ export const desuscribirNotificacionesPush = async (): Promise<{ ok: boolean; me
       await subscription.unsubscribe();
       await apiClient.delete('/api/push/desuscribir', { data: { endpoint } }).catch(() => null);
     }
-    return { ok: true, mensaje: 'Notificaciones desactivadas en este celular' };
+    return { ok: true, mensaje: 'Notificaciones desactivadas en este dispositivo' };
   } catch (error: any) {
     console.error('Error al desuscribir notificaciones push:', error);
     return { ok: false, mensaje: 'Error al desactivar notificaciones' };

@@ -345,7 +345,7 @@ export default function Navbar() {
                     )}
                   </div>
 
-                  {/* Toggle para Notificaciones Push en Celular / Dispositivo */}
+                  {/* Toggle para Notificaciones Push en el Dispositivo */}
                   <PushNotificationToggle variant="compact" />
                 </div>
               )}
