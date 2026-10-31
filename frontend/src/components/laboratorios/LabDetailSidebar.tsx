@@ -145,7 +145,7 @@ export default function LabDetailSidebar({
             </div>
             <div className="flex justify-between">
               <span>Sábados:</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">06:45 - 13:00</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">06:45 - 12:45</span>
             </div>
           </div>
         )}

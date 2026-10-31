@@ -151,7 +151,7 @@ export default function LabDetail() {
   const esSabado = fechaObj.getDay() === 6;
 
   let horaAperturaLab = '06:45';
-  let horaCierreLab = esSabado ? '13:00' : '21:45';
+  let horaCierreLab = esSabado ? '12:45' : '21:45';
   let laboratorioOperaHoy = !esDomingo;
 
   const horarioDelDia = tieneHorariosPersonalizados

@@ -483,6 +483,7 @@ export default function TabLaboratorios({
         onToggleDay={handleToggleDay}
         onChangeTime={handleChangeTime}
         onSaveSchedule={handleSaveSchedule}
+        onResetToUmss={() => setScheduleForm(defaultSchedule.map((d) => ({ ...d })))}
       />
     </div>
   );

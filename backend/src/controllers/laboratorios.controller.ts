@@ -168,13 +168,20 @@ export const crearLaboratorio = async (req: Request, res: Response): Promise<any
         await prisma.horarioLaboratorio.createMany({ data: dataAInsertar });
       }
     } else {
-      // Horario institucional por defecto (Lunes a Viernes 08:00-18:00)
-      const diasHabiles = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-      const dataAInsertar = diasHabiles.map((dia) => ({
+      // Horario institucional academico UMSS por defecto
+      const diasHabiles = [
+        { dia: 'Lunes', horaApertura: '06:45', horaCierre: '21:45' },
+        { dia: 'Martes', horaApertura: '06:45', horaCierre: '21:45' },
+        { dia: 'Miércoles', horaApertura: '06:45', horaCierre: '21:45' },
+        { dia: 'Jueves', horaApertura: '06:45', horaCierre: '21:45' },
+        { dia: 'Viernes', horaApertura: '06:45', horaCierre: '21:45' },
+        { dia: 'Sábado', horaApertura: '06:45', horaCierre: '12:45' }
+      ];
+      const dataAInsertar = diasHabiles.map((item) => ({
         laboratorioId: nuevoLab.id,
-        dia,
-        horaApertura: new Date('1970-01-01T08:00:00Z'),
-        horaCierre: new Date('1970-01-01T18:00:00Z')
+        dia: item.dia,
+        horaApertura: new Date(`1970-01-01T${item.horaApertura}:00Z`),
+        horaCierre: new Date(`1970-01-01T${item.horaCierre}:00Z`)
       }));
       await prisma.horarioLaboratorio.createMany({ data: dataAInsertar });
     }
