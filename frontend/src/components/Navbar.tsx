@@ -335,7 +335,7 @@ export default function Navbar() {
                                 <span className="w-2 h-2 rounded-full bg-tech-blue shrink-0" />
                               )}
                               <span className="text-[10px] font-semibold text-tech-blue dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                Ver módulo →
+                                Ver detalle →
                               </span>
                             </div>
                           </div>

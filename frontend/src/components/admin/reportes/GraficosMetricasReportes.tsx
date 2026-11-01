@@ -41,10 +41,30 @@ export default function GraficosMetricasReportes({
   const maxReservas = Math.max(...metricasData.laboratorios.map((l) => l.totalReservas), 1);
   const maxEstudiantes = Math.max(...metricasData.laboratorios.map((l) => l.alumnosBeneficiados), 1);
 
+  // Ordenar laboratorios de mayor a menor según cada métrica específica
+  const laboratoriosHorasOrdenados = useMemo(() => {
+    return [...(metricasData.laboratorios || [])]
+      .sort((a, b) => b.horasUsoEfectivo - a.horasUsoEfectivo);
+  }, [metricasData.laboratorios]);
+
+  const laboratoriosReservasOrdenados = useMemo(() => {
+    return [...(metricasData.laboratorios || [])]
+      .sort((a, b) => b.totalReservas - a.totalReservas);
+  }, [metricasData.laboratorios]);
+
+  const laboratoriosEstudiantesOrdenados = useMemo(() => {
+    return [...(metricasData.laboratorios || [])]
+      .sort((a, b) => b.alumnosBeneficiados - a.alumnosBeneficiados);
+  }, [metricasData.laboratorios]);
+
   const segmentosPastelHoras: SegmentoMetrica[] = useMemo(() => {
-    const labs = metricasData.laboratorios || [];
+    const rawLabs = laboratoriosHorasOrdenados;
     const totalHoras = metricasData.totalHorasCampus || 0;
-    if (totalHoras === 0 || labs.length === 0) return [];
+    if (totalHoras === 0 || rawLabs.length === 0) return [];
+
+    // Priorizar laboratorios con uso efectivo para el gráfico circular
+    const labsActivos = rawLabs.filter(l => l.horasUsoEfectivo > 0);
+    const labs = labsActivos.length > 0 ? labsActivos : rawLabs;
 
     const circumference = 2 * Math.PI * 40;
     let accumulatedOffset = 0;
@@ -67,12 +87,15 @@ export default function GraficosMetricasReportes({
         lab
       };
     });
-  }, [metricasData]);
+  }, [laboratoriosHorasOrdenados, metricasData.totalHorasCampus]);
 
   const segmentosPastelReservas: SegmentoMetrica[] = useMemo(() => {
-    const labs = metricasData.laboratorios || [];
+    const rawLabs = laboratoriosReservasOrdenados;
     const totalReservas = metricasData.totalReservasCampus || 0;
-    if (totalReservas === 0 || labs.length === 0) return [];
+    if (totalReservas === 0 || rawLabs.length === 0) return [];
+
+    const labsActivos = rawLabs.filter(l => l.totalReservas > 0);
+    const labs = labsActivos.length > 0 ? labsActivos : rawLabs;
 
     const circumference = 2 * Math.PI * 40;
     let accumulatedOffset = 0;
@@ -95,12 +118,15 @@ export default function GraficosMetricasReportes({
         lab
       };
     });
-  }, [metricasData]);
+  }, [laboratoriosReservasOrdenados, metricasData.totalReservasCampus]);
 
   const segmentosPastelEstudiantes: SegmentoMetrica[] = useMemo(() => {
-    const labs = metricasData.laboratorios || [];
+    const rawLabs = laboratoriosEstudiantesOrdenados;
     const totalAlumnos = metricasData.totalAlumnosBeneficiados || 0;
-    if (totalAlumnos === 0 || labs.length === 0) return [];
+    if (totalAlumnos === 0 || rawLabs.length === 0) return [];
+
+    const labsActivos = rawLabs.filter(l => l.alumnosBeneficiados > 0);
+    const labs = labsActivos.length > 0 ? labsActivos : rawLabs;
 
     const circumference = 2 * Math.PI * 40;
     let accumulatedOffset = 0;
@@ -123,7 +149,7 @@ export default function GraficosMetricasReportes({
         lab
       };
     });
-  }, [metricasData]);
+  }, [laboratoriosEstudiantesOrdenados, metricasData.totalAlumnosBeneficiados]);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-800/80 transition-colors">
@@ -207,7 +233,7 @@ export default function GraficosMetricasReportes({
             formato={formatoHoras}
             onToggleFormato={setFormatoHoras}
             segmentos={segmentosPastelHoras}
-            laboratorios={metricasData.laboratorios.map(l => ({
+            laboratorios={laboratoriosHorasOrdenados.map(l => ({
               laboratorioId: l.laboratorioId,
               nombre: l.nombre,
               valor: l.horasUsoEfectivo,
@@ -230,7 +256,7 @@ export default function GraficosMetricasReportes({
             formato={formatoReservas}
             onToggleFormato={setFormatoReservas}
             segmentos={segmentosPastelReservas}
-            laboratorios={metricasData.laboratorios.map(l => ({
+            laboratorios={laboratoriosReservasOrdenados.map(l => ({
               laboratorioId: l.laboratorioId,
               nombre: l.nombre,
               valor: l.totalReservas,
@@ -253,7 +279,7 @@ export default function GraficosMetricasReportes({
             formato={formatoEstudiantes}
             onToggleFormato={setFormatoEstudiantes}
             segmentos={segmentosPastelEstudiantes}
-            laboratorios={metricasData.laboratorios.map(l => ({
+            laboratorios={laboratoriosEstudiantesOrdenados.map(l => ({
               laboratorioId: l.laboratorioId,
               nombre: l.nombre,
               valor: l.alumnosBeneficiados,

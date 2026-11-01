@@ -137,7 +137,7 @@ export const obtenerMetricasOcupacionAcademicas = async (
   });
 
   // Ordenar de mayor a menor uso
-  metricasPorLab.sort((a, b) => b.totalReservas - a.totalReservas);
+  metricasPorLab.sort((a, b) => b.totalReservas - a.totalReservas || b.horasUsoEfectivo - a.horasUsoEfectivo);
 
   const labTop = metricasPorLab[0]?.nombre || 'N/A';
   const totalEvaluadasCampus = totalAsistidasCampus + totalAusentesCampus;

@@ -10,6 +10,13 @@ export default function GraficoMetricaAsistencia({
   metricasData,
   onSelectLab
 }: GraficoMetricaAsistenciaProps) {
+  const laboratoriosOrdenados = [...(metricasData.laboratorios || [])].sort((a, b) => {
+    if (b.tasaAsistencia !== a.tasaAsistencia) {
+      return b.tasaAsistencia - a.tasaAsistencia;
+    }
+    return b.reservasAsistidas - a.reservasAsistidas;
+  });
+
   return (
     <div className="bg-slate-50/60 dark:bg-slate-900/40 rounded-2xl p-5 border border-slate-200/60 dark:border-slate-700/60">
       <div className="mb-4">
@@ -22,7 +29,7 @@ export default function GraficoMetricaAsistencia({
       </div>
 
       <div className="space-y-3 py-2">
-        {metricasData.laboratorios.map((lab) => {
+        {laboratoriosOrdenados.map((lab) => {
           const colorBarra = 
             lab.tasaAsistencia >= 80 
               ? 'bg-emerald-500' 
