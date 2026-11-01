@@ -142,8 +142,10 @@ export default function Navbar() {
     const fetchNotificaciones = async () => {
       try {
         const data = await notificacionesApi.obtenerMisNotificaciones();
-        setNotificaciones((data.notificaciones as any) || []);
-        setNoLeidas(data.noLeidasCount || 0);
+        const lista = (data.notificaciones as any) || [];
+        setNotificaciones(lista);
+        const count = data.noLeidas ?? data.noLeidasCount ?? lista.filter((n: any) => !n.leido).length;
+        setNoLeidas(count);
       } catch (e) {
         // Silencioso si la sesión expira
       }

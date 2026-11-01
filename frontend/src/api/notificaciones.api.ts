@@ -3,7 +3,9 @@ import type { Notificacion } from '../types';
 
 export interface NotificacionesRespuesta {
   notificaciones: Notificacion[];
-  noLeidasCount: number;
+  noLeidasCount?: number;
+  noLeidas?: number;
+  total?: number;
 }
 
 export const notificacionesApi = {

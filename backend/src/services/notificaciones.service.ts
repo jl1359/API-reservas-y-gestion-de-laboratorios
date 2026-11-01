@@ -16,6 +16,7 @@ export const listarMisNotificacionesService = async (usuarioId: number) => {
   return {
     total: notificaciones.length,
     noLeidas,
+    noLeidasCount: noLeidas,
     notificaciones
   };
 };

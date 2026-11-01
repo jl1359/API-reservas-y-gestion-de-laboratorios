@@ -3,6 +3,9 @@ import { prisma } from '../config/prisma';
 import { emitirNotificacionEstadoReserva } from './notificaciones.service';
 import { ReservaServiceError } from '../errors/reserva.error';
 
+// Ventana simétrica de control: 15 minutos de anticipación y 15 minutos de tolerancia
+export const MINUTOS_ANTICIPACION_ASISTENCIA = 15;
+
 export const obtenerQrReservaService = async (id: number, usuarioId?: number, userRol?: string) => {
   const reserva = await prisma.reserva.findUnique({
     where: { id },
@@ -125,14 +128,31 @@ export const escanearQrService = async (tokenQr: string, operadorId?: number, fo
   const ahora = new Date();
   const fechaInicio = new Date(reserva.fechaInicio);
   const fechaFin = new Date(reserva.fechaFin);
-  const tiempoMinimoIngreso = new Date(fechaInicio.getTime() - 30 * 60 * 1000);
+  const tiempoMinimoIngreso = new Date(fechaInicio.getTime() - MINUTOS_ANTICIPACION_ASISTENCIA * 60 * 1000);
 
   if (forzarValidacionTiempo !== false) {
-    const horaInicioStr = fechaInicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    const horaFinStr = fechaFin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const horaInicioStr = fechaInicio.toLocaleTimeString('es-ES', {
+      timeZone: 'America/La_Paz',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    const horaFinStr = fechaFin.toLocaleTimeString('es-ES', {
+      timeZone: 'America/La_Paz',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    const horaMinimaStr = tiempoMinimoIngreso.toLocaleTimeString('es-ES', {
+      timeZone: 'America/La_Paz',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
 
     if (ahora.getTime() < tiempoMinimoIngreso.getTime()) {
-      throw new ReservaServiceError(400, `Aún no es la hora de ingreso para esta reserva. Inicia a las ${horaInicioStr}`, 'HORARIO_ANTICIPADO');
+      throw new ReservaServiceError(
+        400,
+        `Aún no es la hora de ingreso para esta reserva. Podrás validar tu asistencia a partir de las ${horaMinimaStr} (15 minutos antes de las ${horaInicioStr}).`,
+        'HORARIO_ANTICIPADO'
+      );
     }
     if (ahora.getTime() > fechaFin.getTime()) {
       throw new ReservaServiceError(400, `El horario de la reserva ya finalizó a las ${horaFinStr}`, 'HORARIO_EXPIRADO');
