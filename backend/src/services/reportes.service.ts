@@ -130,7 +130,7 @@ export const obtenerMetricasOcupacionAcademicas = async (
       reservasAusentes: ausentes,
       reservasCanceladas: canceladas,
       reservasAprobadas: aprobadas,
-      horasUsoEfectivo: Number(horasUso.toFixed(1)),
+      horasUsoEfectivo: Number(horasUso.toFixed(2)),
       tasaAsistencia,
       alumnosBeneficiados: alumnosLab
     };
@@ -147,7 +147,7 @@ export const obtenerMetricasOcupacionAcademicas = async (
 
   return {
     totalReservasCampus: reservasDb.length,
-    totalHorasCampus: Number(totalHorasCampus.toFixed(1)),
+    totalHorasCampus: Number(totalHorasCampus.toFixed(2)),
     tasaAsistenciaPromedio,
     totalAlumnosBeneficiados,
     laboratorioMasDemandado: labTop,

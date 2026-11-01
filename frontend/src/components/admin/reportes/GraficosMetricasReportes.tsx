@@ -23,6 +23,32 @@ const PALETA_COLORES = [
   '#475569'  // Slate 600
 ];
 
+/**
+ * Calcula porcentajes enteros que suman exactamente 100% usando el metodo de restos mayores (Hare-Niemeyer).
+ */
+const calcularPorcentajesBalanceados = (valores: number[]): number[] => {
+  const total = valores.reduce((acc, v) => acc + v, 0);
+  if (total <= 0) return valores.map(() => 0);
+
+  const items = valores.map((v, i) => {
+    const raw = (v / total) * 100;
+    const floor = Math.floor(raw);
+    const remainder = raw - floor;
+    return { index: i, floor, remainder };
+  });
+
+  const asignados = items.reduce((acc, it) => acc + it.floor, 0);
+  const diferencia = Math.min(100 - asignados, items.length);
+
+  items.sort((a, b) => b.remainder - a.remainder);
+  for (let i = 0; i < diferencia; i++) {
+    items[i].floor += 1;
+  }
+
+  items.sort((a, b) => a.index - b.index);
+  return items.map((it) => it.floor);
+};
+
 interface GraficosMetricasReportesProps {
   metricasData: ResumenMetricasAcademicas;
   onSelectLab: (lab: MetricasLaboratorio) => void;
@@ -65,6 +91,7 @@ export default function GraficosMetricasReportes({
     // Priorizar laboratorios con uso efectivo para el gráfico circular
     const labsActivos = rawLabs.filter(l => l.horasUsoEfectivo > 0);
     const labs = labsActivos.length > 0 ? labsActivos : rawLabs;
+    const porcentajes = calcularPorcentajesBalanceados(labs.map(l => l.horasUsoEfectivo));
 
     const circumference = 2 * Math.PI * 40;
     let accumulatedOffset = 0;
@@ -80,7 +107,7 @@ export default function GraficosMetricasReportes({
         id: lab.laboratorioId,
         nombre: lab.nombre,
         valor: lab.horasUsoEfectivo,
-        porcentaje: Math.round(percentage),
+        porcentaje: porcentajes[index] ?? 0,
         color: PALETA_COLORES[index % PALETA_COLORES.length],
         strokeDasharray,
         strokeDashoffset,
@@ -96,6 +123,7 @@ export default function GraficosMetricasReportes({
 
     const labsActivos = rawLabs.filter(l => l.totalReservas > 0);
     const labs = labsActivos.length > 0 ? labsActivos : rawLabs;
+    const porcentajes = calcularPorcentajesBalanceados(labs.map(l => l.totalReservas));
 
     const circumference = 2 * Math.PI * 40;
     let accumulatedOffset = 0;
@@ -111,7 +139,7 @@ export default function GraficosMetricasReportes({
         id: lab.laboratorioId,
         nombre: lab.nombre,
         valor: lab.totalReservas,
-        porcentaje: Math.round(percentage),
+        porcentaje: porcentajes[index] ?? 0,
         color: PALETA_COLORES[index % PALETA_COLORES.length],
         strokeDasharray,
         strokeDashoffset,
@@ -127,6 +155,7 @@ export default function GraficosMetricasReportes({
 
     const labsActivos = rawLabs.filter(l => l.alumnosBeneficiados > 0);
     const labs = labsActivos.length > 0 ? labsActivos : rawLabs;
+    const porcentajes = calcularPorcentajesBalanceados(labs.map(l => l.alumnosBeneficiados));
 
     const circumference = 2 * Math.PI * 40;
     let accumulatedOffset = 0;
@@ -142,7 +171,7 @@ export default function GraficosMetricasReportes({
         id: lab.laboratorioId,
         nombre: lab.nombre,
         valor: lab.alumnosBeneficiados,
-        porcentaje: Math.round(percentage),
+        porcentaje: porcentajes[index] ?? 0,
         color: PALETA_COLORES[index % PALETA_COLORES.length],
         strokeDasharray,
         strokeDashoffset,
