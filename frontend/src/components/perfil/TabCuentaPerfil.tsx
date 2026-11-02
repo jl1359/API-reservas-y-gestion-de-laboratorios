@@ -6,8 +6,6 @@ import {
   Key,
   Send,
   AlertTriangle,
-  Calendar,
-  Clock,
   Phone,
   Mail,
   Save
@@ -34,7 +32,6 @@ interface TabCuentaPerfilProps {
   setMotivo: (val: string) => void;
   isSubmittingSolicitud: boolean;
   onSolicitarRol: (e: React.FormEvent) => void;
-  misReservas: any[];
   onAbrirPasswordModal: () => void;
   onEliminarCuenta: () => void;
 }
@@ -60,7 +57,6 @@ export default function TabCuentaPerfil({
   setMotivo,
   isSubmittingSolicitud,
   onSolicitarRol,
-  misReservas,
   onAbrirPasswordModal,
   onEliminarCuenta
 }: TabCuentaPerfilProps) {
@@ -146,7 +142,7 @@ export default function TabCuentaPerfil({
             <button
               type="submit"
               disabled={isGuardandoPerfil}
-              className="inline-flex items-center bg-tech-blue hover:bg-blue-600 active:scale-[0.98] text-white font-semibold py-2.5 px-6 rounded-xl transition-all text-sm shadow-md shadow-blue-500/20 disabled:opacity-50"
+              className="inline-flex items-center bg-tech-blue hover:bg-blue-600 active:scale-[0.98] text-white font-semibold py-2.5 px-6 rounded-xl transition-all text-sm shadow-md shadow-blue-500/20 disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4 mr-2" />
               <span>{isGuardandoPerfil ? 'Guardando...' : 'Guardar Datos'}</span>
@@ -189,7 +185,7 @@ export default function TabCuentaPerfil({
             <button
               type="submit"
               disabled={isSubmittingSolicitud}
-              className="inline-flex items-center bg-tech-blue hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all"
+              className="inline-flex items-center bg-tech-blue hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer"
             >
               <Send className="w-4 h-4 mr-2" /> {isSubmittingSolicitud ? 'Enviando...' : 'Enviar Solicitud'}
             </button>
@@ -197,63 +193,10 @@ export default function TabCuentaPerfil({
         </div>
       )}
 
-      {/* Seccion Mis Reservas */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 dark:border-slate-800/80">
-        <h3 className="text-xl font-heading font-bold text-slate-900 dark:text-white mb-4 flex items-center">
-          <Calendar className="w-5 h-5 mr-2 text-tech-blue" /> Mis Reservas de Laboratorio
-        </h3>
-
-        {misReservas.length === 0 ? (
-          <div className="text-center py-6 text-slate-500 dark:text-slate-400">
-            <p className="text-sm font-medium">No tienes reservas registradas actualmente.</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              Puedes realizar una reserva desde la página de detalle de cualquier laboratorio.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {misReservas.map((res: any) => {
-              const start = new Date(res.fechaInicio);
-              const end = new Date(res.fechaFin);
-              const estadoEstilo =
-                res.estado === 'Aprobada'
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                  : res.estado === 'Pendiente'
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
-
-              return (
-                <div key={res.id} className="p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-2xl border border-slate-150 dark:border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                  <div>
-                    <p className="font-bold text-slate-900 dark:text-white">{res.laboratorio?.nombre || 'Laboratorio'}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Materia: <strong className="text-slate-700 dark:text-slate-300">{res.materia || 'Práctica'}</strong> • {res.cantidadAlumnos || 1} alumnos
-                    </p>
-                    <p className="text-xs text-slate-400 flex items-center mt-1">
-                      <Clock className="w-3.5 h-3.5 mr-1 text-tech-blue" />
-                      {start.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}, {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                    {res.motivo && (
-                      <p className="text-xs text-slate-500 mt-1 italic">
-                        Nota: {res.motivo}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex-shrink-0">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${estadoEstilo}`}>
-                      {res.estado}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* Notificaciones en Dispositivo (Celular / Desktop) */}
       <PushNotificationToggle variant="card" />
 
+      {/* Seguridad de la Cuenta */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 dark:border-slate-800/80">
         <h3 className="text-xl font-heading font-bold text-slate-900 dark:text-white mb-2 flex items-center">
           <Key className="w-5 h-5 mr-2 text-tech-blue" /> Seguridad
@@ -263,13 +206,14 @@ export default function TabCuentaPerfil({
         </p>
         <button
           onClick={onAbrirPasswordModal}
-          className="inline-flex items-center space-x-2 bg-tech-blue hover:bg-blue-600 active:scale-[0.98] text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all"
+          className="inline-flex items-center space-x-2 bg-tech-blue hover:bg-blue-600 active:scale-[0.98] text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer"
         >
           <Key className="w-4 h-4" />
           <span>Cambiar Contraseña</span>
         </button>
       </div>
 
+      {/* Zona de Peligro */}
       <div className="bg-rose-500/5 dark:bg-rose-950/20 rounded-3xl p-6 sm:p-8 shadow-sm border border-rose-500/20 dark:border-rose-900/40">
         <h3 className="text-xl font-heading font-bold text-rose-700 dark:text-rose-400 mb-2 flex items-center">
           <AlertTriangle className="w-5 h-5 mr-2" /> Zona de Peligro
@@ -279,7 +223,7 @@ export default function TabCuentaPerfil({
         </p>
         <button
           onClick={onEliminarCuenta}
-          className="inline-flex items-center bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-sm shadow-rose-600/20 transition-all"
+          className="inline-flex items-center bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-sm shadow-rose-600/20 transition-all cursor-pointer"
         >
           Eliminar mi cuenta
         </button>

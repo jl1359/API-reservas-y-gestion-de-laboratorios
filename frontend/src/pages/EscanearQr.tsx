@@ -1,15 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
 import apiClient from '../api/client';
-import {
-  Camera,
-  QrCode,
-  RefreshCw,
-  Volume2,
-  VolumeX,
-  ShieldCheck,
-  ArrowLeft
-} from 'lucide-react';
+import { Camera, QrCode, RefreshCw, Volume2, VolumeX, ShieldCheck, ArrowLeft } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -18,12 +10,27 @@ import VisorCamaraQr from '../components/escanear/VisorCamaraQr';
 import TablaReservasTurnoActual, { type ReservaTurno } from '../components/escanear/TablaReservasTurnoActual';
 import HistorialPasesSesion, { type HistorialPase } from '../components/escanear/HistorialPasesSesion';
 
+// Helpers para fecha local e historial persistente
+const getFechaLocalYYYYMMDD = (dateInput: Date | string) => {
+  const d = new Date(dateInput);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const getStorageKeyHoy = () => `labreserve_pases_hoy_${getFechaLocalYYYYMMDD(new Date())}`;
+
 export default function EscanearQr() {
   const [modo, setModo] = useState<'camara' | 'manual'>('camara');
   const [tokenInput, setTokenInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultado, setResultado] = useState<ResultadoEscaneo | null>(null);
-  const [historial, setHistorial] = useState<HistorialPase[]>([]);
+  const [historial, setHistorial] = useState<HistorialPase[]>(() => {
+    try {
+      const guardado = localStorage.getItem(getStorageKeyHoy());
+      return guardado ? JSON.parse(guardado) : [];
+    } catch {
+      return [];
+    }
+  });
   const [camaraActiva, setCamaraActiva] = useState(false);
   const [sonidoHabilitado, setSonidoHabilitado] = useState(true);
 
@@ -40,7 +47,63 @@ export default function EscanearQr() {
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameId = useRef<number | null>(null);
 
-  // Reproducir sonido de confirmación o alerta
+  // Sincronizar pases ya validados hoy desde el backend al montar
+  useEffect(() => {
+    const key = getStorageKeyHoy();
+    const sincronizarPasesHoy = async () => {
+      try {
+        const res = await apiClient.get('/api/reservas', { params: { estado: 'Asistió' } });
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          const hoyStr = getFechaLocalYYYYMMDD(new Date());
+          const deHoy = res.data.data.filter((r: any) => {
+            const f = r.horaAsistencia ? new Date(r.horaAsistencia) : new Date(r.fechaInicio);
+            return getFechaLocalYYYYMMDD(f) === hoyStr;
+          });
+
+          const pasesBackend: HistorialPase[] = deHoy.map((r: any) => {
+            const f = r.horaAsistencia ? new Date(r.horaAsistencia) : new Date(r.fechaInicio);
+            return {
+              id: r.id,
+              hora: f.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              usuario: r.usuario?.nombreCompleto || 'Usuario',
+              ci: r.usuario?.ci || undefined,
+              laboratorio: r.laboratorio?.nombre || 'Laboratorio',
+              computadora: r.numeroComputadora,
+              exito: true,
+              fechaCompleta: r.horaAsistencia || r.fechaInicio
+            };
+          });
+
+          setHistorial((prev) => {
+            const map = new Map<string | number, HistorialPase>();
+            pasesBackend.forEach((p) => map.set(p.id, p));
+            prev.forEach((p) => { if (!map.has(p.id)) map.set(p.id, p); });
+            const combinado = Array.from(map.values());
+            combinado.sort((a, b) => {
+              const timeA = a.fechaCompleta ? new Date(a.fechaCompleta).getTime() : a.id;
+              const timeB = b.fechaCompleta ? new Date(b.fechaCompleta).getTime() : b.id;
+              return timeB - timeA;
+            });
+            try { localStorage.setItem(key, JSON.stringify(combinado)); } catch {}
+            return combinado;
+          });
+        }
+      } catch (error) {
+        console.error('Error al sincronizar pases de hoy:', error);
+      }
+    };
+    sincronizarPasesHoy();
+  }, []);
+
+  const agregarPaseHistorial = (nuevoPase: HistorialPase) => {
+    setHistorial((prev) => {
+      const filtrado = prev.filter((item) => item.id !== nuevoPase.id);
+      const actualizado = [nuevoPase, ...filtrado];
+      try { localStorage.setItem(getStorageKeyHoy(), JSON.stringify(actualizado)); } catch {}
+      return actualizado;
+    });
+  };
+
   const emitirSonido = (tipo: 'exito' | 'error') => {
     if (!sonidoHabilitado) return;
     try {
@@ -49,29 +112,23 @@ export default function EscanearQr() {
       const gain = audioCtx.createGain();
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-
       if (tipo === 'exito') {
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1);
         gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.35);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.35);
       } else {
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
-        osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.15); // E3
+        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.15);
         gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
       }
-    } catch (e) {
-      // AudioContext no permitido sin interacción previa
-    }
+    } catch {}
   };
 
-  // Iniciar la cámara
   const iniciarCamara = async () => {
     try {
       detenerCamara();
@@ -94,7 +151,6 @@ export default function EscanearQr() {
     }
   };
 
-  // Detener la cámara
   const detenerCamara = () => {
     if (animationFrameId.current) {
       cancelAnimationFrame(animationFrameId.current);
@@ -107,7 +163,6 @@ export default function EscanearQr() {
     setCamaraActiva(false);
   };
 
-  // Loop de escaneo continuo con jsQR
   const escanearFrame = () => {
     if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
       const canvas = canvasRef.current;
@@ -122,7 +177,6 @@ export default function EscanearQr() {
           const code = jsQR(imageData.data, imageData.width, imageData.height, {
             inversionAttempts: 'dontInvert'
           });
-
           if (code && code.data) {
             detenerCamara();
             procesarValidacion(code.data);
@@ -143,10 +197,8 @@ export default function EscanearQr() {
     return () => detenerCamara();
   }, [modo, resultado]);
 
-  // Validar el token contra el servidor
   const procesarValidacion = async (tokenParaValidar: string) => {
-    if (!tokenParaValidar || !tokenParaValidar.trim() || isProcessing) return;
-
+    if (!tokenParaValidar?.trim() || isProcessing) return;
     setIsProcessing(true);
     try {
       const res = await apiClient.post('/api/reservas/escanear-qr', {
@@ -155,24 +207,23 @@ export default function EscanearQr() {
 
       if (res.data.success) {
         emitirSonido('exito');
+        const rData = res.data.data;
         setResultado({
           exito: true,
           mensaje: res.data.mensaje || 'Acceso Permitido',
-          data: res.data.data
+          data: rData
         });
 
-        // Registrar en historial local
-        setHistorial((prev) => [
-          {
-            id: Date.now(),
-            hora: new Date().toLocaleTimeString('es-ES'),
-            usuario: res.data.data.usuario?.nombreCompleto || 'Usuario',
-            laboratorio: res.data.data.laboratorio?.nombre || 'Laboratorio',
-            computadora: res.data.data.numeroComputadora,
-            exito: true
-          },
-          ...prev.slice(0, 9)
-        ]);
+        agregarPaseHistorial({
+          id: rData?.id || Date.now(),
+          hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          usuario: rData?.usuario?.nombreCompleto || 'Usuario',
+          ci: rData?.usuario?.ci,
+          laboratorio: rData?.laboratorio?.nombre || 'Laboratorio',
+          computadora: rData?.numeroComputadora,
+          exito: true,
+          fechaCompleta: new Date().toISOString()
+        });
       }
     } catch (error: any) {
       emitirSonido('error');
@@ -186,25 +237,21 @@ export default function EscanearQr() {
         detalles: errorData?.detalles
       });
 
-      // Registrar rechazo en historial local
-      setHistorial((prev) => [
-        {
-          id: Date.now(),
-          hora: new Date().toLocaleTimeString('es-ES'),
-          usuario: errorData?.detalles?.usuario || 'Desconocido',
-          laboratorio: 'Intento Denegado',
-          exito: false,
-          motivo: mensajeError
-        },
-        ...prev.slice(0, 9)
-      ]);
+      agregarPaseHistorial({
+        id: Date.now(),
+        hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        usuario: errorData?.detalles?.usuario || 'Desconocido',
+        laboratorio: 'Intento Denegado',
+        exito: false,
+        motivo: mensajeError,
+        fechaCompleta: new Date().toISOString()
+      });
     } finally {
       setIsProcessing(false);
       setTokenInput('');
     }
   };
 
-  // Cargar reservas de la jornada actual para check-in rapido
   const cargarReservasTurno = async () => {
     setCargandoTurno(true);
     try {
@@ -217,12 +264,8 @@ export default function EscanearQr() {
         laboratorios.length === 0 ? apiClient.get('/api/laboratorios') : Promise.resolve({ data: { laboratorios } })
       ]);
 
-      if (resReservas.data?.success) {
-        setReservasTurno(resReservas.data.data);
-      }
-      if (resLabs.data?.laboratorios) {
-        setLaboratorios(resLabs.data.laboratorios);
-      }
+      if (resReservas.data?.success) setReservasTurno(resReservas.data.data);
+      if (resLabs.data?.laboratorios) setLaboratorios(resLabs.data.laboratorios);
     } catch (error) {
       console.error('Error al cargar reservas de la jornada:', error);
     } finally {
@@ -236,7 +279,6 @@ export default function EscanearQr() {
     }
   }, [modo, filtroLab]);
 
-  // Validar asistencia con un solo clic desde la tabla
   const marcarAsistenciaDirecta = async (reserva: ReservaTurno) => {
     if (marcandoId) return;
     setMarcandoId(reserva.id);
@@ -255,7 +297,6 @@ export default function EscanearQr() {
           data: res.data.data
         });
 
-        // Actualizar en la lista local reactivamente
         setReservasTurno((prev) =>
           prev.map((r) =>
             r.id === reserva.id
@@ -264,23 +305,20 @@ export default function EscanearQr() {
           )
         );
 
-        // Añadir al historial
-        setHistorial((prev) => [
-          {
-            id: Date.now(),
-            hora: new Date().toLocaleTimeString('es-ES'),
-            usuario: reserva.usuario?.nombreCompleto || 'Usuario',
-            laboratorio: reserva.laboratorio?.nombre || 'Laboratorio',
-            computadora: reserva.numeroComputadora,
-            exito: true
-          },
-          ...prev.slice(0, 9)
-        ]);
+        agregarPaseHistorial({
+          id: res.data.data?.id || reserva.id,
+          hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          usuario: reserva.usuario?.nombreCompleto || 'Usuario',
+          ci: reserva.usuario?.ci,
+          laboratorio: reserva.laboratorio?.nombre || 'Laboratorio',
+          computadora: reserva.numeroComputadora,
+          exito: true,
+          fechaCompleta: new Date().toISOString()
+        });
       }
     } catch (error: any) {
       emitirSonido('error');
-      const msg = error.response?.data?.error || 'Error al registrar asistencia manual';
-      toast.error(msg);
+      toast.error(error.response?.data?.error || 'Error al registrar asistencia manual');
     } finally {
       setMarcandoId(null);
     }
@@ -288,20 +326,14 @@ export default function EscanearQr() {
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tokenInput.trim()) {
-      return toast.error('Ingresa un Carnet (CI), # de Reserva o token');
-    }
-    procesarValidacion(tokenInput.trim()).then(() => {
-      cargarReservasTurno();
-    });
+    if (!tokenInput.trim()) return toast.error('Ingresa un Carnet (CI), # de Reserva o token');
+    procesarValidacion(tokenInput.trim()).then(() => { cargarReservasTurno(); });
   };
 
   const reanudarEscaneo = () => {
     setResultado(null);
     setTokenInput('');
-    if (modo === 'camara') {
-      iniciarCamara();
-    }
+    if (modo === 'camara') iniciarCamara();
   };
 
   return (
@@ -309,7 +341,6 @@ export default function EscanearQr() {
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        {/* Encabezado */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <Link to="/" className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-tech-blue dark:text-slate-400 mb-2">
@@ -339,11 +370,8 @@ export default function EscanearQr() {
           </div>
         </div>
 
-        {/* Panel Principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Columna Izquierda: Escaner / Entrada (2 columnas) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Selector de Modo */}
             <div className="flex bg-slate-200/60 dark:bg-slate-800 p-1.5 rounded-2xl">
               <button
                 onClick={() => { setModo('camara'); setResultado(null); }}
@@ -370,7 +398,6 @@ export default function EscanearQr() {
               </button>
             </div>
 
-            {/* TARJETA DE RESULTADO: ÉXITO O ERROR */}
             {resultado ? (
               <TarjetaResultadoEscaneo
                 resultado={resultado}
@@ -383,9 +410,7 @@ export default function EscanearQr() {
                 camaraActiva={camaraActiva}
               />
             ) : (
-              /* VISTA MANUAL Y PLAN DE CONTINGENCIA */
               <div className="space-y-6">
-                {/* Formulario de Busqueda y Validacion Directa */}
                 <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                   <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1 flex items-center">
                     <QrCode className="w-5 h-5 mr-2 text-tech-blue" />
@@ -421,7 +446,6 @@ export default function EscanearQr() {
                   </form>
                 </div>
 
-                {/* Lista de Reservas de la Jornada (Turno Actual con 1 Clic) */}
                 <TablaReservasTurnoActual
                   reservasTurno={reservasTurno}
                   cargandoTurno={cargandoTurno}
@@ -438,7 +462,6 @@ export default function EscanearQr() {
             )}
           </div>
 
-          {/* Columna Derecha: Historial de la Sesion (1 columna) */}
           <HistorialPasesSesion historial={historial} />
         </div>
       </div>

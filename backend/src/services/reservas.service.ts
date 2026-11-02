@@ -292,10 +292,10 @@ export const listarTodasLasReservasService = async (filtros?: { estado?: string;
   return prisma.reserva.findMany({
     where,
     include: {
-      usuario: { select: { id: true, nombreCompleto: true, correo: true } },
+      usuario: { select: { id: true, nombreCompleto: true, correo: true, ci: true } },
       laboratorio: { select: { id: true, nombre: true, ubicacion: true, reservaPorComputadora: true, capacidad: true } }
     },
-    orderBy: { fechaInicio: 'desc' }
+    orderBy: filtros?.estado === 'Asistió' ? { horaAsistencia: 'desc' } : { fechaInicio: 'desc' }
   });
 };
 

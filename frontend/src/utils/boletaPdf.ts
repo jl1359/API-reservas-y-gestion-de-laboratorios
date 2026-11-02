@@ -231,6 +231,11 @@ export const imprimirBoletaOficial = (reserva: {
               <th>Titular:</th>
               <td>${reserva.usuario?.nombreCompleto || 'Docente Universitario'}</td>
             </tr>
+            ${reserva.usuario?.ci ? `
+            <tr>
+              <th>Cédula de Identidad (CI):</th>
+              <td>${reserva.usuario.ci}</td>
+            </tr>` : ''}
             <tr>
               <th>Correo Institucional:</th>
               <td>${reserva.usuario?.correo || '-'}</td>
@@ -268,8 +273,9 @@ export const imprimirBoletaOficial = (reserva: {
 
         <div class="qr-section">
           ${qrUrl ? `<img src="${qrUrl}" alt="Pase QR" class="qr-img">` : ''}
-          <div style="font-size: 11px; font-weight: bold; color: #003366; margin-bottom: 4px;">PASE DE ACCESO OFICIAL</div>
-          <p class="instruccion">Presenta este código al responsable de laboratorio en la puerta dentro de los primeros 15 minutos.</p>
+          <div style="font-size: 11px; font-weight: bold; color: #003366; margin-bottom: 2px;">PASE DE ACCESO OFICIAL</div>
+          <div style="font-family: monospace; font-size: 12px; font-weight: bold; color: #1e40af; margin-bottom: 4px;">RESERVA #${reserva.id}</div>
+          <p class="instruccion">Presenta este código al responsable en puerta dentro de los primeros 15 minutos. En contingencia, indica tu N° de Reserva (#${reserva.id})${reserva.usuario?.ci ? ' o tu CI (' + reserva.usuario.ci + ')' : ''}.</p>
         </div>
       </div>
 

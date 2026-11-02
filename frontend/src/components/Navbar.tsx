@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, LogOut, Sun, Moon, Menu, X, Shield, QrCode, FileText, Bell, CheckCheck, Download } from 'lucide-react';
 import { usuariosApi } from '../api/usuarios.api';
@@ -79,6 +79,38 @@ export default function Navbar() {
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
   const [noLeidas, setNoLeidas] = useState(0);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement | null>(null);
+
+  // Cerrar paneles flotantes al navegar
+  useEffect(() => {
+    setIsNotifOpen(false);
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Cerrar notificaciones al hacer clic afuera o presionar Escape
+  useEffect(() => {
+    if (!isNotifOpen) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsNotifOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isNotifOpen]);
 
   // Sincronizar rol real desde el backend
   useEffect(() => {
@@ -274,7 +306,7 @@ export default function Navbar() {
 
           {/* Campana de Notificaciones */}
           {isAuthenticated && (
-            <div className="relative">
+            <div ref={notifRef} className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
                 className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors relative"

@@ -359,7 +359,6 @@ export default function Perfil() {
             setMotivo={setMotivo}
             isSubmittingSolicitud={isSubmitting}
             onSolicitarRol={solicitarRol}
-            misReservas={misReservas}
             onAbrirPasswordModal={() => setIsPasswordModalOpen(true)}
             onEliminarCuenta={eliminarCuenta}
           />

@@ -16,6 +16,12 @@ interface ModalQrProps {
     materia?: string | null;
     numeroComputadora?: number | null;
     estado: string;
+    usuario?: {
+      id?: number;
+      nombreCompleto?: string;
+      ci?: string;
+      correo?: string;
+    };
     laboratorio: {
       nombre: string;
       ubicacion?: string | null;
@@ -131,25 +137,52 @@ export default function ModalQrReserva({ isOpen, onClose, reserva }: ModalQrProp
             </div>
           )}
 
-          {/* Token truncado con botón copiar */}
-          {reserva.tokenQr && (
-            <div className="mt-4 flex items-center space-x-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 max-w-full">
-              <span className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
-                {reserva.tokenQr}
-              </span>
-              <button
-                onClick={copiarToken}
-                className="text-tech-blue hover:text-blue-600 dark:text-blue-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                title="Copiar token"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
+          {/* Identificador y contingencia manual */}
+          <div className="mt-4 w-full flex flex-col items-center space-y-2">
+            <div className="inline-flex items-center justify-between gap-3 bg-white dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-xs shadow-xs">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Reserva:</span>
+                <span className="text-sm font-bold font-mono text-tech-blue dark:text-blue-400">
+                  #{reserva.id}
+                </span>
+              </div>
+              {reserva.tokenQr && (
+                <button
+                  type="button"
+                  onClick={copiarToken}
+                  className="text-xs font-semibold text-slate-500 hover:text-tech-blue dark:text-slate-400 dark:hover:text-blue-300 flex items-center space-x-1 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                  title="Copiar token al portapapeles"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? 'Copiado' : 'Copiar'}</span>
+                </button>
+              )}
             </div>
-          )}
+
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center px-2">
+              Para validación manual en puerta, puedes indicar tu <strong className="text-slate-700 dark:text-slate-300">N° de Reserva (#{reserva.id})</strong> o tu carnet (CI).
+            </p>
+          </div>
         </div>
 
         {/* Ficha Técnica de la Reserva */}
         <div className="space-y-3 mb-6 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 text-sm">
+          <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700">
+            <span className="text-slate-500 dark:text-slate-400 font-medium">N° de Reserva:</span>
+            <span className="font-mono font-bold text-tech-blue dark:text-blue-400 text-xs sm:text-sm">
+              RES-FCYT-{new Date(reserva.fechaInicio).getFullYear()}-{String(reserva.id).padStart(6, '0')}
+            </span>
+          </div>
+
+          {reserva.usuario?.ci && (
+            <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Cédula (CI):</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                {reserva.usuario.ci}
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700">
             <span className="text-slate-500 dark:text-slate-400 font-medium">Laboratorio:</span>
             <span className="font-bold text-slate-900 dark:text-white text-right">

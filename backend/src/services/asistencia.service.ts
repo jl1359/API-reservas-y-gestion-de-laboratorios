@@ -66,9 +66,13 @@ export const escanearQrService = async (tokenQr: string, operadorId?: number, fo
     }
   });
 
-  // Contingencia: Si no coincide por token exacto, verificar si es un ID de reserva (#123 o 123)
+  // Contingencia: Si no coincide por token exacto, verificar si es un ID de reserva (#123, 123 o RES-FCYT-2026-000123)
   if (!reserva) {
-    const posibleId = tokenLimpio.startsWith('#') ? tokenLimpio.substring(1) : tokenLimpio;
+    let posibleId = tokenLimpio.startsWith('#') ? tokenLimpio.substring(1) : tokenLimpio;
+    const matchInstitucional = tokenLimpio.match(/RES-FCYT-\d+-(\d+)/i);
+    if (matchInstitucional) {
+      posibleId = String(Number(matchInstitucional[1]));
+    }
     if (/^\d+$/.test(posibleId) && Number(posibleId) < 2147483647) {
       reserva = await prisma.reserva.findUnique({
         where: { id: Number(posibleId) },
