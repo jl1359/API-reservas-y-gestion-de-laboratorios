@@ -175,6 +175,13 @@ export default function LabDetail() {
     return fechaSeleccionada >= fInicio && fechaSeleccionada <= fFin;
   });
 
+  const computadorasRegistradas = lab?.equipos
+    ? lab.equipos
+        .filter(({ equipamiento }) => equipamiento?.nombre?.toLowerCase().includes('computadora'))
+        .reduce((total, equipo) => total + equipo.cantidad, 0)
+    : 0;
+  const cantidadComputadoras = computadorasRegistradas || lab?.capacidad || 1;
+
   // Evaluación de cada bloque académico
   const bloquesEvaluados: BloqueEvaluado[] = BLOQUES_ACADEMICOS.map((bloque) => {
     const dentroDeHorario =
@@ -209,7 +216,52 @@ export default function LabDetail() {
       };
     }
 
-    // Verificar solapamiento con reservas registradas
+    // Modalidad por computadora
+    if (lab?.reservaPorComputadora) {
+      const reservaAulaCompleta = reservasDelDia.find((r) => {
+        const horaInicioRes = getLocalTimeStr(r.fechaInicio);
+        const horaFinRes = getLocalTimeStr(r.fechaFin);
+        return r.numeroComputadora === null && horaInicioRes < bloque.fin && horaFinRes > bloque.inicio;
+      });
+
+      if (reservaAulaCompleta) {
+        return {
+          ...bloque,
+          estado: 'OCUPADO' as const,
+          reserva: reservaAulaCompleta,
+          motivoOcupacion: reservaAulaCompleta.materia || reservaAulaCompleta.motivo || 'Sesión Reservada (Aula Completa)',
+          docente: reservaAulaCompleta.usuario?.nombreCompleto || 'Docente Asignado',
+          estadoReserva: reservaAulaCompleta.estado,
+          dentroDeHorario
+        };
+      }
+
+      const pcsOcupadas = reservasDelDia.filter((r) => {
+        const horaInicioRes = getLocalTimeStr(r.fechaInicio);
+        const horaFinRes = getLocalTimeStr(r.fechaFin);
+        return r.numeroComputadora !== null && horaInicioRes < bloque.fin && horaFinRes > bloque.inicio;
+      }).length;
+
+      if (pcsOcupadas >= cantidadComputadoras) {
+        return {
+          ...bloque,
+          estado: 'OCUPADO' as const,
+          motivoOcupacion: `Todas las computadoras ocupadas (${pcsOcupadas}/${cantidadComputadoras})`,
+          docente: 'Aforo Completo',
+          estadoReserva: 'Ocupado',
+          dentroDeHorario
+        };
+      }
+
+      return {
+        ...bloque,
+        estado: 'DISPONIBLE' as const,
+        motivoOcupacion: pcsOcupadas > 0 ? `${cantidadComputadoras - pcsOcupadas} de ${cantidadComputadoras} computadoras disponibles` : null,
+        dentroDeHorario
+      };
+    }
+
+    // Modalidad estándar (Laboratorio Completo)
     const reservaEnBloque = reservasDelDia.find((r) => {
       const horaInicioRes = getLocalTimeStr(r.fechaInicio);
       const horaFinRes = getLocalTimeStr(r.fechaFin);
@@ -290,10 +342,6 @@ export default function LabDetail() {
     );
   }
 
-  const computadorasRegistradas = lab.equipos
-    .filter(({ equipamiento }) => equipamiento.nombre.toLocaleLowerCase().includes('computadora'))
-    .reduce((total, equipo) => total + equipo.cantidad, 0);
-  const cantidadComputadoras = computadorasRegistradas || lab.capacidad;
   const puedeReservarComputadora =
     lab.reservaPorComputadora && localStorage.getItem('userRole') === 'Estudiante';
 

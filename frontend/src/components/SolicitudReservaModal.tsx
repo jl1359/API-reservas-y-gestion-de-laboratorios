@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
-import { X, Calendar, Clock, BookOpen, Users, FileText, CheckCircle, AlertCircle, Repeat } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Calendar, Clock, BookOpen, Users, FileText, CheckCircle, AlertCircle, Repeat, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { feriadosApi } from '../api/feriados.api';
 import apiClient from '../api/client';
+import {
+  obtenerOpcionesHoraInicio,
+  obtenerOpcionesHoraFin,
+  calcularHoraFinSugerida,
+  timeToMinutes,
+  esDiaSabado
+} from '../utils/horariosAcademicos';
 
 interface SolicitudReservaModalProps {
   isOpen: boolean;
@@ -33,8 +40,8 @@ export default function SolicitudReservaModal({
   const fechaFinSugerida = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   const [fecha, setFecha] = useState(hoy);
-  const [horaInicio, setHoraInicio] = useState('08:00');
-  const [horaFin, setHoraFin] = useState('10:00');
+  const [horaInicio, setHoraInicio] = useState('08:15');
+  const [horaFin, setHoraFin] = useState('09:45');
   const [materia, setMateria] = useState('');
   const [cantidadAlumnos, setCantidadAlumnos] = useState('');
   const [motivo, setMotivo] = useState('');
@@ -42,6 +49,35 @@ export default function SolicitudReservaModal({
   const [fechaFinSemestre, setFechaFinSemestre] = useState(fechaFinSugerida);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feriados, setFeriados] = useState<{ id: number; fecha: string; motivo: string; bloqueoActivo: boolean }[]>([]);
+
+  // Opciones dinamicas de horas basadas en el dia de operacion de la UMSS
+  const opcionesInicio = useMemo(() => {
+    return obtenerOpcionesHoraInicio(fecha, horaInicio);
+  }, [fecha, horaInicio]);
+
+  const opcionesFin = useMemo(() => {
+    return obtenerOpcionesHoraFin(horaInicio, fecha, horaFin);
+  }, [horaInicio, fecha, horaFin]);
+
+  const handleHoraInicioChange = (nuevaHoraInicio: string) => {
+    setHoraInicio(nuevaHoraInicio);
+    if (timeToMinutes(horaFin) < timeToMinutes(nuevaHoraInicio) + 60) {
+      const sugerida = calcularHoraFinSugerida(nuevaHoraInicio, fecha);
+      setHoraFin(sugerida);
+    }
+  };
+
+  const handleFechaChange = (nuevaFecha: string) => {
+    setFecha(nuevaFecha);
+    if (esDiaSabado(nuevaFecha)) {
+      if (timeToMinutes(horaInicio) > timeToMinutes('11:45')) {
+        setHoraInicio('11:15');
+      }
+      if (timeToMinutes(horaFin) > timeToMinutes('12:45')) {
+        setHoraFin('12:45');
+      }
+    }
+  };
 
   // Cargar feriados para bloqueo anticipado en el calendario
   React.useEffect(() => {
@@ -85,8 +121,8 @@ export default function SolicitudReservaModal({
       return toast.error(`Excede la capacidad máxima del laboratorio (${laboratorio.capacidad} alumnos)`);
     }
 
-    if (horaInicio >= horaFin) {
-      return toast.error('La hora de inicio debe ser anterior a la hora de fin');
+    if (timeToMinutes(horaFin) - timeToMinutes(horaInicio) < 60) {
+      return toast.error('La duración mínima de la reserva debe ser de al menos 1 hora (60 minutos)');
     }
 
     if (recurrente && (!fechaFinSemestre || fechaFinSemestre <= fecha)) {
@@ -188,7 +224,7 @@ export default function SolicitudReservaModal({
               required
               min={hoy}
               value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              onChange={(e) => handleFechaChange(e.target.value)}
               className={`w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border rounded-xl focus:ring-2 focus:outline-none dark:text-white transition ${
                 feriadoSeleccionado
                   ? 'border-red-500 focus:ring-red-400 bg-red-50/50 dark:bg-red-950/20'
@@ -208,30 +244,52 @@ export default function SolicitudReservaModal({
           {/* Horario: Inicio y Fin */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
+              <label htmlFor="hora-inicio-reserva" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
                 <Clock className="w-4 h-4 mr-1.5 text-tech-blue" />
                 Hora Inicio <span className="text-red-500 ml-0.5">*</span>
               </label>
-              <input
-                type="time"
-                required
-                value={horaInicio}
-                onChange={(e) => setHoraInicio(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white transition"
-              />
+              <div className="relative">
+                <select
+                  id="hora-inicio-reserva"
+                  required
+                  value={horaInicio}
+                  onChange={(e) => handleHoraInicioChange(e.target.value)}
+                  className="w-full pl-3.5 pr-8 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white transition cursor-pointer appearance-none"
+                >
+                  {opcionesInicio.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
+              <label htmlFor="hora-fin-reserva" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
                 <Clock className="w-4 h-4 mr-1.5 text-tech-blue" />
                 Hora Fin <span className="text-red-500 ml-0.5">*</span>
               </label>
-              <input
-                type="time"
-                required
-                value={horaFin}
-                onChange={(e) => setHoraFin(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white transition"
-              />
+              <div className="relative">
+                <select
+                  id="hora-fin-reserva"
+                  required
+                  value={horaFin}
+                  onChange={(e) => setHoraFin(e.target.value)}
+                  className="w-full pl-3.5 pr-8 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white transition cursor-pointer appearance-none"
+                >
+                  {opcionesFin.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
             </div>
           </div>
 

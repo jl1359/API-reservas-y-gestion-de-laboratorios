@@ -69,7 +69,7 @@ export const registrarMantenimientoService = async (
   const reservasAfectadas = await prisma.reserva.findMany({
     where: {
       laboratorioId: datos.laboratorioId,
-      estado: { in: ['Aprobada', 'Pendiente'] },
+      estado: { in: ['Aprobada', 'Pendiente', 'Confirmada', 'Asistió'] },
       fechaInicio: { lt: fFin },
       fechaFin: { gt: fInicio }
     },

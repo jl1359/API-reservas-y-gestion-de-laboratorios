@@ -228,7 +228,7 @@ export default function Home() {
                     </span>
 
                     <span className="inline-flex items-center text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-xs border border-white/20 dark:border-slate-700/40">
-                      {lab.reservaPorComputadora ? 'Por Puesto' : 'Aula Completa'}
+                      {lab.reservaPorComputadora ? 'Por Computadora' : 'Laboratorio Completo'}
                     </span>
                   </div>
                 </div>

@@ -61,10 +61,10 @@ export const listarLaboratorios = async (
         return res.status(400).json({ error: 'La hora de inicio debe ser anterior a la hora de fin' });
       }
 
-      // Si el laboratorio tiene reservas Aprobadas o Pendientes que "choquen" con este horario, lo descartamos
+      // Si el laboratorio tiene reservas que choquen con este horario, lo descartamos
       filtros.reservas = {
         none: {
-          estado: { in: ['Pendiente', 'Aprobada'] },
+          estado: { in: ['Pendiente', 'Aprobada', 'Confirmada', 'Asistió'] },
           fechaInicio: { lt: fechaFinReq },
           fechaFin: { gt: fechaInicioReq }
         }

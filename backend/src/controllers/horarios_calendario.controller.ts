@@ -67,7 +67,7 @@ export const verCalendarioLaboratorio = async (req: AuthRequest, res: Response):
       prisma.reserva.findMany({
         where: {
           laboratorioId: Number(id),
-          estado: { in: ['Aprobada', 'Pendiente', 'Confirmada'] }
+          estado: { in: ['Aprobada', 'Pendiente', 'Confirmada', 'Asistió'] }
         },
         select: {
           id: true,

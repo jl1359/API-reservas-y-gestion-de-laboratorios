@@ -1,7 +1,8 @@
 import { prisma } from '../config/prisma';
 import { validarHorarioOperativo } from './horarioOperativo.helper';
+import { ReservaServiceError } from '../errors/reserva.error';
 
-export const ESTADOS_ACTIVOS = ['Pendiente', 'Aprobada', 'Confirmada'];
+export const ESTADOS_ACTIVOS = ['Pendiente', 'Aprobada', 'Confirmada', 'Asistió'];
 
 export interface BloqueHorario {
   inicio: Date;
@@ -109,5 +110,49 @@ export async function validarFeriadosYMantenimientos(
       err.code = 'MANTENIMIENTO_BLOQUEADO';
       throw err;
     }
+  }
+}
+
+export const MINUTOS_MINIMOS_RESERVA = 60;
+
+/**
+ * Valida que la duración de la reserva sea de al menos 1 hora (60 minutos).
+ */
+export function validarDuracionMinima(inicio: Date, fin: Date): void {
+  const diffMinutos = (fin.getTime() - inicio.getTime()) / (1000 * 60);
+  if (diffMinutos < MINUTOS_MINIMOS_RESERVA) {
+    throw new ReservaServiceError(
+      400,
+      'La duración mínima de una reserva debe ser de al menos 1 hora (60 minutos)'
+    );
+  }
+}
+
+/**
+ * Valida que el mismo usuario no tenga ya otra reserva activa en ese mismo horario en cualquier laboratorio.
+ */
+export async function validarColisionUsuario(
+  tx: any,
+  usuarioId: number,
+  inicio: Date,
+  fin: Date
+): Promise<void> {
+  const colision = await tx.reserva.findFirst({
+    where: {
+      usuarioId,
+      estado: { in: ESTADOS_ACTIVOS },
+      fechaInicio: { lt: fin },
+      fechaFin: { gt: inicio }
+    },
+    include: {
+      laboratorio: { select: { nombre: true } }
+    }
+  });
+
+  if (colision) {
+    throw new ReservaServiceError(
+      409,
+      `Ya cuentas con una reserva activa en ese mismo horario para el ${colision.laboratorio.nombre}. No puedes registrar reservas simultáneas.`
+    );
   }
 }

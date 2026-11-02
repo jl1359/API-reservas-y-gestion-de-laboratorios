@@ -61,7 +61,7 @@ export default function LabDetailHeader({
           <div className="bg-slate-50/80 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
             <Users className="w-4 h-4 text-tech-blue mb-1" />
             <p className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Capacidad</p>
-            <p className="font-bold text-sm text-slate-900 dark:text-white">{lab.capacidad} asientos</p>
+            <p className="font-bold text-sm text-slate-900 dark:text-white">{lab.capacidad} personas</p>
           </div>
           <div className="bg-slate-50/80 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
             <MapPin className="w-4 h-4 text-tech-blue mb-1" />
@@ -71,8 +71,8 @@ export default function LabDetailHeader({
           <div className="bg-slate-50/80 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 col-span-2 sm:col-span-1">
             <Monitor className="w-4 h-4 text-tech-blue mb-1" />
             <p className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Modalidad</p>
-            <p className="font-bold text-sm text-slate-900 dark:text-white truncate" title={lab.reservaPorComputadora ? 'Por Puesto' : 'Aula Completa'}>
-              {lab.reservaPorComputadora ? 'Por Puesto' : 'Aula Completa'}
+            <p className="font-bold text-sm text-slate-900 dark:text-white truncate" title={lab.reservaPorComputadora ? 'Individual' : 'Laboratorio Completo'}>
+              {lab.reservaPorComputadora ? 'Individual' : 'Laboratorio Completo'}
             </p>
           </div>
         </div>

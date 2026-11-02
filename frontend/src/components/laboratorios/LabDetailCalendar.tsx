@@ -263,8 +263,8 @@ export default function LabDetailCalendar({
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {isDisponible && 'Espacio disponible para reserva académica'}
-                        {isOcupado && `${bloque.motivoOcupacion} · Docente: ${bloque.docente}`}
+                        {isDisponible && (bloque.motivoOcupacion || 'Espacio disponible para reserva académica')}
+                        {isOcupado && (bloque.docente ? `${bloque.motivoOcupacion} · Docente: ${bloque.docente}` : (bloque.motivoOcupacion || 'Horario no disponible'))}
                         {!isDisponible && !isOcupado && bloque.motivoOcupacion}
                       </p>
                     </div>
@@ -285,7 +285,7 @@ export default function LabDetailCalendar({
 
                     {isOcupado && (
                       <span className="px-3 py-1 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                        Ocupado ({bloque.estadoReserva})
+                        Ocupado
                       </span>
                     )}
 

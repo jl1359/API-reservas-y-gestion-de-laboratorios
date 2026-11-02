@@ -16,7 +16,7 @@ export const crearReservaIndividualSchema = z.object({
   numeroComputadora: z.coerce.number().int().positive('Debes seleccionar una computadora'),
   fechaInicio: z.string().min(1, 'La fecha de inicio es obligatoria'),
   fechaFin: z.string().min(1, 'La fecha de fin es obligatoria'),
-  motivo: z.string().max(255, 'El motivo no puede superar los 255 caracteres').optional().default('')
+  motivo: z.string().min(3, 'El motivo de uso es obligatorio (mínimo 3 caracteres)').max(255, 'El motivo no puede superar los 255 caracteres')
 });
 
 export const cancelarFuerzaMayorSchema = z.object({

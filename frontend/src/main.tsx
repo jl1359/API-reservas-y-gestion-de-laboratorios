@@ -8,12 +8,28 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 const rawClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_ID = rawClientId ? rawClientId.replace(/['"]/g, '').trim() : '';
 
-if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.warn('PWA ServiceWorker registration failed:', err);
+if ('serviceWorker' in navigator) {
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('PWA ServiceWorker registration failed:', err);
+      });
     });
-  });
+  } else {
+    // En desarrollo, desregistrar service worker para evitar interferencia de caché con Vite
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const reg of registrations) {
+        reg.unregister();
+      }
+    });
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        for (const key of keys) {
+          caches.delete(key);
+        }
+      });
+    }
+  }
 }
 
 createRoot(document.getElementById('root')!).render(

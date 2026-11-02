@@ -11,7 +11,9 @@ import {
 import {
   ESTADOS_ACTIVOS,
   generarBloquesReserva,
-  validarFeriadosYMantenimientos
+  validarFeriadosYMantenimientos,
+  validarDuracionMinima,
+  validarColisionUsuario
 } from '../helpers/colisionesReserva.helper';
 import { ReservaServiceError } from '../errors/reserva.error';
 
@@ -55,11 +57,17 @@ export const crearReservaIndividualService = async (
     if (!laboratorio) throw new ReservaServiceError(404, 'Laboratorio no encontrado');
     if (laboratorio.estadoOperativo !== 'Activo') throw new ReservaServiceError(409, 'El laboratorio no se encuentra operativo');
     if (!laboratorio.reservaPorComputadora) throw new ReservaServiceError(409, 'Este laboratorio no permite reservas por computadora');
+    if (!motivo || motivo.trim().length < 3) {
+      throw new ReservaServiceError(400, 'El motivo de uso es obligatorio (mínimo 3 caracteres)');
+    }
 
     const cantidadComputadoras = contarComputadoras(laboratorio);
     if (numeroComputadora > cantidadComputadoras) {
       throw new ReservaServiceError(400, `La computadora debe estar entre PC-1 y PC-${cantidadComputadoras}`);
     }
+
+    validarDuracionMinima(fechaInicio, fechaFin);
+    await validarColisionUsuario(tx, usuarioId, fechaInicio, fechaFin);
 
     const colision = await tx.reserva.findFirst({
       where: {
@@ -155,6 +163,7 @@ export const crearReservaService = async (
   if (inicio >= fin) {
     throw new ReservaServiceError(400, 'La hora de fin debe ser posterior a la hora de inicio');
   }
+  validarDuracionMinima(inicio, fin);
   if (inicio <= new Date()) {
     throw new ReservaServiceError(400, 'La reserva debe programarse con fecha y hora futura');
   }
@@ -192,10 +201,14 @@ export const crearReservaService = async (
     const serieId = data.recurrente ? `SERIE-${Date.now()}` : undefined;
 
     for (const bloque of bloquesReserva) {
+      await validarColisionUsuario(tx, usuarioId, bloque.inicio, bloque.fin);
+
       const conflicto = await tx.reserva.findFirst({
         where: {
           laboratorioId: data.laboratorioId,
-          numeroComputadora: data.numeroComputadora ? data.numeroComputadora : null,
+          ...(data.numeroComputadora
+            ? { OR: [{ numeroComputadora: data.numeroComputadora }, { numeroComputadora: null }] }
+            : {}),
           estado: { in: ESTADOS_ACTIVOS },
           fechaInicio: { lt: bloque.fin },
           fechaFin: { gt: bloque.inicio }
@@ -249,17 +262,10 @@ export const listarMisReservasService = async (usuarioId: number) => {
 
   return Promise.all(
     reservas.map(async (r) => {
-      let tokenQr = null;
-      if (r.estado === 'Aprobada') {
-        if (!r.tokenQr) {
-          tokenQr = crypto.randomBytes(32).toString('hex');
-          await prisma.reserva.update({
-            where: { id: r.id },
-            data: { tokenQr }
-          });
-        } else {
-          tokenQr = r.tokenQr;
-        }
+      let tokenQr = r.tokenQr;
+      if (r.estado === 'Aprobada' && !tokenQr) {
+        tokenQr = crypto.randomBytes(32).toString('hex');
+        await prisma.reserva.update({ where: { id: r.id }, data: { tokenQr } });
       }
 
       return {
@@ -280,12 +286,8 @@ export const listarMisReservasService = async (usuarioId: number) => {
 
 export const listarTodasLasReservasService = async (filtros?: { estado?: string; laboratorioId?: number }) => {
   const where: any = {};
-  if (filtros?.estado && typeof filtros.estado === 'string') {
-    where.estado = filtros.estado;
-  }
-  if (filtros?.laboratorioId && !isNaN(Number(filtros.laboratorioId))) {
-    where.laboratorioId = Number(filtros.laboratorioId);
-  }
+  if (filtros?.estado && typeof filtros.estado === 'string') where.estado = filtros.estado;
+  if (filtros?.laboratorioId && !isNaN(Number(filtros.laboratorioId))) where.laboratorioId = Number(filtros.laboratorioId);
 
   return prisma.reserva.findMany({
     where,

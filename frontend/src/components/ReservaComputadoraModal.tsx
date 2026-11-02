@@ -1,7 +1,14 @@
-import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, Monitor } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Calendar, Clock, Monitor, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '../api/client';
+import {
+  obtenerOpcionesHoraInicio,
+  obtenerOpcionesHoraFin,
+  calcularHoraFinSugerida,
+  timeToMinutes,
+  esDiaSabado
+} from '../utils/horariosAcademicos';
 
 interface ReservaComputadoraModalProps {
   abierto: boolean;
@@ -63,6 +70,45 @@ export default function ReservaComputadoraModal({
     setFormulario(actual => ({ ...actual, [campo]: valor }));
   };
 
+  const opcionesInicio = useMemo(() => {
+    return obtenerOpcionesHoraInicio(formulario.fecha, formulario.horaInicio);
+  }, [formulario.fecha, formulario.horaInicio]);
+
+  const opcionesFin = useMemo(() => {
+    return obtenerOpcionesHoraFin(formulario.horaInicio, formulario.fecha, formulario.horaFin);
+  }, [formulario.horaInicio, formulario.fecha, formulario.horaFin]);
+
+  const handleHoraInicioChange = (nuevaHoraInicio: string) => {
+    let nuevaHoraFin = formulario.horaFin;
+    if (timeToMinutes(formulario.horaFin) < timeToMinutes(nuevaHoraInicio) + 60) {
+      nuevaHoraFin = calcularHoraFinSugerida(nuevaHoraInicio, formulario.fecha);
+    }
+    setFormulario(actual => ({
+      ...actual,
+      horaInicio: nuevaHoraInicio,
+      horaFin: nuevaHoraFin
+    }));
+  };
+
+  const handleFechaChange = (nuevaFecha: string) => {
+    let nuevaHoraInicio = formulario.horaInicio;
+    let nuevaHoraFin = formulario.horaFin;
+    if (esDiaSabado(nuevaFecha)) {
+      if (timeToMinutes(nuevaHoraInicio) > timeToMinutes('11:45')) {
+        nuevaHoraInicio = '11:15';
+      }
+      if (timeToMinutes(nuevaHoraFin) > timeToMinutes('12:45')) {
+        nuevaHoraFin = '12:45';
+      }
+    }
+    setFormulario(actual => ({
+      ...actual,
+      fecha: nuevaFecha,
+      horaInicio: nuevaHoraInicio,
+      horaFin: nuevaHoraFin
+    }));
+  };
+
   const cerrar = () => {
     if (enviando) return;
     setFormulario(FORMULARIO_INICIAL);
@@ -87,8 +133,18 @@ export default function ReservaComputadoraModal({
       return;
     }
 
-    if (formulario.horaInicio >= formulario.horaFin) {
-      toast.error('La hora de fin debe ser posterior a la hora de inicio');
+    if (timeToMinutes(formulario.horaFin) - timeToMinutes(formulario.horaInicio) < 60) {
+      toast.error('La duración mínima de uso de la computadora debe ser de al menos 1 hora (60 minutos)');
+      return;
+    }
+
+    if (!formulario.motivo.trim()) {
+      toast.error('El motivo de uso es obligatorio');
+      return;
+    }
+
+    if (formulario.motivo.trim().length < 3) {
+      toast.error('El motivo de uso debe tener al menos 3 caracteres');
       return;
     }
 
@@ -159,7 +215,7 @@ export default function ReservaComputadoraModal({
               onChange={event => actualizarCampo('numeroComputadora', event.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:ring-2 focus:ring-tech-blue dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             >
-              <option value="">Selecciona una computadora</option>
+              <option value="">Selecciona una computadora (PC-1 a PC-{cantidadComputadoras})</option>
               {Array.from({ length: cantidadComputadoras }, (_, indice) => indice + 1).map(numero => (
                 <option key={numero} value={numero}>PC-{numero}</option>
               ))}
@@ -178,7 +234,7 @@ export default function ReservaComputadoraModal({
                 required
                 min={hoyStr}
                 value={formulario.fecha}
-                onChange={event => actualizarCampo('fecha', event.target.value)}
+                onChange={event => handleFechaChange(event.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-tech-blue dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>
@@ -187,37 +243,58 @@ export default function ReservaComputadoraModal({
                 <Clock className="w-4 h-4 text-tech-blue" />
                 <span>Desde</span> <span className="text-red-500">*</span>
               </label>
-              <input
-                id="reserva-pc-desde"
-                type="time"
-                required
-                value={formulario.horaInicio}
-                onChange={event => actualizarCampo('horaInicio', event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-tech-blue dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
+              <div className="relative">
+                <select
+                  id="reserva-pc-desde"
+                  required
+                  value={formulario.horaInicio}
+                  onChange={event => handleHoraInicioChange(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-3.5 pr-8 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-tech-blue dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer appearance-none"
+                >
+                  {opcionesInicio.map(h => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
             </div>
             <div>
               <label htmlFor="reserva-pc-hasta" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-tech-blue" />
                 <span>Hasta</span> <span className="text-red-500">*</span>
               </label>
-              <input
-                id="reserva-pc-hasta"
-                type="time"
-                required
-                value={formulario.horaFin}
-                onChange={event => actualizarCampo('horaFin', event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-tech-blue dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
+              <div className="relative">
+                <select
+                  id="reserva-pc-hasta"
+                  required
+                  value={formulario.horaFin}
+                  onChange={event => actualizarCampo('horaFin', event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-3.5 pr-8 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-tech-blue dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer appearance-none"
+                >
+                  {opcionesFin.map(h => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
             </div>
           </div>
 
           <div>
-            <label htmlFor="reserva-pc-motivo" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Motivo de Uso <span className="font-normal text-slate-400">(opcional)</span>
+            <label htmlFor="reserva-pc-motivo" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1">
+              <span>Motivo de Uso</span> <span className="text-red-500">*</span>
             </label>
             <textarea
               id="reserva-pc-motivo"
+              required
               rows={3}
               maxLength={255}
               value={formulario.motivo}
