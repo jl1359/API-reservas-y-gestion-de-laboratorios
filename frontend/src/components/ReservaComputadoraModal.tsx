@@ -31,9 +31,9 @@ interface ReservaForm {
 }
 
 const FORMULARIO_INICIAL: ReservaForm = {
-  fecha: '',
-  horaInicio: '',
-  horaFin: '',
+  fecha: new Date().toISOString().split('T')[0],
+  horaInicio: '08:15',
+  horaFin: '09:45',
   numeroComputadora: '',
   motivo: '',
 };
@@ -64,12 +64,6 @@ export default function ReservaComputadoraModal({
     }
   }, [abierto, initialFecha, initialHoraInicio, initialHoraFin]);
 
-  if (!abierto) return null;
-
-  const actualizarCampo = (campo: keyof ReservaForm, valor: string) => {
-    setFormulario(actual => ({ ...actual, [campo]: valor }));
-  };
-
   const opcionesInicio = useMemo(() => {
     return obtenerOpcionesHoraInicio(formulario.fecha, formulario.horaInicio);
   }, [formulario.fecha, formulario.horaInicio]);
@@ -77,6 +71,12 @@ export default function ReservaComputadoraModal({
   const opcionesFin = useMemo(() => {
     return obtenerOpcionesHoraFin(formulario.horaInicio, formulario.fecha, formulario.horaFin);
   }, [formulario.horaInicio, formulario.fecha, formulario.horaFin]);
+
+  if (!abierto) return null;
+
+  const actualizarCampo = (campo: keyof ReservaForm, valor: string) => {
+    setFormulario(actual => ({ ...actual, [campo]: valor }));
+  };
 
   const handleHoraInicioChange = (nuevaHoraInicio: string) => {
     let nuevaHoraFin = formulario.horaFin;
