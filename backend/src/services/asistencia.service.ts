@@ -17,7 +17,7 @@ export const obtenerQrReservaService = async (id: number, usuarioId?: number, us
 
   if (!reserva) throw new ReservaServiceError(404, 'Reserva no encontrada');
 
-  const rolesAutorizados = ['Admin', 'Administrador', 'Responsable de Laboratorio', 'Auxiliar de Docencia'];
+  const rolesAutorizados = ['Admin', 'Administrador', 'Responsable de Laboratorio'];
   const esPropietario = reserva.usuarioId === usuarioId;
   const esPersonal = userRol && rolesAutorizados.includes(userRol);
 
@@ -192,7 +192,7 @@ export const escanearQrService = async (tokenQr: string, operadorId?: number, fo
 
 /**
  * Registrar asistencia manual de contingencia
- * Permite que auxiliares o responsables validen el ingreso presencial sin depender de camaras opticas.
+ * Permite que el responsable de laboratorio o administrador valide el ingreso presencial sin depender de camaras opticas.
  */
 export const registrarAsistenciaManualService = async (
   reservaId: number,

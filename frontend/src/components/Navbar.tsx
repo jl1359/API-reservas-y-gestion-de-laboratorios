@@ -12,7 +12,7 @@ export default function Navbar() {
   const location = useLocation();
   const isAuthenticated = !!localStorage.getItem('token');
   const [userRole, setUserRole] = useState<string>(() => localStorage.getItem('userRole') || '');
-  const puedeEscanear = ['Admin', 'Administrador', 'Responsable de Laboratorio', 'Auxiliar de Docencia'].includes(userRole);
+  const puedeEscanear = ['Admin', 'Administrador', 'Responsable de Laboratorio'].includes(userRole);
   const puedeVerReportes = ['Admin', 'Administrador', 'Responsable de Laboratorio'].includes(userRole);
 
   const isTabActive = (path: string) => {

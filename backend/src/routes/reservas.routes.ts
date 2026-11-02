@@ -38,7 +38,7 @@ router.get('/mis-reservas', verificarToken, listarMisReservas);
 router.post(
   '/escanear-qr',
   verificarToken,
-  permitirRoles('Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'),
+  permitirRoles('Admin', 'Responsable de Laboratorio'),
   escanearQr
 );
 
@@ -46,7 +46,7 @@ router.post(
 router.get(
   '/turno-actual',
   verificarToken,
-  permitirRoles('Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'),
+  permitirRoles('Admin', 'Responsable de Laboratorio'),
   listarReservasTurnoActual
 );
 
@@ -54,7 +54,7 @@ router.get(
 router.post(
   '/:id/asistencia-manual',
   verificarToken,
-  permitirRoles('Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'),
+  permitirRoles('Admin', 'Responsable de Laboratorio'),
   registrarAsistenciaManual
 );
 
@@ -95,7 +95,7 @@ router.post('/:id/reservas', verificarToken, soloEstudiantes, crearReservaIndivi
 router.get(
   '/',
   verificarToken,
-  permitirRoles('Admin', 'Responsable de Laboratorio', 'Auxiliar de Docencia'),
+  permitirRoles('Admin', 'Responsable de Laboratorio'),
   listarTodasLasReservas
 );
 

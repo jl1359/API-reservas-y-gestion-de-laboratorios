@@ -38,7 +38,7 @@ const StaffRoute = ({ children }: { children: React.ReactNode }) => {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  const rolesAutorizados = ['Admin', 'Administrador', 'Responsable de Laboratorio', 'Auxiliar de Docencia'];
+  const rolesAutorizados = ['Admin', 'Administrador', 'Responsable de Laboratorio'];
   if (!role || !rolesAutorizados.includes(role)) {
     return <Navigate to="/" replace />;
   }
