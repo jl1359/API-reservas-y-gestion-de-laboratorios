@@ -52,7 +52,7 @@ export default function LabDetail() {
   const [isModalReservaOpen, setIsModalReservaOpen] = useState(false);
 
   // Selector interactivo de fecha y modo de visualización
-  const hoyStr = new Date().toISOString().split('T')[0];
+  const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
   const [fechaSeleccionada, setFechaSeleccionada] = useState(hoyStr);
   const [vistaAgenda, setVistaAgenda] = useState<'bloques' | 'lista'>('bloques');
 
@@ -183,7 +183,13 @@ export default function LabDetail() {
   const cantidadComputadoras = computadorasRegistradas || lab?.capacidad || 1;
 
   // Evaluación de cada bloque académico
+  const ahora = new Date();
+  const horaActualStr = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+  const esDiaPasado = fechaSeleccionada < hoyStr;
+  const esHoy = fechaSeleccionada === hoyStr;
+
   const bloquesEvaluados: BloqueEvaluado[] = BLOQUES_ACADEMICOS.map((bloque) => {
+    const esBloquePasado = esDiaPasado || (esHoy && bloque.inicio <= horaActualStr);
     const dentroDeHorario =
       laboratorioOperaHoy &&
       bloque.inicio >= horaAperturaLab &&
@@ -253,6 +259,15 @@ export default function LabDetail() {
         };
       }
 
+      if (esBloquePasado) {
+        return {
+          ...bloque,
+          estado: 'PASADO' as const,
+          motivoOcupacion: 'Horario concluido',
+          dentroDeHorario
+        };
+      }
+
       return {
         ...bloque,
         estado: 'DISPONIBLE' as const,
@@ -276,6 +291,15 @@ export default function LabDetail() {
         motivoOcupacion: reservaEnBloque.materia || reservaEnBloque.motivo || 'Sesión Reservada',
         docente: reservaEnBloque.usuario?.nombreCompleto || 'Docente Asignado',
         estadoReserva: reservaEnBloque.estado,
+        dentroDeHorario
+      };
+    }
+
+    if (esBloquePasado) {
+      return {
+        ...bloque,
+        estado: 'PASADO' as const,
+        motivoOcupacion: 'Horario concluido',
         dentroDeHorario
       };
     }
