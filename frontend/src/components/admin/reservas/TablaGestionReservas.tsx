@@ -130,8 +130,8 @@ export default function TablaGestionReservas({
                         </p>
                         <p className="text-xs text-slate-500 flex items-center mt-0.5">
                           <Clock className="w-3.5 h-3.5 mr-1 text-tech-blue" />
-                          {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} -{' '}
-                          {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })} -{' '}
+                          {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })}
                         </p>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -234,7 +234,7 @@ export default function TablaGestionReservas({
                   </div>
                   <p className="text-slate-500 pt-0.5 flex items-center">
                     <Clock className="w-3.5 h-3.5 mr-1 text-tech-blue shrink-0" />
-                    {start.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' })}, {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    {start.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/La_Paz' })}, {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })} - {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })}
                   </p>
                 </div>
 

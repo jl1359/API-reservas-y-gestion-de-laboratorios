@@ -99,6 +99,45 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
     data: { estado: 'Ausente' }
   });
 
+  // Cancelación en cadena de reservas posteriores del mismo día para liberar cupos a otros estudiantes
+  try {
+    const finDelDia = new Date(reserva.fechaInicio);
+    finDelDia.setHours(23, 59, 59, 999);
+
+    const reservasPosteriores = await prisma.reserva.findMany({
+      where: {
+        usuarioId: reserva.usuarioId,
+        id: { not: reserva.id },
+        estado: 'Aprobada',
+        fechaInicio: {
+          gte: reserva.fechaFin,
+          lte: finDelDia
+        }
+      },
+      select: { id: true }
+    });
+
+    if (reservasPosteriores.length > 0) {
+      const idsPosteriores = reservasPosteriores.map(r => r.id);
+      await prisma.reserva.updateMany({
+        where: { id: { in: idsPosteriores } },
+        data: {
+          estado: 'Cancelada',
+          motivo: `Cancelada automáticamente por inasistencia al turno previo #${reserva.id} (Liberación solidaria de cupo)`
+        }
+      });
+
+      await prisma.notificacion.create({
+        data: {
+          usuarioId: reserva.usuarioId,
+          mensaje: `Se cancelaron ${reservasPosteriores.length} reserva(s) posterior(es) de hoy por inasistencia al turno anterior para liberar los cupos a otros compañeros. Si tuviste un inconveniente fortuito, puedes apelar la sanción ante la administración.`
+        }
+      });
+    }
+  } catch (errCadena) {
+    console.warn('Advertencia al procesar cancelación en cadena de reservas:', errCadena);
+  }
+
   // Crear sanción de 24 horas
   const nuevaSancion = await prisma.sancion.create({
     data: {

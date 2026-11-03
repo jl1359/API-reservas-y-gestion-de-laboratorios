@@ -129,10 +129,10 @@ export default function SolicitudReservaModal({
       return toast.error('La fecha de fin de semestre debe ser posterior a la fecha inicial');
     }
 
-    // Construir fechas ISO completas
-    const fechaInicioISO = new Date(`${fecha}T${horaInicio}:00`).toISOString();
-    const fechaFinISO = new Date(`${fecha}T${horaFin}:00`).toISOString();
-    const fechaFinSemestreISO = recurrente ? new Date(`${fechaFinSemestre}T${horaFin}:00`).toISOString() : undefined;
+    // Construir fechas ISO completas ancladas a la zona horaria de Bolivia (UTC-4)
+    const fechaInicioISO = new Date(`${fecha}T${horaInicio}:00-04:00`).toISOString();
+    const fechaFinISO = new Date(`${fecha}T${horaFin}:00-04:00`).toISOString();
+    const fechaFinSemestreISO = recurrente ? new Date(`${fechaFinSemestre}T${horaFin}:00-04:00`).toISOString() : undefined;
 
     setIsSubmitting(true);
     try {

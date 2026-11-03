@@ -6,7 +6,8 @@ import { verificarSancionActiva } from './sanciones.service';
 import { CrearReservaInput } from '../validators/reserva.validator';
 import {
   contarComputadoras,
-  validarHorarioOperativo
+  validarHorarioOperativo,
+  parsearFechaBolivia
 } from '../helpers/horarioOperativo.helper';
 import {
   ESTADOS_ACTIVOS,
@@ -18,7 +19,7 @@ import {
 import { ReservaServiceError } from '../errors/reserva.error';
 
 // Re-exportar helpers y errores para máxima compatibilidad con código existente
-export { contarComputadoras, validarHorarioOperativo, ReservaServiceError };
+export { contarComputadoras, validarHorarioOperativo, parsearFechaBolivia, ReservaServiceError };
 export {
   obtenerQrReservaService,
   escanearQrService,
@@ -48,10 +49,20 @@ export const crearReservaIndividualService = async (
     );
   }
 
+  if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+    throw new ReservaServiceError(400, 'Formato de fecha u hora no válido (use formato ISO8601)');
+  }
+  if (fechaInicio >= fechaFin) {
+    throw new ReservaServiceError(400, 'La hora de fin debe ser posterior a la hora de inicio');
+  }
+  if (fechaInicio <= new Date()) {
+    throw new ReservaServiceError(400, 'La reserva debe programarse con fecha y hora futura');
+  }
+
   return prisma.$transaction<Reserva>(async (tx) => {
     const laboratorio = await tx.laboratorio.findUnique({
       where: { id: laboratorioId },
-      include: { equipos: { include: { equipamiento: true } } },
+      include: { equipos: { include: { equipamiento: true } }, horarios: true },
     });
 
     if (!laboratorio) throw new ReservaServiceError(404, 'Laboratorio no encontrado');
@@ -67,6 +78,7 @@ export const crearReservaIndividualService = async (
     }
 
     validarDuracionMinima(fechaInicio, fechaFin);
+    await validarFeriadosYMantenimientos([{ inicio: fechaInicio, fin: fechaFin }], laboratorioId, laboratorio.horarios);
     await validarColisionUsuario(tx, usuarioId, fechaInicio, fechaFin);
 
     const colision = await tx.reserva.findFirst({
@@ -88,19 +100,6 @@ export const crearReservaIndividualService = async (
         throw new ReservaServiceError(409, 'El laboratorio completo se encuentra reservado en ese horario para una clase o actividad académica');
       }
       throw new ReservaServiceError(409, `La computadora PC-${numeroComputadora} ya está reservada en ese horario`);
-    }
-
-    const mantenimientoColision = await tx.mantenimiento.findFirst({
-      where: {
-        laboratorioId,
-        fechaInicio: { lt: fechaFin },
-        fechaFin: { gt: fechaInicio },
-      },
-      select: { motivo: true },
-    });
-
-    if (mantenimientoColision) {
-      throw new ReservaServiceError(409, `El laboratorio se encuentra en mantenimiento en ese horario (${mantenimientoColision.motivo})`);
     }
 
     const tokenQr = crypto.randomBytes(32).toString('hex');
@@ -154,8 +153,8 @@ export const crearReservaService = async (
     );
   }
 
-  const inicio = new Date(data.fechaInicio);
-  const fin = new Date(data.fechaFin);
+  const inicio = parsearFechaBolivia(data.fechaInicio);
+  const fin = parsearFechaBolivia(data.fechaFin);
 
   if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
     throw new ReservaServiceError(400, 'Formato de fecha u hora no válido (use formato ISO8601)');

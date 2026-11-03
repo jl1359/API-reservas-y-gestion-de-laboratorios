@@ -7,6 +7,7 @@ import {
 } from '../validators/reserva.validator';
 import {
   ReservaServiceError,
+  parsearFechaBolivia,
   crearReservaIndividualService,
   crearReservaService,
   listarMisReservasService,
@@ -73,8 +74,8 @@ export const crearReservaIndividual = async (req: AuthRequest, res: Response): P
     const reserva = await crearReservaIndividualService(
       laboratorioId,
       numeroComputadora,
-      new Date(fechaInicio),
-      new Date(fechaFin),
+      parsearFechaBolivia(fechaInicio),
+      parsearFechaBolivia(fechaFin),
       motivo || '',
       usuarioId
     );

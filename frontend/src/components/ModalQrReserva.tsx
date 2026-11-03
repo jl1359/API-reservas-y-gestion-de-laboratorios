@@ -217,8 +217,8 @@ export default function ModalQrReserva({ isOpen, onClose, reserva }: ModalQrProp
               <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" /> Fecha y Horario:
             </span>
             <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-              {fechaInicio.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' })},{' '}
-              {fechaInicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {fechaFin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+              {fechaInicio.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/La_Paz' })},{' '}
+              {fechaInicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })} - {fechaFin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })}
             </span>
           </div>
 

@@ -148,8 +148,8 @@ export default function ReservaComputadoraModal({
       return;
     }
 
-    const fechaInicioStr = `${formulario.fecha}T${formulario.horaInicio}:00`;
-    const fechaFinStr = `${formulario.fecha}T${formulario.horaFin}:00`;
+    const fechaInicioStr = `${formulario.fecha}T${formulario.horaInicio}:00-04:00`;
+    const fechaFinStr = `${formulario.fecha}T${formulario.horaFin}:00-04:00`;
 
     setEnviando(true);
     try {

@@ -38,7 +38,7 @@ export default function TarjetaResultadoEscaneo({
 }: TarjetaResultadoEscaneoProps) {
   return (
     <div
-      className={`rounded-3xl p-5 sm:p-7 border shadow-lg overflow-hidden w-full transition-all animate-in zoom-in-95 duration-200 ${
+      className={`rounded-3xl p-4 sm:p-7 border shadow-lg overflow-hidden w-full max-w-full box-border transition-all animate-in zoom-in-95 duration-200 ${
         resultado.exito
           ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800'
           : 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800'
@@ -113,7 +113,7 @@ export default function TarjetaResultadoEscaneo({
 
           <div className="flex items-center space-x-2.5">
             <Clock className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
-            <span className="break-words">Sello de Asistencia: <strong>{new Date(resultado.data.horaAsistencia).toLocaleTimeString('es-ES')}</strong></span>
+            <span className="break-words">Sello de Asistencia: <strong>{new Date(resultado.data.horaAsistencia).toLocaleTimeString('es-ES', { timeZone: 'America/La_Paz' })}</strong></span>
           </div>
         </div>
       )}
@@ -122,10 +122,10 @@ export default function TarjetaResultadoEscaneo({
       {!resultado.exito && resultado.detalles && (
         <div className="mt-3 text-xs text-rose-800 dark:text-rose-300 bg-rose-100/60 dark:bg-rose-900/30 p-3 rounded-xl break-words">
           {resultado.detalles.horaAsistenciaRegistrada && (
-            <p>Asistencia registrada previamente el {new Date(resultado.detalles.horaAsistenciaRegistrada).toLocaleString('es-ES')}</p>
+            <p>Asistencia registrada previamente el {new Date(resultado.detalles.horaAsistenciaRegistrada).toLocaleString('es-ES', { timeZone: 'America/La_Paz' })}</p>
           )}
           {resultado.detalles.horaInicio && (
-            <p>Horario pactado: {new Date(resultado.detalles.horaInicio).toLocaleString('es-ES')}</p>
+            <p>Horario pactado: {new Date(resultado.detalles.horaInicio).toLocaleString('es-ES', { timeZone: 'America/La_Paz' })}</p>
           )}
         </div>
       )}

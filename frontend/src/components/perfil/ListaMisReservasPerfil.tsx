@@ -124,9 +124,9 @@ export default function ListaMisReservasPerfil({
                 )}
                 <span className="flex items-center">
                   <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                  {inicio.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' })}{' '}
-                  ({inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} -{' '}
-                  {fin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})
+                  {inicio.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/La_Paz' })}{' '}
+                  ({inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })} -{' '}
+                  {fin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })})
                 </span>
               </div>
 
@@ -139,7 +139,7 @@ export default function ListaMisReservasPerfil({
               {yaAsistio && reserva.horaAsistencia && (
                 <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-2 flex items-center">
                   <CheckCircle className="w-3.5 h-3.5 mr-1" /> Asistencia registrada:{' '}
-                  {new Date(reserva.horaAsistencia).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(reserva.horaAsistencia).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' })}
                 </p>
               )}
             </div>

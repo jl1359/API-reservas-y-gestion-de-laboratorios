@@ -2,6 +2,18 @@ import { Prisma } from '@prisma/client';
 
 export const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
 
+/**
+ * Normaliza cualquier string o fecha para que sea interpretado en la zona horaria oficial de Bolivia (UTC-4).
+ */
+export function parsearFechaBolivia(fechaInput: string | Date): Date {
+  if (fechaInput instanceof Date) return fechaInput;
+  if (typeof fechaInput !== 'string') return new Date(fechaInput);
+  if (fechaInput.includes('Z') || /[+-]\d{2}:\d{2}$/.test(fechaInput)) {
+    return new Date(fechaInput);
+  }
+  return new Date(`${fechaInput}-04:00`);
+}
+
 export const contarComputadoras = (
   laboratorio: Prisma.LaboratorioGetPayload<{
     include: { equipos: { include: { equipamiento: true } } };
@@ -82,16 +94,16 @@ export function validarHorarioOperativo(horarios: any[], inicio: Date, fin: Date
       // Usar calculo local en contingencia
     }
 
-    const cumpleLocal = localIniMins >= apMins && localFinMins <= ciMins;
-    const cumpleUTC = utcIniMins >= apMins && utcFinMins <= ciMins;
     const cumpleBolivia = boliviaIniMins >= apMins && boliviaFinMins <= ciMins;
 
-    if (!cumpleLocal && !cumpleUTC && !cumpleBolivia) {
+    if (!cumpleBolivia) {
       const apStr = `${String(Math.floor(apMins / 60)).padStart(2, '0')}:${String(apMins % 60).padStart(2, '0')}`;
       const ciStr = `${String(Math.floor(ciMins / 60)).padStart(2, '0')}:${String(ciMins % 60).padStart(2, '0')}`;
+      const iniStr = `${String(Math.floor(boliviaIniMins / 60)).padStart(2, '0')}:${String(boliviaIniMins % 60).padStart(2, '0')}`;
+      const finStr = `${String(Math.floor(boliviaFinMins / 60)).padStart(2, '0')}:${String(boliviaFinMins % 60).padStart(2, '0')}`;
       return {
         valido: false,
-        error: `El horario solicitado está fuera del rango operativo de ${horarioDia.dia} (${apStr} - ${ciStr}).`
+        error: `El horario solicitado (${iniStr} - ${finStr}) está fuera del rango operativo de ${horarioDia.dia} (${apStr} - ${ciStr}).`
       };
     }
   }
