@@ -291,7 +291,7 @@ export default function Login() {
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Correo Institucional</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Correo Electrónico</label>
               <input type="email" required value={correo} onChange={(e) => setCorreo(e.target.value)}
                 className="mt-1 block w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm text-slate-900 dark:text-white focus:ring-tech-blue focus:border-tech-blue" />
             </div>

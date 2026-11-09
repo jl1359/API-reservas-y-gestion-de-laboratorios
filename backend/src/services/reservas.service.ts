@@ -59,26 +59,28 @@ export const crearReservaIndividualService = async (
     throw new ReservaServiceError(400, 'La reserva debe programarse con fecha y hora futura');
   }
 
+  // Validaciones de lectura previas fuera de la transacción para evitar latencias de red y timeouts
+  const laboratorio = await prisma.laboratorio.findUnique({
+    where: { id: laboratorioId },
+    include: { equipos: { include: { equipamiento: true } }, horarios: true },
+  });
+
+  if (!laboratorio) throw new ReservaServiceError(404, 'Laboratorio no encontrado');
+  if (laboratorio.estadoOperativo !== 'Activo') throw new ReservaServiceError(409, 'El laboratorio no se encuentra operativo');
+  if (!laboratorio.reservaPorComputadora) throw new ReservaServiceError(409, 'Este laboratorio no permite reservas por computadora');
+  if (!motivo || motivo.trim().length < 3) {
+    throw new ReservaServiceError(400, 'El motivo de uso es obligatorio (mínimo 3 caracteres)');
+  }
+
+  const cantidadComputadoras = contarComputadoras(laboratorio);
+  if (numeroComputadora > cantidadComputadoras) {
+    throw new ReservaServiceError(400, `La computadora debe estar entre PC-1 y PC-${cantidadComputadoras}`);
+  }
+
+  validarDuracionMinima(fechaInicio, fechaFin);
+  await validarFeriadosYMantenimientos([{ inicio: fechaInicio, fin: fechaFin }], laboratorioId, laboratorio.horarios);
+
   return prisma.$transaction<Reserva>(async (tx) => {
-    const laboratorio = await tx.laboratorio.findUnique({
-      where: { id: laboratorioId },
-      include: { equipos: { include: { equipamiento: true } }, horarios: true },
-    });
-
-    if (!laboratorio) throw new ReservaServiceError(404, 'Laboratorio no encontrado');
-    if (laboratorio.estadoOperativo !== 'Activo') throw new ReservaServiceError(409, 'El laboratorio no se encuentra operativo');
-    if (!laboratorio.reservaPorComputadora) throw new ReservaServiceError(409, 'Este laboratorio no permite reservas por computadora');
-    if (!motivo || motivo.trim().length < 3) {
-      throw new ReservaServiceError(400, 'El motivo de uso es obligatorio (mínimo 3 caracteres)');
-    }
-
-    const cantidadComputadoras = contarComputadoras(laboratorio);
-    if (numeroComputadora > cantidadComputadoras) {
-      throw new ReservaServiceError(400, `La computadora debe estar entre PC-1 y PC-${cantidadComputadoras}`);
-    }
-
-    validarDuracionMinima(fechaInicio, fechaFin);
-    await validarFeriadosYMantenimientos([{ inicio: fechaInicio, fin: fechaFin }], laboratorioId, laboratorio.horarios);
     await validarColisionUsuario(tx, usuarioId, fechaInicio, fechaFin);
 
     const colision = await tx.reserva.findFirst({
@@ -104,20 +106,11 @@ export const crearReservaIndividualService = async (
 
     const tokenQr = crypto.randomBytes(32).toString('hex');
     return tx.reserva.create({
-      data: {
-        usuarioId,
-        laboratorioId,
-        numeroComputadora,
-        fechaInicio,
-        fechaFin,
-        motivo: motivo || null,
-        cantidadAlumnos: 1,
-        estado: 'Aprobada',
-        tokenQr,
-      },
+      data: { usuarioId, laboratorioId, numeroComputadora, fechaInicio, fechaFin, motivo: motivo || null, cantidadAlumnos: 1, estado: 'Aprobada', tokenQr },
     });
   }, {
-    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    timeout: 15000,
+    maxWait: 10000,
   });
 };
 

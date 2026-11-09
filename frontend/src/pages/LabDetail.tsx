@@ -433,6 +433,7 @@ export default function LabDetail() {
           laboratorioId={lab.id}
           laboratorioNombre={lab.nombre}
           cantidadComputadoras={cantidadComputadoras}
+          reservasExistentes={reservas}
           initialFecha={modalInitialParams.fecha || fechaSeleccionada}
           initialHoraInicio={modalInitialParams.horaInicio || '08:15'}
           initialHoraFin={modalInitialParams.horaFin || '09:45'}

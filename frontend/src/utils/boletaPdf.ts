@@ -237,7 +237,7 @@ export const imprimirBoletaOficial = (reserva: {
               <td>${reserva.usuario.ci}</td>
             </tr>` : ''}
             <tr>
-              <th>Correo Institucional:</th>
+              <th>Correo Electrónico:</th>
               <td>${reserva.usuario?.correo || '-'}</td>
             </tr>
             <tr>

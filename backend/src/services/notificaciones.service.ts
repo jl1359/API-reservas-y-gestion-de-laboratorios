@@ -48,7 +48,7 @@ export const enviarPushAUsuario = async (
   url: string = '/mis-reservas'
 ) => {
   try {
-    const suscripciones = await (prisma as any).suscripcionPush.findMany({
+    const suscripciones = await (prisma as any).dispositivoNotificacion.findMany({
       where: { usuarioId }
     });
 
@@ -75,7 +75,7 @@ export const enviarPushAUsuario = async (
           );
         } catch (err: any) {
           if (err.statusCode === 410 || err.statusCode === 404) {
-            await (prisma as any).suscripcionPush.delete({ where: { id: sub.id } }).catch(() => null);
+            await (prisma as any).dispositivoNotificacion.delete({ where: { id: sub.id } }).catch(() => null);
           }
         }
       })

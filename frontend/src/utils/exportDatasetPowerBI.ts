@@ -31,7 +31,7 @@ const procesarFilasReporte = (reservas: ReservaReporte[]) => {
     'Laboratorio': r.laboratorio?.nombre || '',
     'Ubicación': r.laboratorio?.ubicacion || 'Campus Central',
     'Usuario Titular': r.usuario?.nombreCompleto || '',
-    'Correo Institucional': r.usuario?.correo || '',
+    'Correo Electrónico': r.usuario?.correo || '',
     'Cédula de Identidad': r.usuario?.ci || 'N/A',
     'Modalidad': r.numeroComputadora ? 'Computadora Individual' : 'Laboratorio Completo',
     'Estación PC': r.numeroComputadora ? `PC-${r.numeroComputadora}` : 'Aforo General',

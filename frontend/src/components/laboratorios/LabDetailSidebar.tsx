@@ -1,4 +1,4 @@
-import { Box, MapPin, Navigation, CalendarPlus, Clock } from 'lucide-react';
+import { Box, MapPin, CalendarPlus, Clock, Footprints, ExternalLink } from 'lucide-react';
 import type { Laboratorio } from './LabDetailHeader';
 
 export interface HorarioItem {
@@ -21,6 +21,35 @@ export default function LabDetailSidebar({
   getHorarioTimeStr,
   onReservarGeneral
 }: LabDetailSidebarProps) {
+  const abrirRutaCampus = () => {
+    if (!lab.latitud || !lab.longitud) return;
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const userLat = pos.coords.latitude;
+          const userLon = pos.coords.longitude;
+          const osmUrl = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${userLat}%2C${userLon}%3B${lab.latitud}%2C${lab.longitud}#map=18/${lab.latitud}/${lab.longitud}`;
+          window.open(osmUrl, '_blank');
+        },
+        () => {
+          const fallbackUrl = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=%3B${lab.latitud}%2C${lab.longitud}#map=18/${lab.latitud}/${lab.longitud}`;
+          window.open(fallbackUrl, '_blank');
+        },
+        { timeout: 6000, enableHighAccuracy: true }
+      );
+    } else {
+      const fallbackUrl = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=%3B${lab.latitud}%2C${lab.longitud}#map=18/${lab.latitud}/${lab.longitud}`;
+      window.open(fallbackUrl, '_blank');
+    }
+  };
+
+  const abrirGoogleMaps = () => {
+    if (!lab.latitud || !lab.longitud) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lab.latitud},${lab.longitud}&travelmode=walking`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div className="lg:col-span-1 space-y-6">
       {/* Equipamiento Disponible */}
@@ -88,17 +117,27 @@ export default function LabDetailSidebar({
         )}
 
         {lab.latitud && lab.longitud && (
-          <button
-            type="button"
-            onClick={() => {
-              const url = `https://www.google.com/maps/dir/?api=1&destination=${lab.latitud},${lab.longitud}&travelmode=walking`;
-              window.open(url, '_blank');
-            }}
-            className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-sm shadow-emerald-500/20 flex items-center justify-center space-x-2 text-xs transition-all cursor-pointer"
-          >
-            <Navigation className="w-3.5 h-3.5" />
-            <span>Cómo llegar (Navegación a pie)</span>
-          </button>
+          <div className="space-y-2 pt-1">
+            <button
+              type="button"
+              onClick={abrirRutaCampus}
+              className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-sm shadow-emerald-500/20 flex items-center justify-center space-x-2 text-xs transition-all cursor-pointer"
+              title="Calcula la ruta a pie utilizando los senderos y veredas internas de la UMSS"
+            >
+              <Footprints className="w-4 h-4 shrink-0" />
+              <span>Cómo llegar caminando (Dentro del campus)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={abrirGoogleMaps}
+              className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center space-x-2 text-[11px] transition-all cursor-pointer"
+              title="Para llegar en micro, taxi o vehículo desde fuera de la universidad"
+            >
+              <ExternalLink className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+              <span>Cómo llegar a la UMSS (Google Maps)</span>
+            </button>
+          </div>
         )}
       </div>
 

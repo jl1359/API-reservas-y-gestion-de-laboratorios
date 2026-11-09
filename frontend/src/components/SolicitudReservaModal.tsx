@@ -1,13 +1,13 @@
-import React, { useState, useMemo } from 'react';
-import { X, Calendar, Clock, BookOpen, Users, FileText, CheckCircle, AlertCircle, Repeat, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Calendar, Clock, BookOpen, Users, FileText, CheckCircle, AlertCircle, Repeat } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { feriadosApi } from '../api/feriados.api';
 import apiClient from '../api/client';
+import TimePickerInput from './common/TimePickerInput';
 import {
-  obtenerOpcionesHoraInicio,
-  obtenerOpcionesHoraFin,
   calcularHoraFinSugerida,
   timeToMinutes,
+  minutesToTime,
   esDiaSabado
 } from '../utils/horariosAcademicos';
 
@@ -50,20 +50,19 @@ export default function SolicitudReservaModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feriados, setFeriados] = useState<{ id: number; fecha: string; motivo: string; bloqueoActivo: boolean }[]>([]);
 
-  // Opciones dinamicas de horas basadas en el dia de operacion de la UMSS
-  const opcionesInicio = useMemo(() => {
-    return obtenerOpcionesHoraInicio(fecha, horaInicio);
-  }, [fecha, horaInicio]);
-
-  const opcionesFin = useMemo(() => {
-    return obtenerOpcionesHoraFin(horaInicio, fecha, horaFin);
-  }, [horaInicio, fecha, horaFin]);
-
   const handleHoraInicioChange = (nuevaHoraInicio: string) => {
     setHoraInicio(nuevaHoraInicio);
     if (timeToMinutes(horaFin) < timeToMinutes(nuevaHoraInicio) + 60) {
       const sugerida = calcularHoraFinSugerida(nuevaHoraInicio, fecha);
       setHoraFin(sugerida);
+    }
+  };
+
+  const handleHoraFinChange = (nuevaHoraFin: string) => {
+    setHoraFin(nuevaHoraFin);
+    if (timeToMinutes(nuevaHoraFin) <= timeToMinutes(horaInicio)) {
+      const nuevoInicioMins = Math.max(360, timeToMinutes(nuevaHoraFin) - 60);
+      setHoraInicio(minutesToTime(nuevoInicioMins));
     }
   };
 
@@ -241,55 +240,33 @@ export default function SolicitudReservaModal({
             )}
           </div>
 
-          {/* Horario: Inicio y Fin */}
+          {/* Horario: Inicio y Fin (Selector libre HH:mm sin desborde) */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="hora-inicio-reserva" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
                 <Clock className="w-4 h-4 mr-1.5 text-tech-blue" />
                 Hora Inicio <span className="text-red-500 ml-0.5">*</span>
               </label>
-              <div className="relative">
-                <select
-                  id="hora-inicio-reserva"
-                  required
-                  value={horaInicio}
-                  onChange={(e) => handleHoraInicioChange(e.target.value)}
-                  className="w-full pl-3.5 pr-8 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white transition cursor-pointer appearance-none"
-                >
-                  {opcionesInicio.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
-                  <ChevronDown className="w-4 h-4" />
-                </div>
-              </div>
+              <TimePickerInput
+                id="hora-inicio-reserva"
+                value={horaInicio}
+                onChange={handleHoraInicioChange}
+                minHora={6}
+                maxHora={esDiaSabado(fecha) ? 12 : 21}
+              />
             </div>
             <div>
-              <label htmlFor="hora-fin-reserva" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
                 <Clock className="w-4 h-4 mr-1.5 text-tech-blue" />
                 Hora Fin <span className="text-red-500 ml-0.5">*</span>
               </label>
-              <div className="relative">
-                <select
-                  id="hora-fin-reserva"
-                  required
-                  value={horaFin}
-                  onChange={(e) => setHoraFin(e.target.value)}
-                  className="w-full pl-3.5 pr-8 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-tech-blue focus:outline-none dark:text-white transition cursor-pointer appearance-none"
-                >
-                  {opcionesFin.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
-                  <ChevronDown className="w-4 h-4" />
-                </div>
-              </div>
+              <TimePickerInput
+                id="hora-fin-reserva"
+                value={horaFin}
+                onChange={handleHoraFinChange}
+                minHora={7}
+                maxHora={esDiaSabado(fecha) ? 13 : 22}
+              />
             </div>
           </div>
 

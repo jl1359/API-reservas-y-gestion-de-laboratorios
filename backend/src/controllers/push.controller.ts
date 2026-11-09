@@ -19,7 +19,7 @@ export const guardarSuscripcion = async (req: AuthRequest, res: Response): Promi
       return res.status(400).json({ error: 'Datos de suscripción push incompletos' });
     }
 
-    const suscripcion = await (prisma as any).suscripcionPush.upsert({
+    const suscripcion = await (prisma as any).dispositivoNotificacion.upsert({
       where: { endpoint },
       update: {
         usuarioId,
@@ -53,7 +53,7 @@ export const eliminarSuscripcion = async (req: AuthRequest, res: Response): Prom
       return res.status(400).json({ error: 'Parámetros inválidos' });
     }
 
-    await (prisma as any).suscripcionPush.deleteMany({
+    await (prisma as any).dispositivoNotificacion.deleteMany({
       where: {
         usuarioId,
         endpoint
@@ -74,7 +74,7 @@ export const enviarNotificacionPushPrueba = async (req: AuthRequest, res: Respon
       return res.status(401).json({ error: 'No autorizado' });
     }
 
-    const suscripciones = await (prisma as any).suscripcionPush.findMany({
+    const suscripciones = await (prisma as any).dispositivoNotificacion.findMany({
       where: { usuarioId }
     });
 
@@ -104,7 +104,7 @@ export const enviarNotificacionPushPrueba = async (req: AuthRequest, res: Respon
         );
       } catch (err: any) {
         if (err.statusCode === 410 || err.statusCode === 404) {
-          await (prisma as any).suscripcionPush.delete({ where: { id: sub.id } }).catch(() => null);
+          await (prisma as any).dispositivoNotificacion.delete({ where: { id: sub.id } }).catch(() => null);
         }
       }
     });
