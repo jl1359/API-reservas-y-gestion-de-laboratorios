@@ -1,4 +1,8 @@
-export const comprimirYConvertirABase64 = (file: File): Promise<string> => {
+export const comprimirYConvertirABase64 = (
+  file: File,
+  maxDim: number = 1280,
+  quality: number = 0.82
+): Promise<string> => {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
       return reject(new Error('El archivo seleccionado no es una imagen válida (JPG, PNG, WebP)'));
@@ -14,7 +18,6 @@ export const comprimirYConvertirABase64 = (file: File): Promise<string> => {
       const img = new Image();
       img.onerror = () => reject(new Error('No se pudo procesar la imagen seleccionada'));
       img.onload = () => {
-        const maxDim = 1280;
         let width = img.width;
         let height = img.height;
 
@@ -40,7 +43,7 @@ export const comprimirYConvertirABase64 = (file: File): Promise<string> => {
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
         resolve(dataUrl);
       };
       img.src = readerEvent.target?.result as string;

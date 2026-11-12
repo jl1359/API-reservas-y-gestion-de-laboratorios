@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { prisma } from '../config/prisma';
 import { emitirNotificacionEstadoReserva } from './notificaciones.service';
+import { emitirEventoRealtime } from './realtime.service';
 import { ReservaServiceError } from '../errors/reserva.error';
 
 // Ventana simétrica de control: 15 minutos de anticipación y 15 minutos de tolerancia
@@ -191,6 +192,13 @@ export const escanearQrService = async (tokenQr: string, operadorId?: number, fo
     ).catch(() => {});
   }
 
+  emitirEventoRealtime('asistencia_registrada', {
+    id: reservaActualizada.id,
+    laboratorioId: reservaActualizada.laboratorioId,
+    usuarioId: reservaActualizada.usuarioId,
+    estado: 'Asistió',
+  });
+
   return reservaActualizada;
 };
 
@@ -254,6 +262,13 @@ export const registrarAsistenciaManualService = async (
       reservaActualizada.laboratorio.nombre
     ).catch(() => {});
   }
+
+  emitirEventoRealtime('asistencia_registrada', {
+    id: reservaActualizada.id,
+    laboratorioId: reservaActualizada.laboratorioId,
+    usuarioId: reservaActualizada.usuarioId,
+    estado: 'Asistió',
+  });
 
   return reservaActualizada;
 };

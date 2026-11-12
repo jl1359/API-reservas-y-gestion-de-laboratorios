@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
+    "test": "tsx --test src/tests/**/*.test.ts",
     "migrate:concurrencia": "tsx prisma/apply_concurrency_constraint.ts"
   },
   "keywords": [],
@@ -29,6 +30,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.0.12",
     "prisma": "^5.10.0",
+    "qrcode": "^1.5.4",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "web-push": "^3.6.7",
@@ -36,5 +38,8 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.6"
   }
 }

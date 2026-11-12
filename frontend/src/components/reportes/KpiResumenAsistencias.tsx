@@ -9,6 +9,7 @@ import {
   TrendingUp,
   CalendarRange
 } from 'lucide-react';
+import AnimatedCounter from '../common/AnimatedCounter';
 
 interface KpiResumenAsistenciasProps {
   modoAuditoria: 'dia' | 'rango';
@@ -44,7 +45,7 @@ export default function KpiResumenAsistencias({
             {modoAuditoria === 'dia' ? 'Reservas Día' : 'Reservas Período'}
           </p>
           <p className="text-2xl font-poppins font-bold text-slate-900 dark:text-white mt-0.5">
-            {isLoading ? '--' : total}
+            <AnimatedCounter key={`tot-${total}`} value={total} />
           </p>
           <span className="text-[10px] text-slate-400">Programadas</span>
         </div>
@@ -60,10 +61,10 @@ export default function KpiResumenAsistencias({
             Asistencias
           </p>
           <p className="text-2xl font-poppins font-bold text-emerald-700 dark:text-emerald-300 mt-0.5">
-            {isLoading ? '--' : asistencias}
+            <AnimatedCounter key={`asist-${asistencias}`} value={asistencias} />
           </p>
           <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-medium">
-            {porcentajeAsistencia}% asistencia
+            <AnimatedCounter key={`pct-${porcentajeAsistencia}`} value={porcentajeAsistencia} suffix="% asistencia" />
           </span>
         </div>
         <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
@@ -78,7 +79,7 @@ export default function KpiResumenAsistencias({
             Inasistencias
           </p>
           <p className="text-2xl font-poppins font-bold text-rose-700 dark:text-rose-300 mt-0.5">
-            {isLoading ? '--' : ausencias}
+            <AnimatedCounter key={`aus-${ausencias}`} value={ausencias} />
           </p>
           <span className="text-[10px] text-rose-500/80">Usuarios ausentes</span>
         </div>
@@ -94,10 +95,16 @@ export default function KpiResumenAsistencias({
             <BookOpen className="w-3 h-3 mr-1" /> Carrera Top
           </p>
           <p className="text-xs font-poppins font-bold text-slate-900 dark:text-white mt-1 truncate" title={carreraTop?.nombre || 'Sin reservas'}>
-            {isLoading ? '--' : carreraTop ? carreraTop.nombre : 'Sin reservas'}
+            {carreraTop ? carreraTop.nombre : (isLoading ? 'Cargando...' : 'Sin reservas')}
           </p>
           <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
-            {carreraTop ? `${carreraTop.total} res. (${carreraTop.porcentaje}%)` : '0 registros'}
+            {carreraTop ? (
+              <>
+                <AnimatedCounter key={`ctot-${carreraTop.total}`} value={carreraTop.total} /> res. (<AnimatedCounter key={`cpct-${carreraTop.porcentaje}`} value={carreraTop.porcentaje} />%)
+              </>
+            ) : (
+              '0 registros'
+            )}
           </span>
         </div>
         <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex-shrink-0">
@@ -112,10 +119,16 @@ export default function KpiResumenAsistencias({
             <Award className="w-3 h-3 mr-1" /> Lab. Top
           </p>
           <p className="text-xs font-poppins font-bold text-slate-900 dark:text-white mt-1 truncate" title={labTop?.nombre || 'Sin reservas'}>
-            {isLoading ? '--' : labTop ? labTop.nombre : 'Sin reservas'}
+            {labTop ? labTop.nombre : (isLoading ? 'Cargando...' : 'Sin reservas')}
           </p>
           <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">
-            {labTop ? `${labTop.total} res. (${labTop.porcentaje}%)` : '0 registros'}
+            {labTop ? (
+              <>
+                <AnimatedCounter key={`ltot-${labTop.total}`} value={labTop.total} /> res. (<AnimatedCounter key={`lpct-${labTop.porcentaje}`} value={labTop.porcentaje} />%)
+              </>
+            ) : (
+              '0 registros'
+            )}
           </span>
         </div>
         <div className="p-2.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex-shrink-0">
@@ -130,10 +143,16 @@ export default function KpiResumenAsistencias({
             <TrendingUp className="w-3 h-3 mr-1" /> Día Pico
           </p>
           <p className="text-xs font-poppins font-bold text-slate-900 dark:text-white mt-1 truncate">
-            {isLoading ? '--' : diaTop ? `${diaTop.diaSemana} ${formatearFecha(diaTop.fecha)}` : 'Sin registros'}
+            {diaTop ? `${diaTop.diaSemana} ${formatearFecha(diaTop.fecha)}` : (isLoading ? 'Cargando...' : 'Sin registros')}
           </p>
           <span className="text-[10px] text-purple-700 dark:text-purple-400 font-semibold">
-            {diaTop ? `${diaTop.total} res. (${diaTop.porcentaje}%)` : '0 registros'}
+            {diaTop ? (
+              <>
+                <AnimatedCounter key={`dtot-${diaTop.total}`} value={diaTop.total} /> res. (<AnimatedCounter key={`dpct-${diaTop.porcentaje}`} value={diaTop.porcentaje} />%)
+              </>
+            ) : (
+              '0 registros'
+            )}
           </span>
         </div>
         <div className="p-2.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl flex-shrink-0">

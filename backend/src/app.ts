@@ -15,6 +15,7 @@ import notificacionesRoutes from './routes/notificaciones.routes';
 import usuariosRoutes from './routes/usuarios.routes';
 import mantenimientosRoutes from './routes/mantenimientos.routes';
 import pushRoutes from './routes/push.routes';
+import realtimeRoutes from './routes/realtime.routes';
 
 const app = express();
 
@@ -50,13 +51,18 @@ const allowedOrigins = [
   ...envClientUrls
 ].filter(Boolean) as string[];
 
+const isLocalDevOrigin = (origin: string) =>
+  process.env.NODE_ENV !== 'production' &&
+  /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin);
+
 app.use(cors({
   origin: (origin, callback) => {
     if (
       !origin ||
       allowedOrigins.includes(origin) ||
       allowedOrigins.includes('*') ||
-      origin.endsWith('.vercel.app')
+      origin.endsWith('.vercel.app') ||
+      isLocalDevOrigin(origin)
     ) {
       callback(null, true);
     } else {
@@ -96,6 +102,7 @@ app.use('/api/feriados', feriadosRoutes);
 app.use('/api/sanciones', sancionesRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/realtime', realtimeRoutes);
 
 // Protocolo de resiliencia: Manejador global de errores para evitar caidas del servidor
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

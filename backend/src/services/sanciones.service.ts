@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma';
+import { emitirEventoRealtime } from './realtime.service';
 
 // Constante de penalización disciplinaria: 24 horas exactas en milisegundos
 const DURACION_SANCION_MS = 24 * 60 * 60 * 1000;
@@ -174,6 +175,12 @@ export const aplicarSancionPorInasistencia = async (reservaId: number, motivoPer
     console.warn('Advertencia al registrar auditoría:', errAudit);
   }
 
+  emitirEventoRealtime('sancion_actualizada', {
+    id: nuevaSancion.id,
+    usuarioId: reserva.usuarioId,
+    estado: 'Activa',
+  });
+
   return nuevaSancion;
 };
 
@@ -315,6 +322,12 @@ export const perdonarSancionService = async (sancionId: number, adminId?: number
     console.warn('Error al registrar auditoría de sanción perdonada:', errAudit);
   }
 
+  emitirEventoRealtime('sancion_actualizada', {
+    id: sancionActualizada.id,
+    usuarioId: sancionActualizada.usuarioId,
+    estado: 'Perdonada',
+  });
+
   return sancionActualizada;
 };
 
@@ -369,6 +382,12 @@ export const aplicarSancionManualService = async (
       }
     });
   } catch (e) {}
+
+  emitirEventoRealtime('sancion_actualizada', {
+    id: nuevaSancion.id,
+    usuarioId: usuario.id,
+    estado: 'Activa',
+  });
 
   return nuevaSancion;
 };

@@ -4,6 +4,8 @@ import { prisma } from '../config/prisma';
 import { emitirNotificacionEstadoReserva } from './notificaciones.service';
 import { verificarSancionActiva } from './sanciones.service';
 import { CrearReservaInput } from '../validators/reserva.validator';
+import { enviarCorreoConfirmacionReserva, enviarCorreoFuerzaMayor } from '../helpers/mailer';
+import { emitirEventoRealtime } from './realtime.service';
 import {
   contarComputadoras,
   validarHorarioOperativo,
@@ -60,10 +62,16 @@ export const crearReservaIndividualService = async (
   }
 
   // Validaciones de lectura previas fuera de la transacción para evitar latencias de red y timeouts
-  const laboratorio = await prisma.laboratorio.findUnique({
-    where: { id: laboratorioId },
-    include: { equipos: { include: { equipamiento: true } }, horarios: true },
-  });
+  const [laboratorio, usuario] = await Promise.all([
+    prisma.laboratorio.findUnique({
+      where: { id: laboratorioId },
+      include: { equipos: { include: { equipamiento: true } }, horarios: true },
+    }),
+    prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { id: true, nombreCompleto: true, correo: true },
+    }),
+  ]);
 
   if (!laboratorio) throw new ReservaServiceError(404, 'Laboratorio no encontrado');
   if (laboratorio.estadoOperativo !== 'Activo') throw new ReservaServiceError(409, 'El laboratorio no se encuentra operativo');
@@ -80,38 +88,79 @@ export const crearReservaIndividualService = async (
   validarDuracionMinima(fechaInicio, fechaFin);
   await validarFeriadosYMantenimientos([{ inicio: fechaInicio, fin: fechaFin }], laboratorioId, laboratorio.horarios);
 
-  return prisma.$transaction<Reserva>(async (tx) => {
-    await validarColisionUsuario(tx, usuarioId, fechaInicio, fechaFin);
+  let reservaCreada: Reserva;
+  try {
+    reservaCreada = await prisma.$transaction<Reserva>(async (tx) => {
+      await validarColisionUsuario(tx, usuarioId, fechaInicio, fechaFin);
 
-    const colision = await tx.reserva.findFirst({
-      where: {
-        laboratorioId,
-        OR: [
-          { numeroComputadora },
-          { numeroComputadora: null }
-        ],
-        estado: { in: ESTADOS_ACTIVOS },
-        fechaInicio: { lt: fechaFin },
-        fechaFin: { gt: fechaInicio },
-      },
-      select: { id: true, numeroComputadora: true },
-    });
+      const colision = await tx.reserva.findFirst({
+        where: {
+          laboratorioId,
+          OR: [
+            { numeroComputadora },
+            { numeroComputadora: null }
+          ],
+          estado: { in: ESTADOS_ACTIVOS },
+          fechaInicio: { lt: fechaFin },
+          fechaFin: { gt: fechaInicio },
+        },
+        select: { id: true, numeroComputadora: true },
+      });
 
-    if (colision) {
-      if (colision.numeroComputadora === null) {
-        throw new ReservaServiceError(409, 'El laboratorio completo se encuentra reservado en ese horario para una clase o actividad académica');
+      if (colision) {
+        if (colision.numeroComputadora === null) {
+          throw new ReservaServiceError(409, 'El laboratorio completo se encuentra reservado en ese horario para una clase o actividad académica');
+        }
+        throw new ReservaServiceError(409, `La computadora PC-${numeroComputadora} ya está reservada en ese horario`);
       }
-      throw new ReservaServiceError(409, `La computadora PC-${numeroComputadora} ya está reservada en ese horario`);
-    }
 
-    const tokenQr = crypto.randomBytes(32).toString('hex');
-    return tx.reserva.create({
-      data: { usuarioId, laboratorioId, numeroComputadora, fechaInicio, fechaFin, motivo: motivo || null, cantidadAlumnos: 1, estado: 'Aprobada', tokenQr },
+      const tokenQr = crypto.randomBytes(32).toString('hex');
+      return tx.reserva.create({
+        data: { usuarioId, laboratorioId, numeroComputadora, fechaInicio, fechaFin, motivo: motivo || null, cantidadAlumnos: 1, estado: 'Aprobada', tokenQr },
+      });
+    }, {
+      timeout: 15000,
+      maxWait: 10000,
     });
-  }, {
-    timeout: 15000,
-    maxWait: 10000,
+  } catch (error: any) {
+    if (
+      error.message?.includes('23P01') ||
+      error.message?.includes('reservas_sin_solapamiento') ||
+      error.message === 'CONFLICTO_HORARIO' ||
+      error.code === 'P2034'
+    ) {
+      throw new ReservaServiceError(
+        409,
+        'El horario solicitado entra en colisión con otra reserva activa o confirmada en este laboratorio (PostgreSQL Exclusion Constraint).',
+        'RESERVA_SOLAPADA'
+      );
+    }
+    throw error;
+  }
+
+  if (usuario?.correo && reservaCreada.tokenQr) {
+    enviarCorreoConfirmacionReserva(usuario.correo, usuario.nombreCompleto, {
+      id: reservaCreada.id,
+      laboratorioNombre: laboratorio.nombre,
+      ubicacion: laboratorio.ubicacion,
+      fechaInicio: reservaCreada.fechaInicio,
+      fechaFin: reservaCreada.fechaFin,
+      motivo: reservaCreada.motivo,
+      numeroComputadora: reservaCreada.numeroComputadora,
+      tokenQr: reservaCreada.tokenQr,
+    }).catch(() => {});
+  }
+
+  emitirEventoRealtime('reserva_creada', {
+    id: reservaCreada.id,
+    laboratorioId,
+    laboratorioNombre: laboratorio.nombre,
+    usuarioId,
+    estado: reservaCreada.estado,
+    numeroComputadora: reservaCreada.numeroComputadora,
   });
+
+  return reservaCreada;
 };
 
 /**
@@ -188,8 +237,8 @@ export const crearReservaService = async (
   }
 
   // Transacción serializable protegida contra solapamientos
-  return prisma.$transaction(async (tx) => {
-    const reservasCreadas = [];
+  const reservasCreadas = await prisma.$transaction(async (tx) => {
+    const listaCreadas = [];
     const serieId = data.recurrente ? `SERIE-${Date.now()}` : undefined;
 
     for (const bloque of bloquesReserva) {
@@ -225,22 +274,49 @@ export const crearReservaService = async (
         }
       });
 
-      reservasCreadas.push(nueva);
+      listaCreadas.push(nueva);
     }
 
     await tx.notificacion.create({
       data: {
         usuarioId,
         mensaje: data.recurrente
-          ? `Tu serie semestral de ${reservasCreadas.length} reservas para ${laboratorio.nombre} (${data.materia}) fue aprobada y confirmada automáticamente. Tus códigos QR de ingreso están disponibles en tu perfil.`
+          ? `Tu serie semestral de ${listaCreadas.length} reservas para ${laboratorio.nombre} (${data.materia}) fue aprobada y confirmada automáticamente. Tus códigos QR de ingreso están disponibles en tu perfil.`
           : `Tu reserva para ${laboratorio.nombre} (${data.materia}) fue aprobada y confirmada automáticamente. Tu código QR de ingreso ya está disponible en tu perfil.`
       }
     }).catch(() => null);
 
-    return reservasCreadas;
+    return listaCreadas;
   }, {
     isolationLevel: Prisma.TransactionIsolationLevel.Serializable
   });
+
+  const primera = reservasCreadas[0];
+  if (primera?.tokenQr && usuarioDb?.correo) {
+    enviarCorreoConfirmacionReserva(usuarioDb.correo, usuarioDb.nombreCompleto, {
+      id: primera.id,
+      laboratorioNombre: laboratorio.nombre,
+      ubicacion: laboratorio.ubicacion,
+      fechaInicio: primera.fechaInicio,
+      fechaFin: primera.fechaFin,
+      materia: primera.materia,
+      motivo: primera.motivo,
+      numeroComputadora: primera.numeroComputadora,
+      tokenQr: primera.tokenQr,
+      totalSesionesSerie: reservasCreadas.length,
+    }).catch(() => {});
+  }
+
+  emitirEventoRealtime('reserva_creada', {
+    ids: reservasCreadas.map((r) => r.id),
+    laboratorioId: data.laboratorioId,
+    laboratorioNombre: laboratorio.nombre,
+    usuarioId,
+    total: reservasCreadas.length,
+    materia: data.materia,
+  });
+
+  return reservasCreadas;
 };
 
 export const listarMisReservasService = async (usuarioId: number) => {
@@ -351,6 +427,27 @@ export const aprobarReservaService = async (reservaId: number) => {
     ).catch(() => {});
   }
 
+  if (reservaAprobada.usuario?.correo && reservaAprobada.tokenQr && reservaAprobada.laboratorio) {
+    enviarCorreoConfirmacionReserva(reservaAprobada.usuario.correo, reservaAprobada.usuario.nombreCompleto, {
+      id: reservaAprobada.id,
+      laboratorioNombre: reservaAprobada.laboratorio.nombre,
+      ubicacion: reservaAprobada.laboratorio.ubicacion,
+      fechaInicio: reservaAprobada.fechaInicio,
+      fechaFin: reservaAprobada.fechaFin,
+      materia: reservaAprobada.materia,
+      motivo: reservaAprobada.motivo,
+      numeroComputadora: reservaAprobada.numeroComputadora,
+      tokenQr: reservaAprobada.tokenQr,
+    }).catch(() => {});
+  }
+
+  emitirEventoRealtime('reserva_actualizada', {
+    id: reservaAprobada.id,
+    estado: 'Aprobada',
+    usuarioId: reservaAprobada.usuarioId,
+    laboratorioId: reservaAprobada.laboratorioId,
+  });
+
   return reservaAprobada;
 };
 
@@ -386,6 +483,13 @@ export const rechazarReservaService = async (reservaId: number, motivo?: string)
       motivo || 'Sin motivo especificado'
     ).catch(() => {});
   }
+
+  emitirEventoRealtime('reserva_actualizada', {
+    id: reservaRechazada.id,
+    estado: 'Rechazada',
+    usuarioId: reservaRechazada.usuarioId,
+    laboratorioId: reservaRechazada.laboratorioId,
+  });
 
   return reservaRechazada;
 };
@@ -441,6 +545,13 @@ export const cancelarReservaService = async (id: number, usuarioId?: number, rol
     ).catch(() => {});
   }
 
+  emitirEventoRealtime('reserva_actualizada', {
+    id: reservaActualizada.id,
+    estado: 'Cancelada',
+    usuarioId: reservaActualizada.usuarioId,
+    laboratorioId: reservaActualizada.laboratorioId,
+  });
+
   return reservaActualizada;
 };
 
@@ -486,6 +597,24 @@ export const cancelarReservaFuerzaMayorService = async (
       }
     }).catch(() => null);
   }
+
+  if (reservaActualizada.usuario?.correo) {
+    enviarCorreoFuerzaMayor(reservaActualizada.usuario.correo, reservaActualizada.usuario.nombreCompleto, {
+      id: reservaActualizada.id,
+      laboratorioNombre: reservaActualizada.laboratorio.nombre,
+      fechaInicio: reservaActualizada.fechaInicio,
+      fechaFin: reservaActualizada.fechaFin,
+      motivoCancelacion: motivo.trim(),
+    }).catch(() => {});
+  }
+
+  emitirEventoRealtime('reserva_actualizada', {
+    id: reservaActualizada.id,
+    estado: 'Cancelada',
+    fuerzaMayor: true,
+    usuarioId: reservaActualizada.usuarioId,
+    laboratorioId: reservaActualizada.laboratorioId,
+  });
 
   return reservaActualizada;
 };

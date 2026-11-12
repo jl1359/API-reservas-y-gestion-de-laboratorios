@@ -1,3 +1,14 @@
+export interface HorarioSeedData {
+  dia: string;
+  apertura: string;
+  cierre: string;
+}
+
+export interface EquipoSeedData {
+  nombre: string;
+  cantidad: number;
+}
+
 export interface LaboratorioSeedData {
   nombre: string;
   carreraNombre: string;
@@ -7,7 +18,28 @@ export interface LaboratorioSeedData {
   longitud: number;
   reservaPorComputadora: boolean;
   imagenUrl: string;
+  horariosPersonalizados?: HorarioSeedData[];
+  equiposPersonalizados?: EquipoSeedData[];
 }
+
+const HORARIO_COMP_LUNES_DOMINGO: HorarioSeedData[] = [
+  { dia: 'Lunes', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Martes', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Miércoles', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Jueves', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Viernes', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Sábado', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Domingo', apertura: '06:45:00', cierre: '20:15:00' }
+];
+
+const HORARIO_REDES_LUNES_SABADO: HorarioSeedData[] = [
+  { dia: 'Lunes', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Martes', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Miércoles', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Jueves', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Viernes', apertura: '06:45:00', cierre: '21:45:00' },
+  { dia: 'Sábado', apertura: '06:45:00', cierre: '12:45:00' }
+];
 
 export const LABORATORIOS_REALES_FCYT: LaboratorioSeedData[] = [
   // ==========================================
@@ -289,9 +321,9 @@ export const LABORATORIOS_REALES_FCYT: LaboratorioSeedData[] = [
   },
 
   // ========================================================
-  // BLOQUE 3: LABORATORIOS DEPARTAMENTALES DE DOCENCIA (18)
+  // BLOQUE 3: LABORATORIOS DEPARTAMENTALES DE DOCENCIA (23)
   // ========================================================
-  // 3.1 Departamento de Informatica y Sistemas (3)
+  // 3.1 Departamento de Informatica y Sistemas (8)
   {
     nombre: 'Laboratorio de Computo y Redes (DIS)',
     carreraNombre: 'Ingenieria de Sistemas',
@@ -321,6 +353,92 @@ export const LABORATORIOS_REALES_FCYT: LaboratorioSeedData[] = [
     longitud: -66.1454,
     reservaPorComputadora: false,
     imagenUrl: 'https://www.fcyt.umss.edu.bo/wp-content/uploads/2025/11/CMEMI.jpg'
+  },
+  {
+    nombre: 'Laboratorio de computación 1',
+    carreraNombre: 'Ingenieria de Sistemas',
+    capacidad: 40,
+    ubicacion: 'Departamento de Sistemas e Informática',
+    latitud: -17.392974,
+    longitud: -66.146982,
+    reservaPorComputadora: true,
+    imagenUrl: 'https://www.fcyt.umss.edu.bo/wp-content/uploads/2025/11/CMEMI.jpg',
+    horariosPersonalizados: HORARIO_COMP_LUNES_DOMINGO,
+    equiposPersonalizados: [
+      { nombre: 'Computadora', cantidad: 30 },
+      { nombre: 'Proyector', cantidad: 1 },
+      { nombre: 'Camara de Seguridad', cantidad: 4 },
+      { nombre: 'Pizarra Acrilica', cantidad: 1 }
+    ]
+  },
+  {
+    nombre: 'Laboratorio de redes',
+    carreraNombre: 'Ingenieria de Sistemas',
+    capacidad: 30,
+    ubicacion: 'Departamento de Sistemas e Informatica',
+    latitud: -17.392989,
+    longitud: -66.146966,
+    reservaPorComputadora: false,
+    imagenUrl: 'https://www.fcyt.umss.edu.bo/wp-content/uploads/2025/11/CMEMI.jpg',
+    horariosPersonalizados: HORARIO_REDES_LUNES_SABADO,
+    equiposPersonalizados: [
+      { nombre: 'Computadora', cantidad: 25 },
+      { nombre: 'Camara de Seguridad', cantidad: 2 },
+      { nombre: 'Proyector', cantidad: 1 },
+      { nombre: 'Router', cantidad: 10 },
+      { nombre: 'Switch', cantidad: 12 },
+      { nombre: 'Pizarra Acrilica', cantidad: 1 }
+    ]
+  },
+  {
+    nombre: 'Laboratorio de Computación 2',
+    carreraNombre: 'Ingenieria Informatica',
+    capacidad: 30,
+    ubicacion: 'MEMI, segundo piso',
+    latitud: -17.393343,
+    longitud: -66.146863,
+    reservaPorComputadora: false,
+    imagenUrl: 'https://www.fcyt.umss.edu.bo/wp-content/uploads/2025/11/CMEMI.jpg',
+    horariosPersonalizados: HORARIO_COMP_LUNES_DOMINGO,
+    equiposPersonalizados: [
+      { nombre: 'Computadora', cantidad: 20 },
+      { nombre: 'Camara de Seguridad', cantidad: 2 },
+      { nombre: 'Pizarra Acrilica', cantidad: 1 },
+      { nombre: 'Proyector', cantidad: 1 }
+    ]
+  },
+  {
+    nombre: 'Laboratorio de Computación 3',
+    carreraNombre: 'Ingenieria Informatica',
+    capacidad: 30,
+    ubicacion: 'MEMI. segundo piso',
+    latitud: -17.393338,
+    longitud: -66.14688,
+    reservaPorComputadora: false,
+    imagenUrl: 'https://www.fcyt.umss.edu.bo/wp-content/uploads/2025/11/CMEMI.jpg',
+    horariosPersonalizados: HORARIO_COMP_LUNES_DOMINGO,
+    equiposPersonalizados: [
+      { nombre: 'Computadora', cantidad: 12 },
+      { nombre: 'Camara de Seguridad', cantidad: 2 },
+      { nombre: 'Proyector', cantidad: 1 },
+      { nombre: 'Pizarra Acrilica', cantidad: 1 }
+    ]
+  },
+  {
+    nombre: 'Laboratorio de Computación 4',
+    carreraNombre: 'Ingenieria de Sistemas',
+    capacidad: 25,
+    ubicacion: 'MEMI, segundo piso',
+    latitud: -17.393301,
+    longitud: -66.146923,
+    reservaPorComputadora: false,
+    imagenUrl: 'https://www.fcyt.umss.edu.bo/wp-content/uploads/2025/11/CMEMI.jpg',
+    horariosPersonalizados: HORARIO_COMP_LUNES_DOMINGO,
+    equiposPersonalizados: [
+      { nombre: 'Computadora', cantidad: 12 },
+      { nombre: 'Pizarra Acrilica', cantidad: 1 },
+      { nombre: 'Camara de Seguridad', cantidad: 2 }
+    ]
   },
 
   // 3.2 Departamento de Fisica (5)

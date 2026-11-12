@@ -168,6 +168,7 @@ export const loginService = async (correo: string, password: string) => {
       correo: usuario.correo,
       ci: usuario.ci,
       telefono: usuario.telefono,
+      fotoUrl: usuario.fotoUrl,
       rol: usuario.rol.nombre
     }
   };
@@ -206,7 +207,20 @@ export const loginConGoogleService = async (token: string) => {
     throw new AuthServiceError(400, 'No se pudo verificar la cuenta de Google o no se obtuvo el correo.');
   }
 
+  const esFotoDeGoogle = (url?: string | null) => {
+    if (!url) return false;
+    try {
+      const host = new URL(url).hostname;
+      return host === 'googleusercontent.com' || host.endsWith('.googleusercontent.com');
+    } catch {
+      return false;
+    }
+  };
+
   const correoNormalizado = payload.email.toLowerCase().trim();
+  const googleFoto = payload.picture || null;
+  const googleNombre = payload.name || 'Usuario de Google';
+
   let usuario = await prisma.usuario.findUnique({
     where: { correo: correoNormalizado },
     include: { rol: true }
@@ -221,15 +235,35 @@ export const loginConGoogleService = async (token: string) => {
 
     usuario = await prisma.usuario.create({
       data: {
-        nombreCompleto: payload.name || 'Usuario de Google',
+        nombreCompleto: googleNombre,
         correo: correoNormalizado,
         passwordHash: '',
         carreraId: carreraDummy.id,
         rolId: rolEstudiante.id,
-        correoVerificado: true
+        correoVerificado: true,
+        fotoUrl: googleFoto
       },
       include: { rol: true },
     });
+  } else {
+    const datosActualizar: { correoVerificado?: boolean; fotoUrl?: string; nombreCompleto?: string } = {};
+    if (!usuario.correoVerificado) {
+      datosActualizar.correoVerificado = true;
+    }
+    if (googleFoto && (!usuario.fotoUrl || esFotoDeGoogle(usuario.fotoUrl)) && usuario.fotoUrl !== googleFoto) {
+      datosActualizar.fotoUrl = googleFoto;
+    }
+    if (googleNombre && (!usuario.nombreCompleto || usuario.nombreCompleto === 'Usuario de Google' || usuario.nombreCompleto === 'Sin Nombre')) {
+      datosActualizar.nombreCompleto = googleNombre;
+    }
+
+    if (Object.keys(datosActualizar).length > 0) {
+      usuario = await prisma.usuario.update({
+        where: { id: usuario.id },
+        data: datosActualizar,
+        include: { rol: true }
+      });
+    }
   }
 
   if (!usuario.activo) {
@@ -246,6 +280,7 @@ export const loginConGoogleService = async (token: string) => {
       correo: usuario.correo,
       ci: usuario.ci,
       telefono: usuario.telefono,
+      fotoUrl: usuario.fotoUrl,
       rol: usuario.rol.nombre
     }
   };

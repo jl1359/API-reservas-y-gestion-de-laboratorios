@@ -6,6 +6,7 @@ import { usuariosApi } from '../../api/usuarios.api';
 import type { Usuario, Rol } from '../../types';
 import ModalSuspenderUsuario from './usuarios/ModalSuspenderUsuario';
 import ModalRechazarSolicitudRol, { type SolicitudRolItem } from './usuarios/ModalRechazarSolicitudRol';
+import ModalCambiarRolUsuario from './usuarios/ModalCambiarRolUsuario';
 import TablaDirectorioUsuarios from './usuarios/TablaDirectorioUsuarios';
 import TablaSolicitudesRol from './usuarios/TablaSolicitudesRol';
 
@@ -39,6 +40,12 @@ export default function TabUsuarios({
   const [motivoRechazoSolicitud, setMotivoRechazoSolicitud] = useState('');
   const [isSubmittingRechazoSolicitud, setIsSubmittingRechazoSolicitud] = useState(false);
 
+  const [isCambiarRolModalOpen, setIsCambiarRolModalOpen] = useState(false);
+  const [usuarioCambioRol, setUsuarioCambioRol] = useState<Usuario | null>(null);
+  const [nuevoRolSeleccionado, setNuevoRolSeleccionado] = useState<Rol | null>(null);
+  const [motivoCambioRol, setMotivoCambioRol] = useState('');
+  const [isSubmittingCambioRol, setIsSubmittingCambioRol] = useState(false);
+
   const usuariosFiltrados = usuariosList.filter((u) => {
     const q = busquedaUsuario.toLowerCase();
     const nom = u.nombreCompleto?.toLowerCase() || '';
@@ -49,15 +56,36 @@ export default function TabUsuarios({
     return nom.includes(q) || cor.includes(q) || ciVal.includes(q) || telVal.includes(q) || rol.includes(q);
   });
 
-  const handleCambiarRolUsuario = async (usuarioId: number, nuevoRolId: number, nombre: string) => {
+  const handleCambiarRolUsuario = (usuarioId: number, nuevoRolId: number) => {
+    const usuarioObj = usuariosList.find((u) => u.id === usuarioId);
     const rolObj = rolesList.find((r) => r.id === nuevoRolId);
-    if (!window.confirm(`¿Confirmas la asignación del rol "${rolObj?.nombre || 'Nuevo Rol'}" para ${nombre}?`)) return;
+    if (!usuarioObj || !rolObj || usuarioObj.rolId === nuevoRolId) return;
+
+    setUsuarioCambioRol(usuarioObj);
+    setNuevoRolSeleccionado(rolObj);
+    setMotivoCambioRol('');
+    setIsCambiarRolModalOpen(true);
+  };
+
+  const handleConfirmarCambioRol = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usuarioCambioRol || !nuevoRolSeleccionado) return;
+    if (motivoCambioRol.trim().length < 5) {
+      return toast.error('Ingresa una justificación para asignar el rol (mínimo 5 caracteres)');
+    }
+    setIsSubmittingCambioRol(true);
     try {
-      await usuariosApi.cambiarRol(usuarioId, nuevoRolId);
-      toast.success(`Rol asignado correctamente a ${nombre}`);
+      await usuariosApi.cambiarRol(usuarioCambioRol.id, nuevoRolSeleccionado.id, motivoCambioRol.trim());
+      toast.success(`Rol "${nuevoRolSeleccionado.nombre}" asignado correctamente a ${usuarioCambioRol.nombreCompleto}`);
+      setIsCambiarRolModalOpen(false);
+      setUsuarioCambioRol(null);
+      setNuevoRolSeleccionado(null);
+      setMotivoCambioRol('');
       onRefresh();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al cambiar rol');
+    } finally {
+      setIsSubmittingCambioRol(false);
     }
   };
 
@@ -225,6 +253,22 @@ export default function TabUsuarios({
         setMotivoRechazo={setMotivoRechazoSolicitud}
         onSubmit={handleConfirmarRechazoSolicitud}
         isSubmitting={isSubmittingRechazoSolicitud}
+      />
+
+      {/* Modal Justificar Asignación Manual de Rol */}
+      <ModalCambiarRolUsuario
+        isOpen={isCambiarRolModalOpen}
+        onClose={() => {
+          setIsCambiarRolModalOpen(false);
+          setUsuarioCambioRol(null);
+          setNuevoRolSeleccionado(null);
+        }}
+        usuario={usuarioCambioRol}
+        nuevoRol={nuevoRolSeleccionado}
+        motivoCambioRol={motivoCambioRol}
+        setMotivoCambioRol={setMotivoCambioRol}
+        onSubmit={handleConfirmarCambioRol}
+        isSubmitting={isSubmittingCambioRol}
       />
     </div>
   );

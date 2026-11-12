@@ -14,6 +14,7 @@ export interface Usuario {
   correo: string;
   ci?: string | null;
   telefono?: string | null;
+  fotoUrl?: string | null;
   activo: boolean;
   correoVerificado: boolean;
   carreraId?: number;

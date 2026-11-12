@@ -148,8 +148,8 @@ export const actualizarPerfil = async (req: AuthRequest, res: Response): Promise
       return res.status(400).json({ success: false, error: errorMsg });
     }
 
-    const { nombreCompleto, ci, telefono, carreraId } = validacion.data;
-    const perfilActualizado = await actualizarPerfilService(usuarioId, { nombreCompleto, ci, telefono, carreraId });
+    const { nombreCompleto, ci, telefono, carreraId, fotoUrl } = validacion.data;
+    const perfilActualizado = await actualizarPerfilService(usuarioId, { nombreCompleto, ci, telefono, carreraId, fotoUrl });
 
     return res.status(200).json({
       success: true,
@@ -185,6 +185,7 @@ export const obtenerMiPerfil = async (req: AuthRequest, res: Response): Promise<
         correo: true,
         ci: true,
         telefono: true,
+        fotoUrl: true,
         activo: true,
         correoVerificado: true,
         rol: { select: { id: true, nombre: true } },

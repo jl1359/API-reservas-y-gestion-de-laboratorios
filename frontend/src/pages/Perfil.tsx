@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   User,
   Shield,
   AlertTriangle,
   Calendar,
   Phone,
-  Mail
+  Mail,
+  Camera,
+  Trash2
 } from 'lucide-react';
 
 import Navbar from '../components/Navbar';
@@ -19,6 +21,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usuariosApi } from '../api/usuarios.api';
 import { reservasApi } from '../api/reservas.api';
+import { comprimirYConvertirABase64 } from '../utils/imageCompressor';
 
 export default function Perfil() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,6 +65,51 @@ export default function Perfil() {
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
   const [isSubmittingCancelacion, setIsSubmittingCancelacion] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingFoto, setIsUploadingFoto] = useState(false);
+
+  const handleSeleccionarFotoGaleria = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingFoto(true);
+    const toastId = toast.loading('Procesando foto...');
+
+    try {
+      const base64Optimizada = await comprimirYConvertirABase64(file, 512, 0.85);
+      const actualizado = await usuariosApi.actualizarPerfil({
+        fotoUrl: base64Optimizada
+      });
+
+      const fotoFinal = actualizado.fotoUrl || base64Optimizada;
+      setUsuario((prev: any) => ({ ...prev, fotoUrl: fotoFinal }));
+      localStorage.setItem('userFoto', fotoFinal);
+      window.dispatchEvent(new Event('perfilActualizado'));
+      toast.success('Foto de perfil actualizada', { id: toastId });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err?.message || 'Error al actualizar foto', { id: toastId });
+    } finally {
+      setIsUploadingFoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleEliminarFoto = async () => {
+    if (!window.confirm('¿Deseas quitar tu foto de perfil?')) return;
+    setIsUploadingFoto(true);
+    const toastId = toast.loading('Eliminando foto...');
+    try {
+      await usuariosApi.actualizarPerfil({ fotoUrl: null });
+      setUsuario((prev: any) => ({ ...prev, fotoUrl: null }));
+      localStorage.removeItem('userFoto');
+      window.dispatchEvent(new Event('perfilActualizado'));
+      toast.success('Foto de perfil eliminada', { id: toastId });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al eliminar foto', { id: toastId });
+    } finally {
+      setIsUploadingFoto(false);
+    }
+  };
 
   const navigate = useNavigate();
 
@@ -90,6 +138,11 @@ export default function Perfil() {
           setPerfilTelefono(data.telefono || '');
           setPerfilCi(data.ci || '');
           setPerfilCarreraId(data.carreraId ? String(data.carreraId) : (data.carrera?.id ? String(data.carrera.id) : ''));
+          if (data.fotoUrl) {
+            localStorage.setItem('userFoto', data.fotoUrl);
+          } else {
+            localStorage.removeItem('userFoto');
+          }
         }
       } catch (err) {
         console.error('Error al cargar perfil:', err);
@@ -217,6 +270,7 @@ export default function Perfil() {
       toast.success('Cuenta desactivada exitosamente');
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
+      localStorage.removeItem('userFoto');
       navigate('/login');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al desactivar la cuenta');
@@ -230,9 +284,52 @@ export default function Perfil() {
       <div className="max-w-5xl mx-auto px-6 py-10">
         {/* Cabecera del Perfil con Datos Reales del Usuario */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-xs border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 mb-8 transition-all">
-          <div className="w-20 h-20 bg-tech-blue/10 dark:bg-blue-900/30 text-tech-blue dark:text-blue-400 rounded-2xl flex items-center justify-center flex-shrink-0 font-poppins font-bold text-2xl border border-tech-blue/20">
-            {usuario?.nombreCompleto ? usuario.nombreCompleto.charAt(0).toUpperCase() : <User className="w-10 h-10" />}
+          <div className="relative group flex-shrink-0">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-900/30 dark:to-indigo-900/30 text-tech-blue dark:text-blue-400 rounded-3xl flex items-center justify-center font-poppins font-bold text-3xl sm:text-4xl border-2 border-tech-blue/20 shadow-inner overflow-hidden">
+              {usuario?.fotoUrl ? (
+                <img
+                  src={usuario.fotoUrl}
+                  alt={usuario.nombreCompleto || 'Foto de perfil'}
+                  className="w-full h-full object-cover"
+                />
+              ) : usuario?.nombreCompleto ? (
+                usuario.nombreCompleto.charAt(0).toUpperCase()
+              ) : (
+                <User className="w-12 h-12" />
+              )}
+            </div>
+
+            <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingFoto}
+                title="Cambiar foto de perfil desde galería"
+                className="p-2 rounded-xl bg-tech-blue hover:bg-blue-600 active:scale-95 text-white shadow-lg border-2 border-white dark:border-slate-900 transition-all cursor-pointer"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+              {usuario?.fotoUrl && (
+                <button
+                  type="button"
+                  onClick={handleEliminarFoto}
+                  disabled={isUploadingFoto}
+                  title="Quitar foto de perfil"
+                  className="p-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white shadow-lg border-2 border-white dark:border-slate-900 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleSeleccionarFotoGaleria}
+            className="hidden"
+          />
           <div className="text-center sm:text-left flex-1">
             <h1 className="text-2xl sm:text-3xl font-poppins font-bold text-slate-900 dark:text-white">
               {usuario?.nombreCompleto || 'Usuario FCyT'}

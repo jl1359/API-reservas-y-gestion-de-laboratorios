@@ -1,32 +1,80 @@
-# Node modules
+# =======================================================
+# DEPENDENCIAS
+# =======================================================
 node_modules/
-npm-debug.log
+.pnp
+.pnp.js
 
-# Entornos y credenciales
+# =======================================================
+# ENTORNOS Y CREDENCIALES (SEGURIDAD)
+# =======================================================
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
-# Builds
+# =======================================================
+# COMPILACIÓN Y BUILDS
+# =======================================================
 dist/
+dist-ssr/
 build/
+*.tsbuildinfo
 
-# Prisma
+# =======================================================
+# BASES DE DATOS LOCALES Y PRISMA
+# =======================================================
 /prisma/data.db
 /prisma/data.db-journal
 
-# Logs
-logs
+# =======================================================
+# REGISTROS Y LOGS
+# =======================================================
+logs/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Documentacion y reportes externos
-docs/
+# =======================================================
+# PRUEBAS Y COBERTURA
+# =======================================================
+coverage/
+.nyc_output/
+
+# =======================================================
+# REPORTES Y SCRIPTS EXTERNOS TEMPORALES
+# =======================================================
 /reportes/
 backend/scripts/
 
-# AI Agent & IDE configs
+# =======================================================
+# EDITORES E IDES
+# =======================================================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# =======================================================
+# ARCHIVOS DEL SISTEMA OPERATIVO
+# =======================================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+*.tmp
+*.bak
+
+# =======================================================
+# HERRAMIENTAS Y ASISTENTES IA
+# =======================================================
 .agents/
 skills-lock.json
+.antigravity/
+.gemini/

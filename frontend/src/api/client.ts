@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    return `${window.location.protocol}//${window.location.hostname}:3000`;
+  }
+  return 'http://localhost:3000';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -30,6 +38,7 @@ apiClient.interceptors.response.use(
       if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/registro')) {
         localStorage.removeItem('token');
         localStorage.removeItem('userRole');
+        localStorage.removeItem('userFoto');
       }
     }
     return Promise.reject(error);
