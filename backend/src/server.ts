@@ -1,6 +1,7 @@
 import app from './app';
 import { prisma } from './config/prisma';
 import { iniciarWorkerInasistencias } from './workers/inasistencias.worker';
+import { iniciarWorkerRecordatorios } from './workers/recordatorios.worker';
 
 /**
  * ARCHIVO: server.ts
@@ -24,6 +25,9 @@ const server = app.listen(PORT, () => {
 
   // Iniciar proceso autonomo de verificacion de inasistencias en segundo plano
   iniciarWorkerInasistencias(5);
+
+  // Iniciar worker de recordatorios 10 minutos antes del turno
+  iniciarWorkerRecordatorios(1);
 });
 
 // Protocolo de alta disponibilidad: Apagado controlado (Graceful Shutdown)

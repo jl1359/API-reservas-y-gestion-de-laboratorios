@@ -69,7 +69,9 @@ async function main() {
     { nombre: 'Pizarra Acrilica', tipo: 'Mobiliario' },
     { nombre: 'Microscopio', tipo: 'Optica y Biologia' },
     { nombre: 'Osciloscopio', tipo: 'Instrumentacion Electronica' },
-    { nombre: 'Multimetro', tipo: 'Instrumentacion Electronica' }
+    { nombre: 'Multimetro', tipo: 'Instrumentacion Electronica' },
+    { nombre: 'Camara', tipo: 'Audiovisual' },
+    { nombre: 'Camara de Seguridad', tipo: 'Audiovisual y Multimedia' }
   ];
 
   for (const eq of equiposBase) {
@@ -121,36 +123,64 @@ async function main() {
     console.log(`Cuenta de Administrador actualizada exitosamente para: ${nombreAdmin} (${correoAdmin}).`);
   }
 
-  // 5. Feriados Nacionales de Bolivia y Departamental Cochabamba (Fechas fijas)
+  // 5. Feriados Nacionales, Departamental y Calendario Conmemorativo UMSS
   const anioActual = new Date().getFullYear();
   const feriadosFijos = [
-    { fecha: new Date(Date.UTC(anioActual, 0, 1)), motivo: 'Ano Nuevo' },
-    { fecha: new Date(Date.UTC(anioActual, 0, 22)), motivo: 'Dia del Estado Plurinacional de Bolivia' },
-    { fecha: new Date(Date.UTC(anioActual, 4, 1)), motivo: 'Dia del Trabajo' },
-    { fecha: new Date(Date.UTC(anioActual, 5, 21)), motivo: 'Ano Nuevo Andino Amazonico' },
-    { fecha: new Date(Date.UTC(anioActual, 7, 6)), motivo: 'Dia de la Independencia de Bolivia' },
-    { fecha: new Date(Date.UTC(anioActual, 8, 14)), motivo: 'Efemeride Departamental de Cochabamba' },
-    { fecha: new Date(Date.UTC(anioActual, 10, 2)), motivo: 'Dia de Todos Santos' },
+    { fecha: new Date(Date.UTC(anioActual, 0, 1)), motivo: 'Año Nuevo' },
+    ...(anioActual !== 2026
+      ? [
+          { fecha: new Date(Date.UTC(anioActual, 0, 22)), motivo: 'Día de la Fundación del Estado Plurinacional' },
+          { fecha: new Date(Date.UTC(anioActual, 5, 21)), motivo: 'Año Nuevo Andino Amazónico Chaqueño' }
+        ]
+      : []),
+    { fecha: new Date(Date.UTC(anioActual, 4, 1)), motivo: 'Día del Trabajo' },
+    { fecha: new Date(Date.UTC(anioActual, 7, 6)), motivo: 'Aniversario de Bolivia' },
+    { fecha: new Date(Date.UTC(anioActual, 8, 14)), motivo: 'Aniversario de Cochabamba' },
+    { fecha: new Date(Date.UTC(anioActual, 8, 21)), motivo: 'Día del Estudiante' },
+    { fecha: new Date(Date.UTC(anioActual, 10, 2)), motivo: 'Todos Santos' },
     { fecha: new Date(Date.UTC(anioActual, 11, 25)), motivo: 'Navidad' }
   ];
 
-  for (const f of feriadosFijos) {
-    const existe = await prisma.feriado.findFirst({ where: { motivo: f.motivo } });
+  // Fechas móviles y traslados oficiales de la gestión 2026
+  const feriadosUmss2026 = [
+    { fecha: new Date(Date.UTC(2026, 0, 23)), motivo: 'Día de la Fundación del Estado Plurinacional' },
+    { fecha: new Date(Date.UTC(2026, 1, 16)), motivo: 'Lunes de Carnaval' },
+    { fecha: new Date(Date.UTC(2026, 1, 17)), motivo: 'Martes de Carnaval' },
+    { fecha: new Date(Date.UTC(2026, 3, 3)), motivo: 'Viernes Santo' },
+    { fecha: new Date(Date.UTC(2026, 5, 4)), motivo: 'Corpus Christi' },
+    { fecha: new Date(Date.UTC(2026, 5, 5)), motivo: 'Feriado Adicional de Corpus Christi' },
+    { fecha: new Date(Date.UTC(2026, 5, 22)), motivo: 'Año Nuevo Andino Amazónico Chaqueño' },
+    { fecha: new Date(Date.UTC(2026, 7, 7)), motivo: 'Feriado Adicional Aniversario de Bolivia' }
+  ];
+
+  const feriadosSeed = [...feriadosFijos, ...(anioActual === 2026 ? feriadosUmss2026 : [])];
+
+  for (const f of feriadosSeed) {
+    const existe = await prisma.feriado.findFirst({
+      where: { fecha: f.fecha }
+    });
     if (!existe) {
       await prisma.feriado.create({ data: f });
     }
   }
-  console.log('Feriados oficiales con fecha fija configurados (8 feriados).');
+  console.log(`Feriados oficiales configurados (${feriadosSeed.length} fechas verificadas).`);
 
-  // 6. Laboratorios Oficiales FCyT UMSS (45 Laboratorios Reales)
+  // 6. Laboratorios Oficiales FCyT UMSS (50 Laboratorios Reales)
   console.log(`Cargando ${LABORATORIOS_REALES_FCYT.length} laboratorios reales de la FCyT...`);
 
-  const eqComputadora = await prisma.equipamiento.findFirst({ where: { nombre: 'Computadora' } });
-  const eqProyector = await prisma.equipamiento.findFirst({ where: { nombre: 'Proyector' } });
-  const eqPizarra = await prisma.equipamiento.findFirst({ where: { nombre: 'Pizarra Acrilica' } });
-  const eqOsciloscopio = await prisma.equipamiento.findFirst({ where: { nombre: 'Osciloscopio' } });
-  const eqMultimetro = await prisma.equipamiento.findFirst({ where: { nombre: 'Multimetro' } });
-  const eqMicroscopio = await prisma.equipamiento.findFirst({ where: { nombre: 'Microscopio' } });
+  const asegurarEquipamientoLab = async (laboratorioId: number, equipamientoId: number, cantidad: number) => {
+    const asignado = await prisma.laboratorioEquipamiento.findFirst({
+      where: { laboratorioId, equipamientoId }
+    });
+    if (!asignado) {
+      await prisma.laboratorioEquipamiento.create({
+        data: { laboratorioId, equipamientoId, cantidad }
+      });
+    }
+  };
+
+  const eqCatalogo = await prisma.equipamiento.findMany();
+  const eqPorNombre = new Map(eqCatalogo.map((e) => [e.nombre, e]));
 
   const diasSemana = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
 
@@ -158,6 +188,13 @@ async function main() {
     const carrera = await prisma.carrera.findFirst({
       where: { nombre: dataLab.carreraNombre }
     });
+
+    const labExistente = await prisma.laboratorio.findUnique({
+      where: { nombre: dataLab.nombre },
+      select: { imagenUrl: true }
+    });
+
+    const conservarImagenExistente = Boolean(labExistente?.imagenUrl?.startsWith('data:image/'));
 
     const lab = await prisma.laboratorio.upsert({
       where: { nombre: dataLab.nombre },
@@ -168,7 +205,7 @@ async function main() {
         latitud: dataLab.latitud,
         longitud: dataLab.longitud,
         reservaPorComputadora: dataLab.reservaPorComputadora,
-        imagenUrl: dataLab.imagenUrl,
+        ...(conservarImagenExistente ? {} : { imagenUrl: dataLab.imagenUrl }),
         estadoOperativo: 'Activo'
       },
       create: {
@@ -184,24 +221,28 @@ async function main() {
       }
     });
 
-    // Horarios operativos estandar facultativos
-    for (const dia of diasSemana) {
-      const apertura = dia === 'Sabado'
-        ? new Date('1970-01-01T08:00:00Z')
-        : new Date('1970-01-01T06:45:00Z');
-      const cierre = dia === 'Sabado'
-        ? new Date('1970-01-01T12:45:00Z')
-        : new Date('1970-01-01T21:15:00Z');
+    // Horarios operativos (personalizados o estandar facultativos)
+    const horariosObjetivo = dataLab.horariosPersonalizados
+      ? dataLab.horariosPersonalizados
+      : diasSemana.map((dia) => ({
+          dia,
+          apertura: dia === 'Sabado' ? '08:00:00' : '06:45:00',
+          cierre: dia === 'Sabado' ? '12:45:00' : '21:15:00'
+        }));
+
+    for (const h of horariosObjetivo) {
+      const apertura = new Date(`1970-01-01T${h.apertura}Z`);
+      const cierre = new Date(`1970-01-01T${h.cierre}Z`);
 
       const horarioExistente = await prisma.horarioLaboratorio.findFirst({
-        where: { laboratorioId: lab.id, dia }
+        where: { laboratorioId: lab.id, dia: h.dia }
       });
 
       if (!horarioExistente) {
         await prisma.horarioLaboratorio.create({
           data: {
             laboratorioId: lab.id,
-            dia,
+            dia: h.dia,
             horaApertura: apertura,
             horaCierre: cierre
           }
@@ -209,78 +250,40 @@ async function main() {
       }
     }
 
-    // Equipamiento base segun tipo de laboratorio
-    if (eqPizarra) {
-      const asignado = await prisma.laboratorioEquipamiento.findFirst({
-        where: { laboratorioId: lab.id, equipamientoId: eqPizarra.id }
-      });
-      if (!asignado) {
-        await prisma.laboratorioEquipamiento.create({
-          data: { laboratorioId: lab.id, equipamientoId: eqPizarra.id, cantidad: 1 }
-        });
-      }
-    }
-
-    if (eqProyector) {
-      const asignado = await prisma.laboratorioEquipamiento.findFirst({
-        where: { laboratorioId: lab.id, equipamientoId: eqProyector.id }
-      });
-      if (!asignado) {
-        await prisma.laboratorioEquipamiento.create({
-          data: { laboratorioId: lab.id, equipamientoId: eqProyector.id, cantidad: 1 }
-        });
-      }
-    }
-
-    if (dataLab.reservaPorComputadora && eqComputadora) {
-      const asignado = await prisma.laboratorioEquipamiento.findFirst({
-        where: { laboratorioId: lab.id, equipamientoId: eqComputadora.id }
-      });
-      if (!asignado) {
-        await prisma.laboratorioEquipamiento.create({
-          data: { laboratorioId: lab.id, equipamientoId: eqComputadora.id, cantidad: dataLab.capacidad }
-        });
-      }
-    }
-
-    if (dataLab.carreraNombre.includes('Electrica') || dataLab.carreraNombre.includes('Electronica')) {
-      if (eqOsciloscopio) {
-        const asig = await prisma.laboratorioEquipamiento.findFirst({
-          where: { laboratorioId: lab.id, equipamientoId: eqOsciloscopio.id }
-        });
-        if (!asig) {
-          await prisma.laboratorioEquipamiento.create({
-            data: { laboratorioId: lab.id, equipamientoId: eqOsciloscopio.id, cantidad: 10 }
-          });
+    // Equipamiento (personalizado o estandar segun tipo de laboratorio)
+    if (dataLab.equiposPersonalizados) {
+      for (const eqItem of dataLab.equiposPersonalizados) {
+        const eq = eqPorNombre.get(eqItem.nombre);
+        if (eq) {
+          await asegurarEquipamientoLab(lab.id, eq.id, eqItem.cantidad);
         }
       }
-      if (eqMultimetro) {
-        const asig = await prisma.laboratorioEquipamiento.findFirst({
-          where: { laboratorioId: lab.id, equipamientoId: eqMultimetro.id }
-        });
-        if (!asig) {
-          await prisma.laboratorioEquipamiento.create({
-            data: { laboratorioId: lab.id, equipamientoId: eqMultimetro.id, cantidad: 15 }
-          });
-        }
-      }
-    }
+    } else {
+      const eqComputadora = eqPorNombre.get('Computadora');
+      const eqProyector = eqPorNombre.get('Proyector');
+      const eqPizarra = eqPorNombre.get('Pizarra Acrilica');
+      const eqOsciloscopio = eqPorNombre.get('Osciloscopio');
+      const eqMultimetro = eqPorNombre.get('Multimetro');
+      const eqMicroscopio = eqPorNombre.get('Microscopio');
 
-    if (dataLab.carreraNombre.includes('Biologia') || dataLab.carreraNombre.includes('Alimentos')) {
-      if (eqMicroscopio) {
-        const asig = await prisma.laboratorioEquipamiento.findFirst({
-          where: { laboratorioId: lab.id, equipamientoId: eqMicroscopio.id }
-        });
-        if (!asig) {
-          await prisma.laboratorioEquipamiento.create({
-            data: { laboratorioId: lab.id, equipamientoId: eqMicroscopio.id, cantidad: 12 }
-          });
-        }
+      if (eqPizarra) await asegurarEquipamientoLab(lab.id, eqPizarra.id, 1);
+      if (eqProyector) await asegurarEquipamientoLab(lab.id, eqProyector.id, 1);
+      if (dataLab.reservaPorComputadora && eqComputadora) {
+        await asegurarEquipamientoLab(lab.id, eqComputadora.id, dataLab.capacidad);
+      }
+
+      if (dataLab.carreraNombre.includes('Electrica') || dataLab.carreraNombre.includes('Electronica')) {
+        if (eqOsciloscopio) await asegurarEquipamientoLab(lab.id, eqOsciloscopio.id, 10);
+        if (eqMultimetro) await asegurarEquipamientoLab(lab.id, eqMultimetro.id, 15);
+      }
+
+      if (dataLab.carreraNombre.includes('Biologia') || dataLab.carreraNombre.includes('Alimentos')) {
+        if (eqMicroscopio) await asegurarEquipamientoLab(lab.id, eqMicroscopio.id, 12);
       }
     }
   }
 
-  console.log(`Configuracion exitosa de los 45 laboratorios reales con sus horarios y equipamientos.`);
+  console.log(`Configuracion exitosa de los ${LABORATORIOS_REALES_FCYT.length} laboratorios reales con sus horarios y equipamientos.`);
   console.log('Base de datos inicializada de forma limpia, real y lista para produccion.');
 }
 

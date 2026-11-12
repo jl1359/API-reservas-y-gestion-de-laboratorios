@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma';
+import { emitirEventoRealtime } from './realtime.service';
 
 export const cambiarEstadoOperativoService = async (
   laboratorioId: number,
@@ -33,6 +34,16 @@ export const cambiarEstadoOperativoService = async (
       }
     }).catch(() => null);
   }
+
+  emitirEventoRealtime(
+    'laboratorio_actualizado',
+    {
+      id: labActualizado.id,
+      nombre: labActualizado.nombre,
+      estadoOperativo: labActualizado.estadoOperativo,
+    },
+    { publico: true }
+  );
 
   return labActualizado;
 };

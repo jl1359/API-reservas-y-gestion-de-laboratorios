@@ -181,7 +181,7 @@ export default function GraficosMetricasReportes({
   }, [laboratoriosEstudiantesOrdenados, metricasData.totalAlumnosBeneficiados]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-800/80 transition-colors">
+    <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-6 shadow-xl border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-xl transition-all duration-300">
       {/* Navegacion por Metricas */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-150 dark:border-slate-800 gap-3">
         <div>

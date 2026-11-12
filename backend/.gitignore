@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Entornos y credenciales
+.env
+.env.*
+!.env.example
+
+# Compilación
+dist/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Cobertura
+coverage/
+
+# Scripts locales externos
+scripts/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

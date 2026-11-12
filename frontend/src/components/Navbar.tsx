@@ -12,6 +12,28 @@ export default function Navbar() {
   const location = useLocation();
   const isAuthenticated = !!localStorage.getItem('token');
   const [userRole, setUserRole] = useState<string>(() => localStorage.getItem('userRole') || '');
+  const [userFoto, setUserFoto] = useState<string | null>(() => localStorage.getItem('userFoto'));
+
+  useEffect(() => {
+    const syncFoto = () => {
+      setUserFoto(localStorage.getItem('userFoto'));
+    };
+    window.addEventListener('perfilActualizado', syncFoto);
+
+    if (isAuthenticated) {
+      usuariosApi.obtenerMiPerfil().then((perfil) => {
+        if (perfil?.fotoUrl) {
+          localStorage.setItem('userFoto', perfil.fotoUrl);
+          setUserFoto(perfil.fotoUrl);
+        } else {
+          localStorage.removeItem('userFoto');
+          setUserFoto(null);
+        }
+      }).catch(() => null);
+    }
+
+    return () => window.removeEventListener('perfilActualizado', syncFoto);
+  }, [isAuthenticated]);
   const puedeEscanear = ['Admin', 'Administrador', 'Responsable de Laboratorio'].includes(userRole);
   const puedeVerReportes = ['Admin', 'Administrador', 'Responsable de Laboratorio'].includes(userRole);
 
@@ -163,6 +185,7 @@ export default function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userFoto');
     navigate('/login');
     window.location.reload();
   };
@@ -255,6 +278,9 @@ export default function Navbar() {
               <span>Inicio</span>
             </Link>
             <Link to="/perfil" className={getNavLinkClass('/perfil')}>
+              {userFoto ? (
+                <img src={userFoto} alt="Avatar" className="w-5 h-5 rounded-full object-cover ring-1 ring-blue-500/30" />
+              ) : null}
               <span>Mi Perfil</span>
             </Link>
             
@@ -419,6 +445,9 @@ export default function Navbar() {
             <span>Inicio</span>
           </Link>
           <Link to="/perfil" onClick={() => setIsMobileMenuOpen(false)} className={getMobileNavLinkClass('/perfil')}>
+            {userFoto ? (
+              <img src={userFoto} alt="Avatar" className="w-5 h-5 rounded-full object-cover ring-1 ring-blue-500/30" />
+            ) : null}
             <span>Mi Perfil</span>
           </Link>
           {puedeEscanear && (

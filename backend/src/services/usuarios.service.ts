@@ -40,6 +40,7 @@ export const listarUsuariosService = async (filtros: FiltrosUsuarios = {}) => {
       correo: true,
       ci: true,
       telefono: true,
+      fotoUrl: true,
       activo: true,
       correoVerificado: true,
       carreraId: true,
@@ -172,7 +173,7 @@ export const cambiarEstadoUsuarioService = async (
 
 export const actualizarPerfilService = async (
   usuarioId: number,
-  datos: { nombreCompleto?: string; ci?: string | null; telefono?: string | null; carreraId?: number | null }
+  datos: { nombreCompleto?: string; ci?: string | null; telefono?: string | null; carreraId?: number | null; fotoUrl?: string | null }
 ) => {
   const usuario = await prisma.usuario.findUnique({
     where: { id: usuarioId },
@@ -196,6 +197,9 @@ export const actualizarPerfilService = async (
   if (datos.carreraId !== undefined) {
     dataToUpdate.carreraId = datos.carreraId ? Number(datos.carreraId) : null;
   }
+  if (datos.fotoUrl !== undefined) {
+    dataToUpdate.fotoUrl = datos.fotoUrl ? datos.fotoUrl.trim() : null;
+  }
 
   return prisma.usuario.update({
     where: { id: usuarioId },
@@ -206,6 +210,7 @@ export const actualizarPerfilService = async (
       correo: true,
       ci: true,
       telefono: true,
+      fotoUrl: true,
       activo: true,
       correoVerificado: true,
       rol: { select: { id: true, nombre: true } },

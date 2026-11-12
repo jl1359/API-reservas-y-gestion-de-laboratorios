@@ -282,7 +282,7 @@ export const imprimirBoletaOficial = (reserva: {
       <div class="aviso">
         <strong>Reglamento y Normas de Uso:</strong><br>
         1. La tolerancia máxima para el escaneo del código QR es de 15 minutos tras la hora de inicio pactada.<br>
-        2. Superado dicho plazo sin validación, la reserva cambiará a estado <strong>Ausente (No-Show)</strong> y el sistema suspenderá la posibilidad de reservar por 24 horas.<br>
+        2. Superado dicho plazo sin validación, la reserva cambiará a estado <strong>Ausente</strong> y el sistema suspenderá la posibilidad de reservar por 24 horas.<br>
         3. Si no va a utilizar el espacio, cancele la reserva con anticipación desde la plataforma para liberar el horario a otros docentes y estudiantes.
       </div>
 

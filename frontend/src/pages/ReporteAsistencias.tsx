@@ -171,7 +171,29 @@ export default function ReporteAsistencias() {
   }, [modoAuditoria, fecha, fechaInicio, fechaFin, laboratorioId, carreraId]);
 
   useEffect(() => {
+    let ultimaActualizacion = Date.now();
     consultarReporte();
+
+    // Sincronización en segundo plano cada 60 segundos solo con la pestaña visible
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        ultimaActualizacion = Date.now();
+        consultarReporte(false);
+      }
+    }, 60000);
+
+    const onFocus = () => {
+      if (Date.now() - ultimaActualizacion >= 15000) {
+        ultimaActualizacion = Date.now();
+        consultarReporte(false);
+      }
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [consultarReporte]);
 
   const formatearFecha = (isoDate: string) => {

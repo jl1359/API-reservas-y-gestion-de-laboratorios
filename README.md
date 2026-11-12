@@ -1,79 +1,49 @@
-# LabReserve - Sistema de Gestión y Reservas de Laboratorios FCyT UMSS
+# LabReserve - Sistema Telemático de Gestión y Reservas de Laboratorios FCyT UMSS
 
-Plataforma universitaria para la administración, reserva, control de asistencia QR, Progressive Web App (PWA) y auditoría analítica de laboratorios de computación y salas especializadas de la Facultad de Ciencias y Tecnología (FCyT) de la Universidad Mayor de San Simón (UMSS).
+Plataforma universitaria para la administración, búsqueda, reserva concurrente, control de asistencia QR, comunicación en tiempo real (SSE), Progressive Web App (PWA) y auditoría analítica de laboratorios de computación y salas especializadas de la Facultad de Ciencias y Tecnología (FCyT) de la Universidad Mayor de San Simón (UMSS).
 
 ---
 
 ## 1. Arquitectura y Tecnologías
 
-El sistema sigue una arquitectura desacoplada en Frontend y Backend:
+El sistema implementa una arquitectura cliente-servidor desacoplada y orientada a servicios telemáticos:
 
-- **Frontend:** React 19, TypeScript, Vite 8, Tailwind CSS v4, Lucide Icons, Leaflet (Mapas Campus), SheetJS XLSX, QRcode.
-- **PWA (Progressive Web App):** Service Worker nativo para caché estática, manifiesto web para instalación como app nativa en dispositivos móviles (Android/iOS) y de escritorio (Windows/macOS/Linux).
-- **Backend:** Node.js, Express 5, TypeScript, Prisma ORM, PostgreSQL (Supabase/Local), Zod, JWT, Google Auth Library, Nodemailer.
-- **Seguridad y Resiliencia:** Rate Limiting nativo en memoria, HSTS forzado, protección contra DoS, ocultamiento de fingerprint de servidor y apagado ordenado (graceful shutdown).
-- **Workers Autónomos:** Demonio en segundo plano desatendido para verificación periódica de turnos vencidos y sanción automática por inasistencia no justificada.
-
----
-
-## 2. Documentación Técnica del Proyecto
-
-Para consultar el detalle de especificaciones técnicas, referirse a los siguientes documentos ubicados en el directorio `docs/`:
-
-1. [Guía Oficial de Despliegue en Producción](file:///C:/Users/jl153/OneDrive/Documentos/GitHub/API-trivago-campus-universitario/docs/GUIA_DESPLIEGUE.md): Procedimiento paso a paso para Supabase, Render.com y Vercel con HTTPS.
-2. [Especificación de la API REST](file:///C:/Users/jl153/OneDrive/Documentos/GitHub/API-trivago-campus-universitario/docs/API_DOCUMENTATION.md): Catálogo exhaustivo de endpoints, parámetros, respuestas y códigos de estado.
-3. [Arquitectura del Sistema y Modelo de Datos](file:///C:/Users/jl153/OneDrive/Documentos/GitHub/API-trivago-campus-universitario/docs/ARQUITECTURA_Y_BASE_DE_DATOS.md): Esquema relacional Prisma, concurrencia de reservas y ciclo de vida de turnos.
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Lucide Icons, Leaflet (Mapas Campus), SheetJS XLSX, QRcode.
+- **Backend:** Node.js, Express, TypeScript, Prisma ORM, PostgreSQL (con extensión `btree_gist`), Zod, JWT, Google Auth Library, Nodemailer.
+- **Comunicación en Tiempo Real:** Canal unidireccional persistente mediante Server-Sent Events (SSE) en `/api/realtime/stream` para actualización instantánea de reservas y estados sin sondeo HTTP (polling).
+- **Control de Concurrencia a Nivel de Base de Datos:** Restricción de exclusión mutua (`btree_gist`) en PostgreSQL para evitar solapamientos (`race conditions`) en reservas simultáneas con respuesta HTTP 409 Conflict.
+- **PWA (Progressive Web App):** Service Worker nativo para caché estática y soporte offline parcial, con manifiesto web para instalación standalone en escritorio y móviles.
+- **Contenedorización:** Dockerfiles optimizados para backend y frontend, y orquestación integral mediante `docker-compose.yml`.
+- **Workers Autónomos:** Proceso en segundo plano para auditoría de turnos vencidos y aplicación automática de sanciones disciplinarias temporales por inasistencia.
 
 ---
 
-## 3. Estructura del Repositorio
+## 2. Despliegue Rápido con Docker (Recomendado)
 
-```text
-├── backend/
-│   ├── prisma/                  # Esquema Prisma, migraciones, seeders y concurrencia
-│   ├── src/
-│   │   ├── config/              # Inicialización de Prisma y conexiones
-│   │   ├── controllers/         # Controladores HTTP (Req, Res)
-│   │   ├── errors/              # Excepciones tipadas de dominio
-│   │   ├── helpers/             # Utilidades de colisión, horarios y correos
-│   │   ├── middlewares/         # Autenticación JWT, validación Zod y Rate Limiting
-│   │   ├── routes/              # Declaración y versionamiento de endpoints
-│   │   ├── services/            # Lógica de negocio y transacciones de base de datos
-│   │   ├── validators/          # Esquemas de validación Zod
-│   │   └── workers/             # Tareas programadas en segundo plano
-│   └── .env.example             # Plantilla de variables de entorno del servidor
-│
-├── frontend/
-│   ├── public/                  # Manifiesto PWA, iconos e instalador Service Worker
-│   │   ├── manifest.webmanifest # Configuración PWA standalone
-│   │   └── sw.js                # Service Worker para caché y soporte offline
-│   ├── src/
-│   │   ├── api/                 # Clientes HTTP por dominio (Axios / apiClient)
-│   │   ├── components/          # Componentes reutilizables, modales y Navbar PWA
-│   │   ├── hooks/               # Custom hooks de analítica y cálculo
-│   │   ├── pages/               # Vistas principales y rutas del sistema
-│   │   └── utils/               # Exportadores a Excel (.xlsx), CSV y PDF oficial
-│   ├── vercel.json              # Configuración de hosting Vercel con HSTS y SPA rewrites
-│   └── .env.example             # Plantilla de variables de entorno del cliente
-│
-├── docs/                        # Documentación técnica y guías operativas
-│   ├── API_DOCUMENTATION.md     # Catálogo de endpoints REST
-│   ├── ARQUITECTURA_Y_BASE_DE_DATOS.md # Modelo relacional y concurrencia
-│   └── GUIA_DESPLIEGUE.md       # Manual de despliegue en la nube
-└── README.md                    # Documentación central del proyecto
+El entorno completo (Base de Datos PostgreSQL con extensión `btree_gist`, Backend y Frontend servido con Nginx) se levanta con un solo comando:
+
+```bash
+docker compose up --build
+```
+
+### Puertos expuestos:
+- **Frontend Web:** [http://localhost:5173](http://localhost:5173) (o puerto configurado en docker-compose)
+- **API REST Backend:** [http://localhost:3000](http://localhost:3000)
+- **Base de Datos PostgreSQL:** `localhost:5432`
+
+Para detener los servicios:
+```bash
+docker compose down
 ```
 
 ---
 
-## 4. Requisitos de Instalación
+## 3. Puesta en Marcha en Desarrollo Local (Sin Docker)
 
-- **Node.js:** Versión 18 o superior (LTS recomendada).
-- **PostgreSQL:** Base de datos relacional activa (local o Supabase).
+### Requisitos Previos:
+- **Node.js:** Versión 18 o superior (v20 o v24 LTS recomendada).
+- **PostgreSQL:** Base de datos activa con la extensión `btree_gist` habilitada.
 - **NPM** o gestor de paquetes compatible.
-
----
-
-## 5. Puesta en Marcha en Desarrollo Local
 
 ### Paso 1: Configurar el Backend
 
@@ -85,19 +55,21 @@ Para consultar el detalle de especificaciones técnicas, referirse a los siguien
    ```bash
    npm install
    ```
-3. Copiar la plantilla de entorno y configurar credenciales:
+3. Configurar variables de entorno:
    ```bash
    cp .env.example .env
    ```
-4. Sincronizar la estructura con PostgreSQL:
+   *Asegúrate de configurar `DATABASE_URL` y `DIRECT_URL` con tu instancia de PostgreSQL.*
+4. Sincronizar el esquema de base de datos y habilitar la restricción de concurrencia:
    ```bash
    npx prisma db push
+   npm run migrate:concurrencia
    ```
-5. (Opcional) Poblar datos de prueba universitarios:
+5. Poblar los datos iniciales de la universidad (roles, carreras, laboratorios y cuentas demo):
    ```bash
    npx prisma db seed
    ```
-6. Iniciar el servidor backend:
+6. Iniciar el servidor de desarrollo:
    ```bash
    npm run dev
    ```
@@ -105,7 +77,7 @@ Para consultar el detalle de especificaciones técnicas, referirse a los siguien
 
 ### Paso 2: Configurar el Frontend
 
-1. Abrir otra terminal e ingresar a la carpeta del frontend:
+1. En una nueva terminal, ingresar a la carpeta del frontend:
    ```bash
    cd frontend
    ```
@@ -113,7 +85,7 @@ Para consultar el detalle de especificaciones técnicas, referirse a los siguien
    ```bash
    npm install
    ```
-3. Copiar la plantilla de entorno:
+3. Configurar variables de entorno:
    ```bash
    cp .env.example .env
    ```
@@ -125,48 +97,79 @@ Para consultar el detalle de especificaciones técnicas, referirse a los siguien
 
 ---
 
-## 6. Módulos y Funcionalidades Principales
+## 4. Suite Automatizada de Pruebas (`npm test`)
 
-1. **Gestión de Identidad y Roles:**
-   - Registro con validación de CI, desbloqueo automático en registros no verificados y reenvío de activación.
-   - Inicio de sesión institucional por correo y contraseña o mediante Google OAuth 2.0.
-   - Asignación y solicitudes de ascenso de rol (Estudiante, Docente, Administrador, Responsable de Laboratorio).
+El backend cuenta con una suite de pruebas automatizadas que valida la robustez transaccional y los protocolos de seguridad sin alterar el entorno productivo.
 
-2. **Sistema de Reservas:**
-   - Reserva individual por computadora (estudiantes) con selección de equipo y prevención de solapamientos.
-   - Reserva de laboratorio completo por bloques (docentes) con control semestral recurrente.
-   - Cancelación por el titular o por fuerza mayor universitaria con notificación en tiempo real.
+Para ejecutar las pruebas:
+```bash
+cd backend
+npm test
+```
 
-3. **Control de Asistencia QR y Acreditación:**
-   - Generación de código QR y boleta oficial de reserva con opción de guardado en PDF o impresión.
-   - Módulo de escaneo con cámara web o registro manual de asistencia por C.I.
-   - Detección de inasistencias y aplicación automática de sanciones temporales tras período de gracia.
-
-4. **Auditoría y Analítica Avanzada:**
-   - Tableros KPI de ocupación, comparativa por carreras académicas y demanda horaria.
-   - Exportación nativa a Excel (.xlsx multi-hoja) y CSV estándar.
-   - Generación de informe oficial de auditoría en formato PDF institucional con sello y firmas.
-
-5. **Experiencia Móvil PWA:**
-   - Botón interactivo "Instalar App" para instalación directa en dispositivos móviles o escritorio sin pasar por tiendas de aplicaciones.
-   - Caché local de activos estáticos para tiempos de carga inmediatos.
+### Casos evaluados en la suite:
+1. **Control de Concurrencia Atómica (Exclusión Mutua):** Dispara dos reservas simultáneas en el mismo milisegundo mediante `Promise.allSettled`. Valida que exactamente una solicitud es aprobada (`201` / `Aprobada`) y que la colisión es rechazada con **HTTP 409 Conflict**.
+2. **Seguridad y Control Disciplinario:** Intento de reserva con un usuario sancionado, validando que el servidor bloquea la solicitud retornando **HTTP 403 Forbidden** (`PRIVILEGIOS_SUSPENDIDOS_SANCION`).
+3. **Validación de Integridad y Horarios:** Rechazo de solicitudes con fechas pasadas o con orden cronológico invertido retornando **HTTP 400 Bad Request**.
+4. **Protocolos Telemáticos y Telemetría SSE:** Verificación de estado de salud del servidor (`/api/health`) y métricas en vivo de clientes conectados (`/api/realtime/stats`) con **HTTP 200 OK**.
 
 ---
 
-## 7. Protocolos de Seguridad y Resiliencia Implementados
+## 5. Colección de Pruebas Postman
 
-1. **Rate Limiting (Protección Anti-Fuerza Bruta):**
-   - Límite de 15 intentos cada 15 minutos en rutas sensibles de autenticación (`/api/auth/login`, `/register`, etc.).
-   - Límite general de 300 peticiones por minuto por IP en toda la API.
-2. **Cabeceras Defensivas HTTP:**
-   - `Strict-Transport-Security` (HSTS) para forzar tráfico HTTPS cifrado.
-   - `X-Frame-Options: DENY` contra ataques de Clickjacking.
-   - `X-Content-Type-Options: nosniff` contra ataques de inyección MIME.
-   - `X-XSS-Protection: 1; mode=block` contra secuencias de comandos maliciosas.
-3. **Crash Prevention y Apagado Ordenado:**
-   - Manejadores de `uncaughtException` y `unhandledRejection` para evitar caídas del proceso Node.js.
-   - Cierre controlado (`SIGTERM` / `SIGINT`) que libera el puerto HTTP y desconecta el cliente de Prisma limpiamente.
-4. **Ocultamiento de Huella:**
-   - Cabecera `X-Powered-By` deshabilitada para mitigar el escaneo automatizado de vulnerabilidades de Express.
-5. **Control de Sobrecarga:**
-   - Límite de carga útil JSON a 2MB para evitar saturación de memoria RAM en el servidor.
+Para pruebas de integración, evaluación docente o auditoría de endpoints, los archivos de especificación se encuentran disponibles en el directorio `docs/`:
+
+1. **Colección:** `docs/LabReserve_FCyT_UMSS.postman_collection.json`
+2. **Ambiente Local:** `docs/LabReserve_Local.postman_environment.json`
+
+### Importación en Postman:
+1. Abrir Postman y seleccionar **Import**.
+2. Seleccionar ambos archivos JSON del directorio `docs/`.
+3. Seleccionar el entorno **LabReserve Local** en el selector superior derecho y ejecutar las peticiones de autenticación, reservas y reportes.
+
+---
+
+## 6. Usuarios y Roles Predeterminados (Seed)
+
+El comando de seed (`npx prisma db seed`) genera los siguientes perfiles de prueba para la facultad:
+
+| Rol | Correo Electrónico | Contraseña | Alcance y Permisos |
+| :--- | :--- | :--- | :--- |
+| **Administrador** | `admin@fcyt.umss.edu.bo` | `Admin123*` | Control total, gestión de usuarios, auditoría, sanciones y métricas SSE |
+| **Responsable de Lab** | `responsable@fcyt.umss.edu.bo` | `Responsable123*` | Aprobación de reservas, escaneo QR de asistencia presencial |
+| **Docente** | `docente@fcyt.umss.edu.bo` | `Docente123*` | Reserva de laboratorios completos y series semestrales |
+| **Estudiante** | `estudiante@fcyt.umss.edu.bo` | `Estudiante123*` | Búsqueda y reserva individual por computadora |
+
+---
+
+## 7. Módulos del Sistema
+
+1. **Catálogo y Búsqueda Inteligente:**
+   - Filtro por carrera académica, capacidad de alumnos y equipamiento especializado.
+   - Modalidades diferenciadas: reserva de aula completa o puestos individuales por computadora.
+
+2. **Gestión Concurrente de Reservas:**
+   - Reserva por computadora con prevención de solapamientos a nivel de base de datos.
+   - Cancelación por el titular o cancelación por fuerza mayor universitaria con notificación en tiempo real.
+
+3. **Acreditación Presencial mediante Código QR:**
+   - Generación de boleta oficial de reserva con código QR criptográfico único.
+   - Escáner QR integrado mediante cámara web y registro manual de asistencia para administradores.
+   - Período de gracia de 15 minutos; superado el tiempo sin check-in, el sistema sanciona al usuario automáticamente.
+
+4. **Auditoría y Reportes Oficiales:**
+   - Métricas de demanda horaria, tasa de asistencia vs. inasistencia y ranking de laboratorios.
+   - Exportación nativa a Excel multi-hoja (`.xlsx`), formato CSV e informe oficial en PDF institucional con sellos.
+
+5. **Servicios Telemáticos en Tiempo Real (SSE):**
+   - Transmisión unidireccional de eventos (`reserva_creada`, `asistencia_confirmada`, `sancion_aplicada`).
+   - Sincronización automática de tableros de control sin recarga de página ni sondeo repetitivo.
+
+---
+
+## 8. Protocolos de Seguridad y Resiliencia
+
+- **Rate Limiting:** Protección anti-fuerza bruta en rutas de autenticación y límite preventivo contra DoS.
+- **Cabeceras HTTP de Seguridad:** `Strict-Transport-Security` (HSTS), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` y `Referrer-Policy`.
+- **Ocultamiento de Huella de Servidor:** Cabecera `X-Powered-By` deshabilitada para prevenir escaneos automatizados.
+- **Tolerancia a Fallos y Graceful Shutdown:** Captura ordenada de señales del sistema operativo (`SIGTERM`/`SIGINT`) para liberar conexiones y puertos limpiamente.

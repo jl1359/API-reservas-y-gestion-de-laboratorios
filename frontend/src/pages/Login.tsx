@@ -107,6 +107,11 @@ export default function Login() {
         const response = await apiClient.post('/api/auth/login', { correo, password });
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('userRole', response.data.usuario.rol);
+        if (response.data.usuario.fotoUrl) {
+          localStorage.setItem('userFoto', response.data.usuario.fotoUrl);
+        } else {
+          localStorage.removeItem('userFoto');
+        }
         toast.success('Sesión iniciada correctamente');
         navigate('/'); 
       } else {
@@ -165,6 +170,11 @@ export default function Login() {
       });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('userRole', res.data.usuario.rol);
+      if (res.data.usuario.fotoUrl) {
+        localStorage.setItem('userFoto', res.data.usuario.fotoUrl);
+      } else {
+        localStorage.removeItem('userFoto');
+      }
       toast.success(res.data.mensaje || 'Sesión iniciada con Google');
       navigate('/');
     } catch (error: any) {

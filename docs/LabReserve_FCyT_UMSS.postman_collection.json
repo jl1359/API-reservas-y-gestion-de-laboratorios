@@ -1,0 +1,1290 @@
+{
+  "info": {
+    "_postman_id": "a7f2c910-6b4d-4e8a-9f12-3c8e5d0b7201",
+    "name": "LabReserve FCyT UMSS - API REST",
+    "description": "Colección oficial de Postman v2.1 para el Sistema de Administración y Reserva de Laboratorios FCyT - UMSS. Incluye los 14 módulos de la API REST, autenticación Bearer JWT automática y ejemplos de payload validados con Zod.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01. Salud del Sistema",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Verifica que el servidor Express está en línea y muestra su estado HTTPS."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Autenticación y Cuentas",
+      "item": [
+        {
+          "name": "Registrar Usuario",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Estudiante Ejemplo UMSS\",\n  \"correo\": \"estudiante.ejemplo@est.umss.edu\",\n  \"password\": \"ClaveSegura123\",\n  \"ci\": \"12345678\",\n  \"telefono\": \"70012345\",\n  \"carreraId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Verificar Correo por Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verificar-correo/REEMPLAZAR_TOKEN_ACTIVACION",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verificar-correo", "REEMPLAZAR_TOKEN_ACTIVACION"]
+            }
+          }
+        },
+        {
+          "name": "Reenviar Enlace de Activación",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"estudiante.ejemplo@est.umss.edu\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reenviar-activacion",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reenviar-activacion"]
+            }
+          }
+        },
+        {
+          "name": "Iniciar Sesión (Login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.token) {",
+                  "    pm.environment.set('token', json.token);",
+                  "  }",
+                  "  if (json.usuario && json.usuario.id) {",
+                  "    pm.environment.set('usuarioId', String(json.usuario.id));",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"usuario@umss.edu\",\n  \"password\": \"TuPassword\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Autentica al usuario y guarda automáticamente el token JWT en {{token}}."
+          }
+        },
+        {
+          "name": "Solicitar Recuperación de Contraseña",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"usuario@umss.edu\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "forgot-password"]
+            }
+          }
+        },
+        {
+          "name": "Restablecer Contraseña con Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"REEMPLAZAR_TOKEN_RECUPERACION\",\n  \"newPassword\": \"NuevaClaveSegura123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reset-password"]
+            }
+          }
+        },
+        {
+          "name": "Iniciar Sesión con Google OAuth",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"GOOGLE_ID_TOKEN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/google",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "google"]
+            }
+          }
+        },
+        {
+          "name": "Cambiar Contraseña (Autenticado)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passwordActual\": \"TuPasswordActual\",\n  \"nuevaPassword\": \"TuPasswordNueva123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/cambiar-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "cambiar-password"]
+            }
+          }
+        },
+        {
+          "name": "Desactivar Cuenta Propia",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/eliminar-cuenta",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "eliminar-cuenta"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Usuarios y Perfil",
+      "item": [
+        {
+          "name": "Obtener Mi Perfil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/perfil",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "perfil"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Mi Perfil",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Nombre Actualizado\",\n  \"ci\": \"12345678\",\n  \"telefono\": \"70012345\",\n  \"carreraId\": 1,\n  \"fotoUrl\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/perfil",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "perfil"]
+            }
+          }
+        },
+        {
+          "name": "Consultar Auditoría de Sesiones (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/auditoria/sesiones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "auditoria", "sesiones"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todos los Usuarios (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios"]
+            }
+          }
+        },
+        {
+          "name": "Cambiar Rol de Usuario con Justificación (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rolId\": 2,\n  \"motivo\": \"Designación oficial como docente de la materia Sistemas Operativos.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}/rol",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "{{usuarioId}}", "rol"]
+            }
+          }
+        },
+        {
+          "name": "Cambiar Estado de Cuenta (Activar / Suspender)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": true,\n  \"motivo\": \"Reactivación tras regularización académica.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "{{usuarioId}}", "estado"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Roles y Solicitudes",
+      "item": [
+        {
+          "name": "Listar Roles",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roles"]
+            }
+          }
+        },
+        {
+          "name": "Solicitar Elevación de Rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rolSolicitado\": \"Docente\",\n  \"motivo\": \"Docente titular de Redes de Computadoras en la FCyT.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/roles/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roles", "request"]
+            }
+          }
+        },
+        {
+          "name": "Listar Solicitudes de Rol Pendientes (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/roles/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roles", "requests"]
+            }
+          }
+        },
+        {
+          "name": "Aprobar o Rechazar Solicitud de Rol (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"Aprobar\",\n  \"motivoRechazo\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/roles/manage/{{solicitudRolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roles", "manage", "{{solicitudRolId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Carreras",
+      "item": [
+        {
+          "name": "Listar Carreras FCyT",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/carreras",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "carreras"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Laboratorios y Horarios",
+      "item": [
+        {
+          "name": "Listar Laboratorios",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/laboratorios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laboratorios"]
+            }
+          }
+        },
+        {
+          "name": "Obtener Laboratorio por ID",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/laboratorios/{{laboratorioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laboratorios", "{{laboratorioId}}"]
+            }
+          }
+        },
+        {
+          "name": "Ver Calendario de Laboratorio",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/laboratorios/{{laboratorioId}}/calendario",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laboratorios", "{{laboratorioId}}", "calendario"]
+            }
+          }
+        },
+        {
+          "name": "Crear Laboratorio (Admin / Responsable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Laboratorio de Redes Avanzadas\",\n  \"capacidad\": 30,\n  \"ubicacion\": \"Edificio Multiacadémico, Piso 3\",\n  \"latitud\": -17.3935,\n  \"longitud\": -66.1468,\n  \"estadoOperativo\": \"Activo\",\n  \"carreraId\": 1,\n  \"reservaPorComputadora\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/laboratorios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laboratorios"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Laboratorio (Admin / Responsable)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacidad\": 35,\n  \"estadoOperativo\": \"Activo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/laboratorios/{{laboratorioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laboratorios", "{{laboratorioId}}"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar Laboratorio (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/laboratorios/{{laboratorioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laboratorios", "{{laboratorioId}}"]
+            }
+          }
+        },
+        {
+          "name": "Configurar Horarios Semanales (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"horarios\": [\n    { \"dia\": \"Lunes\", \"horaApertura\": \"06:45\", \"horaCierre\": \"21:45\" },\n    { \"dia\": \"Martes\", \"horaApertura\": \"06:45\", \"horaCierre\": \"21:45\" },\n    { \"dia\": \"Miércoles\", \"horaApertura\": \"06:45\", \"horaCierre\": \"21:45\" },\n    { \"dia\": \"Jueves\", \"horaApertura\": \"06:45\", \"horaCierre\": \"21:45\" },\n    { \"dia\": \"Viernes\", \"horaApertura\": \"06:45\", \"horaCierre\": \"21:45\" },\n    { \"dia\": \"Sábado\", \"horaApertura\": \"06:45\", \"horaCierre\": \"12:45\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/laboratorios/{{laboratorioId}}/horarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laboratorios", "{{laboratorioId}}", "horarios"]
+            }
+          }
+        },
+        {
+          "name": "Reserva Individual PC vía Laboratorios (Estudiante)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroComputadora\": 1,\n  \"fechaInicio\": \"2026-11-20T14:15\",\n  \"fechaFin\": \"2026-11-20T15:45\",\n  \"motivo\": \"Práctica de programación en C++\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/laboratorios/{{laboratorioId}}/reservas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laboratorios", "{{laboratorioId}}", "reservas"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Equipamientos",
+      "item": [
+        {
+          "name": "Listar Catálogo Base de Equipamientos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipamientos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipamientos"]
+            }
+          }
+        },
+        {
+          "name": "Crear Equipamiento Base (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Switch Cisco Catalyst 2960\",\n  \"tipo\": \"Redes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/equipamientos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipamientos"]
+            }
+          }
+        },
+        {
+          "name": "Vincular Equipamiento a Laboratorio (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipamientoId\": 1,\n  \"cantidad\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/equipamientos/laboratorio/{{laboratorioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipamientos", "laboratorio", "{{laboratorioId}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Cantidad de Equipamiento (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/equipamientos/laboratorio/{{laboratorioId}}/{{equipamientoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipamientos", "laboratorio", "{{laboratorioId}}", "{{equipamientoId}}"]
+            }
+          }
+        },
+        {
+          "name": "Desvincular Equipamiento de Laboratorio (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipamientos/laboratorio/{{laboratorioId}}/{{equipamientoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipamientos", "laboratorio", "{{laboratorioId}}", "{{equipamientoId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. Reservas y Asistencia QR",
+      "item": [
+        {
+          "name": "Crear Reserva de Laboratorio (Docente / Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.reserva && json.reserva.id) {",
+                  "    pm.environment.set('reservaId', String(json.reserva.id));",
+                  "  }",
+                  "  if (json.reserva && json.reserva.tokenQr) {",
+                  "    pm.environment.set('tokenQr', json.reserva.tokenQr);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"laboratorioId\": 1,\n  \"fechaInicio\": \"2026-11-20T14:15\",\n  \"fechaFin\": \"2026-11-20T15:45\",\n  \"materia\": \"Servicios Telemáticos\",\n  \"cantidadAlumnos\": 25,\n  \"motivo\": \"Sesión práctica de laboratorio\",\n  \"recurrente\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas"]
+            },
+            "description": "Crea y aprueba automáticamente la reserva. Dispara el comprobante QR por correo electrónico al titular."
+          }
+        },
+        {
+          "name": "Crear Reserva Individual de PC (Estudiante)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.environment.set('reservaId', String(json.data.id));",
+                  "  }",
+                  "  if (json.data && json.data.tokenQr) {",
+                  "    pm.environment.set('tokenQr', json.data.tokenQr);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroComputadora\": 2,\n  \"fechaInicio\": \"2026-11-20T14:15\",\n  \"fechaFin\": \"2026-11-20T15:45\",\n  \"motivo\": \"Desarrollo de proyecto de grado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/{{laboratorioId}}/reservas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "{{laboratorioId}}", "reservas"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todas las Reservas (Admin / Responsable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Reservas Pendientes (Admin / Responsable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/pendientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "pendientes"]
+            }
+          }
+        },
+        {
+          "name": "Listar Mis Reservas (Autenticado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/mis-reservas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "mis-reservas"]
+            }
+          }
+        },
+        {
+          "name": "Listar Turno Actual para Check-In (Admin / Responsable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/turno-actual",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "turno-actual"]
+            }
+          }
+        },
+        {
+          "name": "Obtener QR de Reserva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.tokenQr) {",
+                  "    pm.environment.set('tokenQr', json.data.tokenQr);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/{{reservaId}}/qr",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "{{reservaId}}", "qr"]
+            }
+          }
+        },
+        {
+          "name": "Escanear QR de Ingreso (Admin / Responsable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenQr\": \"{{tokenQr}}\",\n  \"forzarValidacionTiempo\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/escanear-qr",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "escanear-qr"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Asistencia Manual (Admin / Responsable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Verificación presencial con cédula de identidad en puerta.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/{{reservaId}}/asistencia-manual",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "{{reservaId}}", "asistencia-manual"]
+            }
+          }
+        },
+        {
+          "name": "Gestionar Reserva Unificado (Admin / Responsable)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"Aprobar\",\n  \"motivoRechazo\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/{{reservaId}}/gestionar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "{{reservaId}}", "gestionar"]
+            }
+          }
+        },
+        {
+          "name": "Aprobar Reserva (Admin / Responsable)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/{{reservaId}}/aprobar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "{{reservaId}}", "aprobar"]
+            }
+          }
+        },
+        {
+          "name": "Rechazar Reserva (Admin / Responsable)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Ambiente reservado para examen de mesa institucional.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/{{reservaId}}/rechazar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "{{reservaId}}", "rechazar"]
+            }
+          }
+        },
+        {
+          "name": "Cancelar Reserva Propia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Cambio de programación académica.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/{{reservaId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "{{reservaId}}", "cancelar"]
+            }
+          }
+        },
+        {
+          "name": "Cancelar por Fuerza Mayor (Admin / Responsable)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Corte programado de energía eléctrica en el bloque académico.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reservas/{{reservaId}}/cancelar-fuerza-mayor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reservas", "{{reservaId}}", "cancelar-fuerza-mayor"]
+            },
+            "description": "Cancela sin sancionar al usuario y envía aviso formal por correo electrónico."
+          }
+        }
+      ]
+    },
+    {
+      "name": "09. Mantenimientos",
+      "item": [
+        {
+          "name": "Listar Mantenimientos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mantenimientos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mantenimientos"]
+            }
+          }
+        },
+        {
+          "name": "Programar Mantenimiento (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"laboratorioId\": 1,\n  \"fechaInicio\": \"2026-11-22T08:00\",\n  \"fechaFin\": \"2026-11-22T18:00\",\n  \"motivo\": \"Mantenimiento preventivo de red y actualización de estaciones.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mantenimientos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mantenimientos"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar Mantenimiento (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mantenimientos/{{mantenimientoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mantenimientos", "{{mantenimientoId}}"]
+            }
+          }
+        },
+        {
+          "name": "Cambiar Estado Operativo del Laboratorio (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estadoOperativo\": \"Mantenimiento\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mantenimientos/laboratorios/{{laboratorioId}}/estado-operativo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mantenimientos", "laboratorios", "{{laboratorioId}}", "estado-operativo"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Feriados",
+      "item": [
+        {
+          "name": "Listar Feriados",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/feriados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "feriados"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Feriado o Bloqueo (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"2026-11-02\",\n  \"motivo\": \"Día de Todos los Difuntos\",\n  \"bloqueoActivo\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/feriados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "feriados"]
+            }
+          }
+        },
+        {
+          "name": "Activar / Desactivar Feriado (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/feriados/{{feriadoId}}/toggle",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "feriados", "{{feriadoId}}", "toggle"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar Feriado (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/feriados/{{feriadoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "feriados", "{{feriadoId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Sanciones",
+      "item": [
+        {
+          "name": "Consultar Mi Estado de Sanción",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sanciones/mi-estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sanciones", "mi-estado"]
+            }
+          }
+        },
+        {
+          "name": "Listar Mis Sanciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sanciones/mis-sanciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sanciones", "mis-sanciones"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todas las Sanciones (Admin / Responsable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sanciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sanciones"]
+            }
+          }
+        },
+        {
+          "name": "Procesar Inasistencias Manualmente (Admin / Responsable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toleranciaMinutos\": 15\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sanciones/procesar-inasistencias",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sanciones", "procesar-inasistencias"]
+            }
+          }
+        },
+        {
+          "name": "Aplicar Sanción Manual (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": 2,\n  \"horasDuracion\": 24,\n  \"motivo\": \"Incumplimiento reiterado del reglamento de uso del laboratorio.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sanciones/manual",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sanciones", "manual"]
+            }
+          }
+        },
+        {
+          "name": "Levantar / Perdonar Sanción (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivoPerdon\": \"Justificante médico o académico validado por administración.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sanciones/{{sancionId}}/perdonar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sanciones", "{{sancionId}}", "perdonar"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Notificaciones",
+      "item": [
+        {
+          "name": "Listar Mis Notificaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones"]
+            }
+          }
+        },
+        {
+          "name": "Marcar Todas como Leídas",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones/marcar-todas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones", "marcar-todas"]
+            }
+          }
+        },
+        {
+          "name": "Marcar Notificación como Leída",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones/{{notificacionId}}/leida",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones", "{{notificacionId}}", "leida"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. Push Web",
+      "item": [
+        {
+          "name": "Obtener Clave Pública VAPID",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/push/public-key",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "push", "public-key"]
+            }
+          }
+        },
+        {
+          "name": "Suscribir Dispositivo Push",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endpoint\": \"https://fcm.googleapis.com/fcm/send/ejemplo-endpoint\",\n  \"keys\": {\n    \"p256dh\": \"EJEMPLO_CLAVE_P256DH\",\n    \"auth\": \"EJEMPLO_CLAVE_AUTH\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/push/suscribir",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "push", "suscribir"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar Suscripción Push",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endpoint\": \"https://fcm.googleapis.com/fcm/send/ejemplo-endpoint\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/push/desuscribir",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "push", "desuscribir"]
+            }
+          }
+        },
+        {
+          "name": "Enviar Notificación Push de Prueba",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/push/probar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "push", "probar"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. Reportes y Analítica",
+      "item": [
+        {
+          "name": "Reporte de Asistencias (Admin / Responsable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/asistencias",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reportes", "asistencias"]
+            }
+          }
+        },
+        {
+          "name": "Métricas Académicas de Ocupación (Admin / Responsable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/metricas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reportes", "metricas"]
+            }
+          }
+        },
+        {
+          "name": "Exportar Métricas en CSV (Admin / Responsable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/exportar-csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reportes", "exportar-csv"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
