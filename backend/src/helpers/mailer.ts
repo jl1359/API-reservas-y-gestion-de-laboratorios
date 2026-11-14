@@ -10,12 +10,20 @@ const transporter = nodemailer.createTransport({
 });
 
 const getBaseUrl = () => {
-  const raw = process.env.CLIENT_URL || process.env.FRONTEND_URL || "";
-  const firstValid = raw
+  const raw = `${process.env.FRONTEND_URL || ""},${process.env.CLIENT_URL || ""}`;
+  const valid = raw
     .split(",")
     .map((u) => u.trim().replace(/\/+$/, ""))
-    .find(Boolean);
-  return firstValid || "http://localhost:5173";
+    .filter((u) => Boolean(u) && !u.includes("*") && (u.startsWith("http://") || u.startsWith("https://")));
+
+  if (valid.length > 0) {
+    const httpsUrl = valid.find((u) => u.startsWith("https://"));
+    return httpsUrl || valid[0];
+  }
+
+  return process.env.NODE_ENV === "production"
+    ? "https://labreserve-six.vercel.app"
+    : "http://localhost:5173";
 };
 
 const getSenderEmail = () =>
