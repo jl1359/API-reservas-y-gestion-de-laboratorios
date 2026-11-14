@@ -196,7 +196,7 @@ export const enviarCorreoConfirmacionReserva = async (
       margin: 2,
       color: { dark: "#002855", light: "#ffffff" },
     });
-    const qrBase64 = qrBuffer.toString("base64");
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(reserva.tokenQr)}&color=002855`;
 
     const detalleActividad = reserva.materia
       ? `<p style="margin:4px 0;"><strong>Materia:</strong> ${escapeHtml(reserva.materia)}</p>`
@@ -229,7 +229,7 @@ export const enviarCorreoConfirmacionReserva = async (
         </div>
         ${detalleSerie}
         <div style="text-align:center;margin:20px 0;">
-          <img src="data:image/png;base64,${qrBase64}" alt="Código QR de Reserva" style="width:220px;height:220px;border:1px solid #cbd5e1;border-radius:12px;padding:8px;background:#ffffff;" />
+          <img src="${qrUrl}" alt="Código QR de Reserva" style="width:220px;height:220px;border:1px solid #cbd5e1;border-radius:12px;padding:8px;background:#ffffff;display:inline-block;" />
           <p style="font-size:11px;color:#64748b;margin-top:8px;word-break:break-all;">Código manual: ${escapeHtml(reserva.tokenQr)}</p>
         </div>
         <p style="font-size:13px;color:#475569;">Recuerda validar tu ingreso dentro de los primeros <strong>15 minutos</strong> desde la hora de inicio para evitar sanciones por inasistencia.</p>
@@ -269,7 +269,7 @@ export const enviarCorreoRecordatorioReserva = async (
       margin: 2,
       color: { dark: "#002855", light: "#ffffff" },
     });
-    const qrBase64 = qrBuffer.toString("base64");
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(reserva.tokenQr)}&color=002855`;
 
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;border:1px solid #fde68a;border-radius:16px;color:#0f172a;background:#fffbeb;">
@@ -285,7 +285,7 @@ export const enviarCorreoRecordatorioReserva = async (
           ${reserva.numeroComputadora ? `<p style="margin:4px 0;"><strong>Equipo:</strong> PC-${reserva.numeroComputadora}</p>` : ""}
         </div>
         <div style="text-align:center;margin:18px 0;">
-          <img src="data:image/png;base64,${qrBase64}" alt="Código QR de Ingreso" style="width:200px;height:200px;border:1px solid #cbd5e1;border-radius:12px;padding:8px;background:#ffffff;" />
+          <img src="${qrUrl}" alt="Código QR de Ingreso" style="width:200px;height:200px;border:1px solid #cbd5e1;border-radius:12px;padding:8px;background:#ffffff;display:inline-block;" />
         </div>
         <div style="text-align:center;">
           <a href="${getBaseUrl()}/perfil" style="display:inline-block;padding:10px 20px;background:#d97706;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:bold;font-size:14px;">Abrir mi QR en Perfil</a>
