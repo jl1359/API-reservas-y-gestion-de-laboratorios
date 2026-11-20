@@ -2,6 +2,7 @@ import app from './app';
 import { prisma } from './config/prisma';
 import { iniciarWorkerInasistencias } from './workers/inasistencias.worker';
 import { iniciarWorkerRecordatorios } from './workers/recordatorios.worker';
+import { iniciarWorkerKeepAlive } from './workers/keepAlive.worker';
 
 /**
  * ARCHIVO: server.ts
@@ -28,6 +29,9 @@ const server = app.listen(PORT, () => {
 
   // Iniciar worker de recordatorios 10 minutos antes del turno
   iniciarWorkerRecordatorios(1);
+
+  // Iniciar worker de keep-alive para mantener despierto el contenedor y la base de datos
+  iniciarWorkerKeepAlive(10);
 });
 
 // Protocolo de alta disponibilidad: Apagado controlado (Graceful Shutdown)

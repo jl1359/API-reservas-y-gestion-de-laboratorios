@@ -1,0 +1,17 @@
+name: Keep-Alive LabReserve Cloud
+
+on:
+  schedule:
+    # Se ejecuta cada 14 minutos para evitar el reposo en Render y la pausa en Supabase
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-health:
+    name: Ping Health Check & Keep Database Active
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Keep-Alive HTTP Request
+        run: |
+          echo "Despachando ping telematico a LabReserve API..."
+          curl -sS --max-time 30 https://api-reservas-y-gestion-de-laboratorios.onrender.com/api/health || true

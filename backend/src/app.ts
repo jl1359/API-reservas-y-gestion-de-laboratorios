@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { prisma } from './config/prisma';
 import { apiRateLimiter } from './middlewares/rateLimiter';
 import authRoutes from './routes/auth.routes';
 import rolesRoutes from './routes/roles.routes';
@@ -79,13 +80,28 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 // Protocolo de seguridad: Mitigacion de ataques DoS y limitacion de tasa en endpoints API
 app.use('/api', apiRateLimiter);
 
-// Endpoint de verificacion de salud y protocolo HTTPS
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-    timestamp: new Date().toISOString()
-  });
+// Endpoint de verificacion de salud telematico y keep-alive de base de datos
+app.get('/api/health', async (req, res) => {
+  try {
+    // Consulta ligera: comprueba la conexion y evita que Supabase se pause por inactividad
+    await prisma.$queryRaw`SELECT 1`;
+
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      uptime: Math.floor(process.uptime()),
+      secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(503).json({
+      status: 'degraded',
+      database: 'disconnected',
+      error: 'La base de datos no responde',
+      secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 app.use('/api/auth', authRoutes);
